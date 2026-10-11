@@ -1,5 +1,10 @@
 # TaskbarNoob
 
+[![Latest release](https://img.shields.io/github/v/release/Neafong/TaskbarNoob?style=flat-square&label=release&color=blue)](https://github.com/Neafong/TaskbarNoob/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Neafong/TaskbarNoob/total?style=flat-square&color=brightgreen)](https://github.com/Neafong/TaskbarNoob/releases)
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg?style=flat-square)](LICENSE)
+[![Platform: Linux Mint (Cinnamon)](https://img.shields.io/badge/platform-Linux%20Mint%20(Cinnamon)-green.svg?style=flat-square)](#)
+
 > **รวบรวมทางลัด เรื่อง shortcut เราช่วยจัด** · *Gather your shortcuts, we do the rest.*
 
 จัดกลุ่ม shortcut ของคุณให้เป็นระเบียบ แล้วกดครั้งเดียวเปิดทั้งกลุ่มได้เลย
@@ -24,6 +29,8 @@
 > ฟีเจอร์ hotkey และการปักหมุด panel รองรับ **Cinnamon เท่านั้น**
 
 ## ดาวน์โหลด & ติดตั้ง / Download & Install
+
+[![Download latest release](https://img.shields.io/badge/download-latest%20release-brightgreen?style=for-the-badge)](https://github.com/Neafong/TaskbarNoob/releases/latest)
 
 เลือกจากหน้า **Releases** ของ repo:
 
