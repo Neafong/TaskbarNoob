@@ -1,0 +1,84 @@
+"""เปิด shortcut แบบข้าม OS (Linux / Windows / macOS) — Python ล้วน ไม่ผูก GUI."""
+
+from __future__ import annotations
+
+import os
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+from .models import Group, Shortcut
+
+
+class LaunchError(Exception):
+    """โยนเมื่อเปิด shortcut ไม่สำเร็จ."""
+
+
+def _split_arguments(arguments: str) -> list[str]:
+    if not arguments or not arguments.strip():
+        return []
+    return shlex.split(arguments, posix=sys.platform != "win32")
+
+
+def _resolve_cwd(working_dir: str | None) -> str | None:
+    if not working_dir:
+        return None
+    path = Path(working_dir)
+    return str(path) if path.is_dir() else None
+
+
+def launch(shortcut: Shortcut) -> None:
+    target = shortcut.target.strip()
+    if not target:
+        raise LaunchError("shortcut ไม่มี target")
+    args = _split_arguments(shortcut.arguments)
+    cwd = _resolve_cwd(shortcut.working_dir)
+
+    if sys.platform == "win32":
+        _launch_windows(target, args, cwd)
+    elif sys.platform == "darwin":
+        _launch_macos(target, args, cwd)
+    else:
+        _launch_linux(target, args, cwd)
+
+
+def _launch_linux(target: str, args: list[str], cwd: str | None) -> None:
+    try:
+        if target.endswith(".desktop"):
+            subprocess.Popen(["gio", "launch", target], cwd=cwd, start_new_session=True)
+            return
+        subprocess.Popen([target, *args], cwd=cwd, start_new_session=True)
+    except OSError as exc:
+        raise LaunchError(f"เปิด '{target}' ไม่สำเร็จ: {exc}") from exc
+
+
+def _launch_windows(target: str, args: list[str], cwd: str | None) -> None:
+    try:
+        if not args and not cwd:
+            os.startfile(target)  # type: ignore[attr-defined]
+            return
+        flags = getattr(subprocess, "DETACHED_PROCESS", 0)
+        subprocess.Popen([target, *args], cwd=cwd, creationflags=flags)
+    except OSError as exc:
+        raise LaunchError(f"เปิด '{target}' ไม่สำเร็จ: {exc}") from exc
+
+
+def _launch_macos(target: str, args: list[str], cwd: str | None) -> None:
+    command = ["open", target]
+    if args:
+        command += ["--args", *args]
+    try:
+        subprocess.Popen(command, cwd=cwd)
+    except OSError as exc:
+        raise LaunchError(f"เปิด '{target}' ไม่สำเร็จ: {exc}") from exc
+
+
+def launch_all(group: Group) -> list[str]:
+    errors: list[str] = []
+    for item in group.items:
+        try:
+            launch(item)
+        except LaunchError as exc:
+            errors.append(f"{item.name}: {exc}")
+    return errors

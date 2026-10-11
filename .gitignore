@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+config/
+lib/
+.pytest_cache/
+
+# build artifacts (safety net — normally live under dist/)
+*.AppImage
+*.deb
+*.zip

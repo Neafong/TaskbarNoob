@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=TaskbarNoob
+GenericName=Taskbar Groups
+Comment=รวบรวม shortcut เป็นกลุ่ม เปิดใช้ง่ายจาก panel
+Exec=taskbargroups
+Icon=taskbargroups
+Terminal=false
+Categories=Utility;
+Keywords=shortcut;launcher;group;taskbar;
+StartupNotify=true
+StartupWMClass=TaskbarNoob

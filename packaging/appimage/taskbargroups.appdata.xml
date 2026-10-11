@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>taskbargroups</id>
+  <name>TaskbarNoob</name>
+  <summary>รวบรวมทางลัด เรื่อง shortcut เราช่วยจัด</summary>
+  <developer id="io.github.neafong">
+    <name>Noob &amp; Pickle</name>
+  </developer>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>
+      TaskbarNoob ช่วยรวบรวม shortcut เป็นกลุ่ม แล้วเปิดใช้งานได้ง่าย ๆ จาก panel
+      เหมาะกับ Linux Mint (Cinnamon) โดยเก็บ config แบบ portable ไว้ข้าง ๆ แอป
+    </p>
+  </description>
+  <launchable type="desktop-id">taskbargroups.desktop</launchable>
+  <provides>
+    <binary>taskbargroups</binary>
+  </provides>
+  <categories>
+    <category>Utility</category>
+  </categories>
+</component>
