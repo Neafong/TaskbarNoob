@@ -718,3 +718,12 @@
 > → เก็บเป็นตัวเก็ง **v0.2** · ผู้ใช้ตกลงทางนี้
 >
 > ทิศทาง Windows: **เขียน Linux ให้จบก่อน** · Windows = พร้อมรุ่นถัดไป **หลังรวมฟีดแบ็กครบ** → จดลง `docs/roadmap.md` + `docs/feedback.md` รอบ #18
+
+## 2026-10-12 — เฟส G: `CONTRIBUTING.md` (ปิดชุดระบบเอกสาร A→G) `[เสร็จ]`
+
+- **G ✅** `CONTRIBUTING.md` (root) = วิธีร่วมพัฒนา: เริ่มอ่านอะไรก่อน · รายงานบั๊ก/เสนอฟีเจอร์ (ชี้ Issue template) ·
+  เซตอัป dev (venv + `tests/run.py`) · กติกาโค้ด (สถาปัตยกรรม `core/` ห้าม Qt · type hints · i18n parity `ja.json` ·
+  ไม่อัป binary/config เข้า repo · ห้าม secret) · แนวทาง PR (template + commit message + อัปเดต WORKLOG/feedback/AGENTS) ·
+  จุดที่เทสต์ยาก (Cinnamon-only · Wayland/จอหลายจอ/DE อื่น) · ลิงก์สนับสนุน Ko-fi
+- อัปเดต `docs/README.md`: ย้าย `CONTRIBUTING.md` เข้าตาราง "เอกสารที่มีอยู่" · มาร์กเฟส **G ✅**
+- **สถานะชุดเอกสาร:** A–E ✅ + G ✅ ครบ · เหลือ **F `docs/windows-plan.md`** — เลื่อนไว้ทำตอนจริงจังเรื่อง Windows (ผู้ใช้เคาะ "ทำ Linux ให้จบก่อน")
