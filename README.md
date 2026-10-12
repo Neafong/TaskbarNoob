@@ -15,6 +15,16 @@
 
 ---
 
+## ตัวอย่างหน้าจอ / Screenshots
+
+**ภาพรวมหน้าจอ / Overview**
+
+![ภาพรวมหน้าจอ TaskbarNoob](docs/screenshots/all-ui.jpg)
+
+| หน้าหลัก / Main window | แก้ไขกลุ่ม / Edit group |
+| :---: | :---: |
+| ![หน้าหลัก](docs/screenshots/main-window.png) | ![แก้ไขกลุ่ม](docs/screenshots/edit-group.png) |
+
 ## ฟีเจอร์เด่น / Features
 
 - 🗂️ จัดกลุ่ม shortcut เป็นการ์ด แต่ละกลุ่มมี grid ของไอคอน (ลากจัดลำดับได้)

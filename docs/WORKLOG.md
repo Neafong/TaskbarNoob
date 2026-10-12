@@ -683,3 +683,17 @@
 - ผู้ใช้เคาะ **GPL-3.0** (เหตุผล: อยากให้ทุกคนใช้ฟรี + ใครเอาไปต่อยอด/ขายต้องเปิดโค้ด → ขายไม่คุ้ม)
 - สร้าง `LICENSE` = ข้อความ GPL-3.0 มาตรฐาน (คัดจาก `/usr/share/common-licenses/GPL-3`, 674 บรรทัด)
 - เติมหัวข้อ License ใน `README.md`: GPL-3.0-or-later · Copyright (C) 2026 Noob & Pickle · SPDX + โน้ต Qt = LGPLv3 แยกต่างหาก
+
+## 2026-10-12 — ขึ้น GitHub: push + Release v0.1.0 + badge + สกรีนช็อต `[เสร็จ]`
+
+### Publish ขึ้น GitHub
+- commit แรก `ebfe189` · branch `main` · tag `v0.1.0`
+- ตั้ง SSH key (ed25519) → remote = `git@github.com:Neafong/TaskbarNoob.git`
+- `git push -u origin main` + `git push origin v0.1.0` → repo **public**
+- **GitHub Release `v0.1.0`** แนบ `TaskbarNoob-x86_64.AppImage` (50 MB) + `taskbargroups_0.1.0_amd64.deb` (42 MB)
+  · release notes ไทย · ไม่ใช่ draft/pre-release · topics ที่ใส่: linux · mint · cinnamon · taskbar · pyside6 · shortcuts
+
+### README polish
+- commit `cb48325`: badge (release / downloads / license / platform) + ปุ่ม Download latest release
+- ส่วน **ตัวอย่างหน้าจอ / Screenshots** — รูปใน `docs/screenshots/`
+  (`all-ui.jpg` ภาพรวม · `main-window.png` หน้าหลัก · `edit-group.png` แก้ไขกลุ่ม)
