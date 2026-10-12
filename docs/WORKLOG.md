@@ -710,3 +710,11 @@
 - **E ✅** `.github/` = CI (`workflows/tests.yml` — apt deps Qt + xvfb + `tests/run.py`) · **รอบแรกผ่าน (success) ทุกสเต็ป (run 38195536365)** ·
   ได้ badge `tests` เข้า README · `FUNDING.yml` (Ko-fi → ปุ่ม Sponsor อัตโนมัติ) · `ISSUE_TEMPLATE/` (bug + feature) · `PULL_REQUEST_TEMPLATE.md`
 - **ต่อไป F:** `docs/windows-plan.md` → G: `CONTRIBUTING.md`
+
+## 2026-10-12 — รอบ #18: ไอเดีย "กระเป๋าใส่ได้ทุกอย่าง" + ทิศทาง Windows `[จดแทน — ยังไม่ทำ]`
+
+> ผู้ใช้เสนอฟีเจอร์: ลากไฟล์/โฟลเดอร์อะไรก็ได้เข้ากลุ่ม → shortcut เปิดด้วยโปรแกรม Default ("กระเป๋า 1 ใบ").
+> ตอบ: **F7 (ลากเพิ่ม shortcut) ทำแล้ว** — เหลือแค่ "เปิดด้วย default" ฝั่ง Linux (ตอนนี้ `Popen([target])` เปิดไฟล์ไม่ได้ ต้อง `gio open`)
+> → เก็บเป็นตัวเก็ง **v0.2** · ผู้ใช้ตกลงทางนี้
+>
+> ทิศทาง Windows: **เขียน Linux ให้จบก่อน** · Windows = พร้อมรุ่นถัดไป **หลังรวมฟีดแบ็กครบ** → จดลง `docs/roadmap.md` + `docs/feedback.md` รอบ #18
