@@ -705,4 +705,5 @@
 - **A ✅** `docs/README.md` = แผนที่เอกสาร (ดัชนี + หลักการ 1 ไฟล์ = 1 หน้าที่ + ลำดับเฟส A→G)
 - **B ✅** `docs/roadmap.md` = แผนภาพรวมทุกเฟส (ย้าย checklist P0–P18 มา + งานถัดไป + แผน Windows W0–W5)
   · ย่อ `AGENTS.md` จาก 179 → ~120 บรรทัด (ตัดประวัติรอบ #10–#17 → ชี้ไป WORKLOG · คงหมายเหตุเทคนิคสำคัญไว้ครบ)
-- **ต่อไป C:** `docs/release-process.md` → D: `CHANGELOG.md` → E: `.github/` → F: `docs/windows-plan.md` → G: `CONTRIBUTING.md`
+- **C ✅** `docs/release-process.md` = ขั้นตอนออกรุ่น/อัปเดต (SemVer แหล่งเดียวที่ `__init__.py` · bump→CHANGELOG→build→tag→Release · release vs ปกติ)
+- **ต่อไป D:** `CHANGELOG.md` → E: `.github/` → F: `docs/windows-plan.md` → G: `CONTRIBUTING.md`

@@ -38,7 +38,7 @@
 |---|---|---|---|
 | **A** | ดัชนี/แผนที่เอกสาร (ไฟล์นี้) | `docs/README.md` | ✅ เสร็จ |
 | **B** | แผนภาพรวมทุกเฟส + ย่อ `AGENTS.md` ให้ชี้ไปแผน | `docs/roadmap.md` + `../AGENTS.md` | ✅ เสร็จ |
-| **C** | ขั้นตอนออกรุ่น/อัปเดต | `docs/release-process.md` | ⏳ |
+| **C** | ขั้นตอนออกรุ่น/อัปเดต | `docs/release-process.md` | ✅ เสร็จ |
 | **D** | ประวัติเวอร์ชัน (เริ่ม v0.1.0) | `CHANGELOG.md` | ⏳ |
 | **E** | ของ GitHub: CI + เทมเพลต + ปุ่มสนับสนุน | `.github/**` | ⏳ |
 | **F** | แผนพอร์ต Windows (W0–W5) | `docs/windows-plan.md` | ⏳ |
