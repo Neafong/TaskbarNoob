@@ -706,4 +706,5 @@
 - **B ✅** `docs/roadmap.md` = แผนภาพรวมทุกเฟส (ย้าย checklist P0–P18 มา + งานถัดไป + แผน Windows W0–W5)
   · ย่อ `AGENTS.md` จาก 179 → ~120 บรรทัด (ตัดประวัติรอบ #10–#17 → ชี้ไป WORKLOG · คงหมายเหตุเทคนิคสำคัญไว้ครบ)
 - **C ✅** `docs/release-process.md` = ขั้นตอนออกรุ่น/อัปเดต (SemVer แหล่งเดียวที่ `__init__.py` · bump→CHANGELOG→build→tag→Release · release vs ปกติ)
-- **ต่อไป D:** `CHANGELOG.md` → E: `.github/` → F: `docs/windows-plan.md` → G: `CONTRIBUTING.md`
+- **D ✅** `CHANGELOG.md` = ประวัติเวอร์ชันแบบ Keep a Changelog (Unreleased + v0.1.0 ครบ: Added/Fixed/Removed/Packaging + link compare)
+- **ต่อไป E:** `.github/` → F: `docs/windows-plan.md` → G: `CONTRIBUTING.md`
