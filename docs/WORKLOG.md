@@ -707,6 +707,6 @@
   · ย่อ `AGENTS.md` จาก 179 → ~120 บรรทัด (ตัดประวัติรอบ #10–#17 → ชี้ไป WORKLOG · คงหมายเหตุเทคนิคสำคัญไว้ครบ)
 - **C ✅** `docs/release-process.md` = ขั้นตอนออกรุ่น/อัปเดต (SemVer แหล่งเดียวที่ `__init__.py` · bump→CHANGELOG→build→tag→Release · release vs ปกติ)
 - **D ✅** `CHANGELOG.md` = ประวัติเวอร์ชันแบบ Keep a Changelog (Unreleased + v0.1.0 ครบ: Added/Fixed/Removed/Packaging + link compare)
-- **E ✅** `.github/` = CI (`workflows/tests.yml` — apt deps Qt + xvfb + `tests/run.py`, รอผลจริงจาก Actions รอบแรกบน repo) ·
-  `FUNDING.yml` (Ko-fi → ปุ่ม Sponsor อัตโนมัติ) · `ISSUE_TEMPLATE/` (bug + feature) · `PULL_REQUEST_TEMPLATE.md`
+- **E ✅** `.github/` = CI (`workflows/tests.yml` — apt deps Qt + xvfb + `tests/run.py`) · **รอบแรกผ่าน (success) ทุกสเต็ป (run 38195536365)** ·
+  ได้ badge `tests` เข้า README · `FUNDING.yml` (Ko-fi → ปุ่ม Sponsor อัตโนมัติ) · `ISSUE_TEMPLATE/` (bug + feature) · `PULL_REQUEST_TEMPLATE.md`
 - **ต่อไป F:** `docs/windows-plan.md` → G: `CONTRIBUTING.md`
