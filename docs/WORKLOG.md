@@ -697,3 +697,12 @@
 - commit `cb48325`: badge (release / downloads / license / platform) + ปุ่ม Download latest release
 - ส่วน **ตัวอย่างหน้าจอ / Screenshots** — รูปใน `docs/screenshots/`
   (`all-ui.jpg` ภาพรวม · `main-window.png` หน้าหลัก · `edit-group.png` แก้ไขกลุ่ม)
+
+## 2026-10-12 — จัดระเบียบเอกสาร (เฟส A–B ของระบบการเขียนแผน) `[กําลังทำ]`
+
+> คำขอ: แยกไฟล์แผน/อัปเดตให้เป็นระเบียบ อย่าให้บวมที่ไฟล์เดียว + แบ่งงานเป็นเฟส กันโทเคนหมดกลางทาง
+
+- **A ✅** `docs/README.md` = แผนที่เอกสาร (ดัชนี + หลักการ 1 ไฟล์ = 1 หน้าที่ + ลำดับเฟส A→G)
+- **B ✅** `docs/roadmap.md` = แผนภาพรวมทุกเฟส (ย้าย checklist P0–P18 มา + งานถัดไป + แผน Windows W0–W5)
+  · ย่อ `AGENTS.md` จาก 179 → ~120 บรรทัด (ตัดประวัติรอบ #10–#17 → ชี้ไป WORKLOG · คงหมายเหตุเทคนิคสำคัญไว้ครบ)
+- **ต่อไป C:** `docs/release-process.md` → D: `CHANGELOG.md` → E: `.github/` → F: `docs/windows-plan.md` → G: `CONTRIBUTING.md`
