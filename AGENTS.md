@@ -70,7 +70,8 @@
 
 ## โครงไฟล์
 ```
-README.md                          (ไทย + อังกฤษ · หน้าแรก repo) · LICENSE (GPL-3.0) · CHANGELOG.md (วางแผน)
+README.md                          (ไทย + อังกฤษ · หน้าแรก repo) · LICENSE (GPL-3.0) · CHANGELOG.md (Keep a Changelog)
+.github/                            FUNDING.yml (Ko-fi) · ISSUE_TEMPLATE/ · PULL_REQUEST_TEMPLATE.md · workflows/tests.yml (CI)
 taskbargroups/
 ├── __main__.py                     (GUI + CLI --open/--list/--import)
 ├── core/  models.py · storage.py · paths.py · launcher.py · desktop.py · hotkeys.py · panel.py
