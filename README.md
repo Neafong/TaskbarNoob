@@ -33,7 +33,6 @@
 - ⌨️ ตั้ง **ปุ่มลัด (hotkey)** เปิดกลุ่มได้ทันที
 - 🎨 ธีม auto / light / dark · ปรับความโปร่งใสและขนาดไอคอน
 - 💾 **Portable** — config อยู่ในโฟลเดอร์แอป (`config/`)
-- 🪟 นำเข้ากลุ่มจาก **Windows Taskbar Groups** (`ObjectData.xml`)
 - 🌐 ภาษา **ไทย / English** + เพิ่มภาษาใหม่เองได้ผ่านไฟล์ JSON
 - 📦 สำรอง/กู้คืน config ทั้งชุดเป็นไฟล์ `.zip`
 
@@ -80,7 +79,7 @@ bash packaging/build_deb.sh        # -> dist/taskbargroups_<ver>_amd64.deb
 ## ทดสอบ / Tests
 
 ```bash
-.venv/bin/python tests/run.py      # 240 tests
+.venv/bin/python tests/run.py      # 221 tests
 ```
 
 ## การเพิ่มภาษา / Adding a language

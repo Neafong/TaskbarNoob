@@ -602,16 +602,17 @@
 - **ราคา/สิ่งที่เสียไป:** คนที่ *ยัง* ใช้แอปต้นฉบับอยู่ตอนนี้จะย้ายกลุ่มเก่าผ่านหน้าจอไม่ได้อีก (ผู้ใช้รับได้)
 - **ขอบเขตตำแหน่ง (ผู้ใช้ย้ำ 2026-10-12):** **"นำเข้าทั้งหมด" คงไว้ที่ Settings ที่เดิม — ไม่ย้าย/ไม่แตะ** · ตัดเฉพาะ "นำเข้ากลุ่ม" + โค้ดที่เกี่ยวข้อง (UI แถวหลักจะโปร่งขึ้น: เหลือ add / edit / delete)
 
-### 📋 เช็กลิสต์งานจริง (ค่อยทำในเซคชันหน้า — v0.2) `[ยังไม่ทำ]`
-- ลบปุ่มใน `gui/main_window.py` (แถว `_nav_buttons` — `("main.import_group", self.on_import)`) + เมธอด `on_import`
-- ลบ `core/importer.py` + เทสต์ `tests/test_importer.py`
-- ลบ CLI `--import` ใน `__main__.py`
-- ลบ i18n keys `main.import_*` (TH/EN) + คีย์ที่ผูกใน `packaging/lang/ja.json` (parity)
-- ลบ/ปรับที่อ้างใน `README.md` (ฟีเจอร์ + CLI) · `docs/upstream.md` (คงไว้เป็น "ประวัติ/แรงบันดาลใจ" ไม่ใช่ฟีเจอร์)
-- อัปเดต `AGENTS.md` (โครงไฟล์/วิธีรัน ไม่มี `--import` แล้ว) + `CHANGELOG.md` → `Removed`
-- รัน `.venv/bin/python tests/run.py` (จำนวนเทสต์จะลดลงตามที่ลบ) + build
+### 📋 เช็กลิสต์งานจริง (ค่อยทำในเซคชันหน้า — v0.2) `[✅ เสร็จแล้ว 2026-10-13]`
+- ✅ ลบปุ่มใน `gui/main_window.py` (แถว `_nav_buttons` — `("main.import_group", self.on_import)`) + เมธอด `on_import`
+- ✅ ลบ `core/importer.py` + เทสต์ `tests/test_importer.py`
+- ✅ ลบ CLI `--import` ใน `__main__.py`
+- ✅ ลบ i18n keys `main.import_*` (TH/EN) + คีย์ที่ผูกใน `packaging/lang/ja.json` (parity)
+- ✅ ลบ/ปรับที่อ้างใน `README.md` (ฟีเจอร์ + CLI) · `docs/upstream.md` (คงไว้เป็น "ประวัติ/แรงบันดาลใจ" ไม่ใช่ฟีเจอร์) · `docs/data-model.md`
+- ✅ อัปเดต `AGENTS.md` (โครงไฟล์/วิธีรัน ไม่มี `--import` แล้ว) + `CHANGELOG.md` → `Removed`
+- ✅ รัน `.venv/bin/python tests/run.py` (**221 ผ่าน** — จาก 240, ลด 19 ตามจำนวนเทสต์ importer) ·
+  repackage รวบไว้ตอนปิด v0.2 ทั้งชุด (ตามแนว P16d/P17e)
 
-**สถานะ:** ⚖️ ล็อกข้อตัดสินใจแล้ว — งานจริงไว้ **เซคชัน/รอบถัดไป (v0.2)**
+**สถานะ:** ✅ **เสร็จแล้ว (v0.2-A · 2026-10-13)** — หน้าหลักเหลือ add / edit / delete + ⚙ · "นำเข้าทั้งหมด" ยังอยู่ที่ Settings ตามเดิม
 
 ---
 

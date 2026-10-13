@@ -7,7 +7,7 @@
 ## ภาพรวม
 
 เป้าหมาย: แอปจัดกลุ่ม shortcut แล้วกดครั้งเดียวเปิดทั้งกลุ่ม — **Linux Mint (Cinnamon) เป้าหลัก, Windows เป้ารอง**
-- สถานะ: **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12)** — Phase 18 เสร็จ · 240 เทสต์ · build ผ่าน
+- สถานะ: **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12)** — Phase 18 เสร็จ · v0.2-A (ตัด importer Windows) เสร็จ · 221 เทสต์ · build ผ่าน
 - repo: **github.com/Neafong/TaskbarNoob** (Public) · License **GPL-3.0-or-later** · Release แนบ AppImage + `.deb`
 
 ## เฟสที่ทำแล้ว (Linux — Cinnamon)

@@ -32,7 +32,8 @@
 ## สถานะปัจจุบัน
 - **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12):** repo `github.com/Neafong/TaskbarNoob` (Public) ·
   Release แนบ `TaskbarNoob-x86_64.AppImage` + `taskbargroups_0.1.0_amd64.deb` · GPL-3.0 · README มี badge + Screenshots
-- **โค้ดล่าสุด:** Phase 18 (import/export zip) เสร็จ · **240 เทสต์** · build ผ่าน · ภาษา TH/EN + asset ตัวอย่าง `packaging/lang/ja.json`
+- **โค้ดล่าสุด:** v0.2-A เสร็จ — ตัด "นำเข้ากลุ่ม (Windows)" ทั้งชุด (ปุ่ม + CLI `--import` + `core/importer.py`)
+  · **221 เทสต์** · import/export zip (P18) ยังอยู่ · ภาษา TH/EN + asset ตัวอย่าง `packaging/lang/ja.json`
 - **แผนต่อจากนี้:** ดู `docs/roadmap.md` + `docs/feedback.md` (งานถัดไป = เก็บฟีดแบ็กผู้ใช้ · Windows port เป้าหลัง)
 - **ยังเทสต์บนเครื่องนี้ไม่ได้:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่น (hotkey/pin = Cinnamon-only)
 
@@ -61,8 +62,7 @@
 ## วิธีรัน / Dev
 - รันแอป: `.venv/bin/python -m taskbargroups`
 - เปิด flyout: `... -m taskbargroups --open "<GroupDir>"` · list: `... --list`
-- นำเข้ากลุ่มจาก Windows: `... -m taskbargroups --import "<โฟลเดอร์ที่มี ObjectData.xml>"`
-- เทสต์: `.venv/bin/python tests/run.py` → **240 ผ่าน**
+- เทสต์: `.venv/bin/python tests/run.py` → **221 ผ่าน**
   · (ถ้ารัน `python -m unittest discover -s tests` ผลเทสต์เท่ากันแต่ตอนปิด PySide6 6.12 จะ segfault
     ใน `destroyQCoreApplication()` — บั๊กฝั่ง Qt · `tests/run.py` เรียก `os._exit()` เลี่ยงให้)
 - แพ็ก: `bash packaging/build_appimage.sh` → `dist/TaskbarNoob-x86_64.AppImage`
@@ -73,17 +73,17 @@
 README.md                          (ไทย + อังกฤษ · หน้าแรก repo) · LICENSE (GPL-3.0) · CHANGELOG.md (Keep a Changelog)
 .github/                            FUNDING.yml (Ko-fi) · ISSUE_TEMPLATE/ · PULL_REQUEST_TEMPLATE.md · workflows/tests.yml (CI)
 taskbargroups/
-├── __main__.py                     (GUI + CLI --open/--list/--import)
+├── __main__.py                     (GUI + CLI --open/--list)
 ├── core/  models.py · storage.py · paths.py · launcher.py · desktop.py · hotkeys.py · panel.py
 │          settings.py (config/settings.json · ธีม · ภาษา) · i18n.py (TH/EN + config/lang overlay)
-│          icons.py (resolve/cache ไอคอน รวม .AppImage) · importer.py (ObjectData.xml → group.json)
+│          icons.py (resolve/cache ไอคอน รวม .AppImage)
 │          archive.py (export/inspect/import config zip · merge/replace · zip-slip guard)
 └── gui/   main_window.py · group_editor.py (ShortcutGrid + _SystemIconDialog) · flyout.py (FlyoutController single-instance)
            theme.py · settings_dialog.py · icons.py · hotkey_dialog.py · about_dialog.py
 packaging/  entrypoint.py · make_icon.py · render_icon.py (SVG→PNG) · build_appimage.sh · build_deb.sh · slim_bundle.sh
             lang/ (assets ภาษาให้ผู้ใช้ import เอง — ตัวอย่าง: ja.json) · assets/ (Logo TG.svg + .vectorcraft)
             appimage/ AppRun · taskbargroups.desktop · taskbargroups.png · taskbargroups.svg · .appdata.xml
-tests/  test_* (models · storage · launcher · gui_smoke · desktop · hotkeys · icons · importer · paths
+tests/  test_* (models · storage · launcher · gui_smoke · desktop · hotkeys · icons · paths
         flyout · grid_drag · settings · group_editor · i18n · archive)
 docs/   README.md (แผนที่เอกสาร) · roadmap.md (แผนเฟส/งานถัดไป) · WORKLOG.md (ประวัติ) · feedback.md
         data-model.md · upstream.md · phase18-plan.md · screenshots/

@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 from PySide6.QtCore import QUrl, Qt
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtGui import QDesktopServices, QPalette
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -95,25 +95,38 @@ class SettingsDialog(QDialog):
         self._form.addRow("", backup_buttons)
 
         self.config_button = QPushButton(str(self._settings.config_dir))
-        self.config_button.setFlat(True)
         self.config_button.setCursor(Qt.PointingHandCursor)
-        self.config_button.setStyleSheet("text-align: left;")
         self.config_button.setToolTip(tr("settings.open_config_dir"))
         self.config_button.clicked.connect(self._on_open_config)
+        self._style_config_button()
         self._form.addRow(tr("settings.config_dir"), self.config_button)
 
         layout.addLayout(self._form)
 
+        bottom = QHBoxLayout()
         self.credits_label = QLabel(tr("settings.credits"))
-        self.credits_label.setAlignment(Qt.AlignRight)
         credits_font = self.credits_label.font()
         credits_font.setItalic(True)
         self.credits_label.setFont(credits_font)
-        layout.addWidget(self.credits_label)
-
+        bottom.addWidget(self.credits_label)
+        bottom.addStretch(1)
         self.close_button = QPushButton(tr("settings.close"))
         self.close_button.clicked.connect(self.accept)
-        layout.addWidget(self.close_button, 0, Qt.AlignRight)
+        bottom.addWidget(self.close_button)
+        layout.addLayout(bottom)
+
+    def _style_config_button(self) -> None:
+        """ปุ่มเปิดโฟลเดอร์ config ให้ดู "กดได้" (กรอบ + hover) ไม่แบนเหมือนข้อความ."""
+        pal = self.palette()
+        border = pal.color(QPalette.ColorRole.Mid).name()
+        text = pal.color(QPalette.ColorRole.Text).name()
+        hover_bg = pal.color(QPalette.ColorRole.AlternateBase).name()
+        self.config_button.setStyleSheet(
+            "text-align: left;"
+            f"QPushButton {{ border: 1px solid {border}; border-radius: 4px;"
+            f" padding: 4px 10px; color: {text}; background: transparent; }}"
+            f"QPushButton:hover {{ background: {hover_bg}; }}"
+        )
 
     def _on_theme_changed(self, index: int) -> None:
         value = self.theme_combo.itemData(index)
@@ -121,6 +134,7 @@ class SettingsDialog(QDialog):
         app = QApplication.instance()
         if app is not None:
             apply_theme(app, resolve_theme(value, app))
+        self._style_config_button()
 
     def _on_language_changed(self, index: int) -> None:
         code = self.language_combo.itemData(index)

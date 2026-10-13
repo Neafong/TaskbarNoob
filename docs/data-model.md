@@ -82,36 +82,11 @@
 
 > GUI ตอน Save จะแคชไอคอนให้อัตโนมัติเมื่อ target หาไอคอนเจอ (หรือผู้ใช้เลือกไฟล์เอง)
 
-## Importer จาก Windows (`taskbargroups.core.importer`)
+## Importer จาก Windows (`taskbargroups.core.importer`) — ❌ ถูกตัดใน v0.2
 
-`ObjectData.xml` ของต้นฉบับเป็น .NET `XmlSerializer` ของคลาส `Category`:
-
-```xmlc
-<Category>
-  <Name>Tools</Name>
-  <ColorString>#1F1F1F</ColorString>      <!-- #1F1F1F=dark, #E6E6E6=light, อื่นๆ=custom -->
-  <allowOpenAll>false</allowOpenAll>
-  <ShortcutList>
-    <ProgramShortcut>
-      <FilePath>C:\Apps\app.exe</FilePath>
-      <isWindowsApp>false</isWindowsApp>
-      <name>App</name>
-      <Arguments/>
-      <WorkingDirectory/>
-    </ProgramShortcut>
-  </ShortcutList>
-  <Width>6</Width>
-  <Opacity>10</Opacity>                   <!-- 0..100, opacity จริง = 1 - v/100 -->
-</Category>
-```
-
-- `parse_object_data(xml)` / `load_object_data(path)` → `Group`
-- `import_group(store, source_dir, name=None)` — สร้างกลุ่มใหม่, คัดลอก
-  `GroupImage.png`/`GroupIcon.ico` เป็นไอคอนกลุ่ม และคัดลอกไอคอนใน `Icons/`
-  (ตั้งชื่อตามกติกาต้นฉบับ: `<ไฟล์>.png`, `<โฟลเดอร์>_FolderObjTSKGRoup.png`,
-  หรือลบอักขระพิเศษ `* ' " , _ & # ^ @` สำหรับ Windows app) ตั้งชื่อกลุ่มใหม่ถ้าซ้ำ
-
-CLI: `.venv/bin/python -m taskbargroups --import "<โฟลเดอร์ ObjectData.xml>"`
+ตัดฟีเจอร์นี้ออกทั้งชุด (รอบ #19 — ผู้ใช้ตัดสินใจ 2026-10-12): ลบปุ่ม / `core/importer.py` /
+CLI `--import` / เทสต์ เหลือ "นำเข้าทั้งหมด" จาก `.zip` สำรองใน Settings ปุ่มเดียวจบ
+ดูฟอร์แมต `ObjectData.xml` ของต้นฉบับย้อนหลังได้ที่ [`upstream.md`](upstream.md)
 
 ## Archive — Export/Import ทั้งชุด config (`taskbargroups.core.archive`)
 

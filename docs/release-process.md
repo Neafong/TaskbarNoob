@@ -14,7 +14,7 @@
 
 1. **bump version** — แก้ `taskbargroups/__init__.py` → `__version__ = "x.y.z"`
 2. **อัปเดต `CHANGELOG.md`** — หัวข้อใหม่ใต้ "Unreleased" ตามแนวคิด [Keep a Changelog](https://keepachangelog.com/)
-3. **เทสต์** — `.venv/bin/python tests/run.py` ต้องผ่าน (ปัจจุบัน 240)
+3. **เทสต์** — `.venv/bin/python tests/run.py` ต้องผ่าน (ปัจจุบัน 221)
 4. **build** — `bash packaging/build_appimage.sh` และ `bash packaging/build_deb.sh`
 5. **smoke test** — ตรวจ boot: `dist/TaskbarNoob-x86_64.AppImage --list` (หรือรันจากซอร์ส)
 6. **commit + push** (กุญแจ SSH ตั้งไว้แล้ว):

@@ -4,7 +4,6 @@
   "main.add_group": "グループを追加",
   "main.edit": "編集",
   "main.delete": "削除",
-  "main.import_group": "グループをインポート...",
   "main.setup_tooltip": "アプリ設定（テーマ / ランチャー / ホットキー）",
   "main.pinned_tip": "タスクバーに表示中",
   "main.not_pinned_tip": "タスクバーに非表示",
@@ -17,10 +16,6 @@
   "ctx.duplicate": "グループを複製",
   "ctx.delete": "グループを削除",
   "ctx.copy_suffix": "{name}（コピー）",
-  "main.import_pick_folder": "Windows のグループフォルダを選択（ObjectData.xml）",
-  "main.import_failed_title": "インポートに失敗",
-  "main.import_ok_title": "インポート完了",
-  "main.import_ok_body": "グループを '{dir_name}' としてインポートしました",
   "main.confirm_delete_title": "削除の確認",
   "main.confirm_delete_body": "グループ '{dir_name}' を削除しますか？",
   "main.name_taken_title": "名前が重複",
@@ -76,6 +71,7 @@
   "editor.shortcut_list_hint": "ショートカット（ファイルをドロップ可 · ドラッグで並び替え）",
   "editor.add": "追加",
   "editor.pick_color": "色を選択",
+  "editor.hex_tip": "#RRGGBB 形式の色コードを入力/貼り付け",
   "editor.pick_icon_dialog": "グループアイコンを選択",
   "settings.title": "設定",
   "settings.theme": "テーマ",
@@ -153,5 +149,6 @@
   "about.donate": "支援する ☕",
   "about.donate_tip": "Ko-fi ページを開いて開発者を支援",
   "about.close": "閉じる",
-  "settings.credits": "Made by Noob & Pickle"
+  "settings.credits": "Made by Noob & Pickle",
+  "flyout.reveal": "場所を開く"
 }

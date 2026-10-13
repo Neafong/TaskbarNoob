@@ -104,6 +104,7 @@ TH = {
     "editor.shortcut_list_hint": "รายการ shortcut (ลากไฟล์มาวางได้ · ลากสลับลำดับได้)",
     "editor.add": "เพิ่ม",
     "editor.pick_color": "เลือกสี",
+    "editor.hex_tip": "พิมพ์/วางรหัสสี #RRGGBB ได้เลย",
     "editor.pick_icon_dialog": "เลือกไอคอนกลุ่ม",
     # ตั้งค่า
     "settings.title": "ตั้งค่า",
@@ -283,6 +284,7 @@ EN = {
     "editor.shortcut_list_hint": "Shortcuts (drop files here · drag to reorder)",
     "editor.add": "Add",
     "editor.pick_color": "Pick color",
+    "editor.hex_tip": "Type or paste a #RRGGBB color code",
     "editor.pick_icon_dialog": "Pick group icon",
     "settings.title": "Settings",
     "settings.theme": "Theme",

@@ -39,7 +39,7 @@ class I18nCoreTests(unittest.TestCase):
 
     def test_format_placeholder(self) -> None:
         self.assertEqual(
-            i18n.tr("main.import_ok_body", dir_name="Game"), "นำเข้ากลุ่มเป็น 'Game' แล้วค่ะ"
+            i18n.tr("ctx.copy_suffix", name="Game"), "Game (สำเนา)"
         )
 
     def test_missing_key_returns_key(self) -> None:

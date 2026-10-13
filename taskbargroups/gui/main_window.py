@@ -64,6 +64,15 @@ ICON_SIZE = QSize(32, 32)
 PINNED_ROLE = Qt.UserRole + 1
 
 
+def _style_menu(menu: QMenu) -> QMenu:
+    """เมนูร่วม: ให้ padding แนวตั้งพอดี ไม่ติดขอบ (เฟือง + คลิกขวากลุ่ม)."""
+    menu.setStyleSheet(
+        "QMenu { padding: 6px 4px; }"
+        "QMenu::item { padding: 8px 22px; }"
+    )
+    return menu
+
+
 class GroupListWidget(QListWidget):
     """ลิสต์กลุ่ม: ลากสลับลำดับได้ + ปุ่มสถานะ (รูปตา เปิด/ปิด) ท้ายสุดของแต่ละแถว."""
 
@@ -90,6 +99,27 @@ class GroupListWidget(QListWidget):
     def dropEvent(self, event) -> None:
         super().dropEvent(event)
         self.orderChanged.emit()
+
+    def startDrag(self, supported_actions) -> None:
+        QApplication.setOverrideCursor(Qt.SizeAllCursor)
+        try:
+            super().startDrag(supported_actions)
+        finally:
+            QApplication.restoreOverrideCursor()
+
+    def dragEnterEvent(self, event) -> None:
+        if event.source() is self:
+            event.setDropAction(Qt.MoveAction)
+            event.accept()
+            return
+        super().dragEnterEvent(event)
+
+    def dragMoveEvent(self, event) -> None:
+        if event.source() is self:
+            event.setDropAction(Qt.MoveAction)
+            event.accept()
+            return
+        super().dragMoveEvent(event)
 
     def pin_rect(self, item: QListWidgetItem) -> QRect:
         rect = self.visualItemRect(item)
@@ -162,7 +192,7 @@ class GroupListWidget(QListWidget):
             painter.save()
             painter.setPen(Qt.NoPen)
             color = self.palette().color(QPalette.ColorRole.Highlight)
-            color.setAlpha(60)
+            color.setAlpha(45)  # โปร่งแสงขึ้น ดูนุ่มกว่า
             painter.setBrush(color)
             painter.drawRoundedRect(rect.adjusted(1, 5, -1, -5), 6, 6)
             painter.restore()
@@ -494,7 +524,7 @@ class MainWindow(QMainWindow):
 
     def _group_context_menu(self, dir_name: str) -> QMenu:
         pinned = desktop_file_name(dir_name) in pinned_desktop_ids()
-        menu = QMenu(self)
+        menu = _style_menu(QMenu(self))
         menu.addAction(tr("ctx.open"), self.on_open)
         menu.addAction(tr("ctx.edit"), self.on_edit)
         menu.addSeparator()
@@ -519,7 +549,7 @@ class MainWindow(QMainWindow):
         self.refresh()
 
     def _open_setup_menu(self) -> None:
-        menu = QMenu(self)
+        menu = _style_menu(QMenu(self))
         menu.addAction(tr("menu.settings"), self.open_settings)
         menu.addAction(tr("menu.about"), self.open_about)
         menu.exec(self.setup_button.mapToGlobal(self.setup_button.rect().bottomLeft()))

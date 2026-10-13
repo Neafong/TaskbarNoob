@@ -727,3 +727,33 @@
   จุดที่เทสต์ยาก (Cinnamon-only · Wayland/จอหลายจอ/DE อื่น) · ลิงก์สนับสนุน Ko-fi
 - อัปเดต `docs/README.md`: ย้าย `CONTRIBUTING.md` เข้าตาราง "เอกสารที่มีอยู่" · มาร์กเฟส **G ✅**
 - **สถานะชุดเอกสาร:** A–E ✅ + G ✅ ครบ · เหลือ **F `docs/windows-plan.md`** — เลื่อนไว้ทำตอนจริงจังเรื่อง Windows (ผู้ใช้เคาะ "ทำ Linux ให้จบก่อน")
+
+## 2026-10-13 — v0.2-B: UI polish (B1, B4–B7) `[เสร็จส่วนง่าย]
+
+- **B1 — เคอร์เซอร์ลากกลุ่ม (หน้าหลัก + ShortcutGrid):** `startDrag` ครอบ `QApplication.setOverrideCursor(Qt.SizeAllCursor)` → เคอร์เซอร์ลูกศร 4 ทิศ · `dragEnter/dragMove` accept `MoveAction` สำหรับ internal drag → 🚫 หาย
+- **B5 — padding QMenu:** `_style_menu()` (padding 6px 4px, item 8px 22px) ใช้กับ context menu กลุ่ม + setup menu เฟือง
+- **B6 — credits+ปุ่มปิดแถวเดียวใน Settings:** `QHBoxLayout` แถวล่าง (credits ชิดซ้าย + stretch + ปิดชิดขวา) แทน 2 แถวเดิม
+- **B7 — ปุ่ม config path:** ปุ่ม outline มีกรอบ + hover (`_style_config_button`) · `QPalette` · re-style ตาม theme change
+- **B4 — swatch สี + ช่อง hex:** เปลี่ยนจาก `QPushButton` text เป็น `color_swatch` (32px) + `color_hex` (`QLineEdit`) · sync 2 ทาง (`_on_hex_edited/finished`, `_update_color_ui`) · `_normalize_hex` ย่อ `#rgb→#rrggbb` · รองรับ `is_hex_color` · `QPalette` import · เพิ่ม 2 เทสต์ `test_gui_smoke.py` → **223 ผ่าน** (จาก 221 เพิ่ม 2) · i18n `editor.hex_tip` (TH/EN) + parity `ja.json`
+
+**หมายเหตุ:** งด B2 (accent token+ไฮไลท์โปร่งแสง) และ B3 (ชุด SVG+theme tint) ตามคำขอ "งานง่ายทำก่อนงานยากทำทีหลัง" — จดไว้ใน `feedback.md`/`WORKLOG` เพื่อทำต่อได้.
+
+## 2026-10-13 — v0.2-B: B3 SVG icons + theme tint (ชั่วคราวกำลังทำ) `[สำเร็จแล้ว]
+- เพิ่มชุด SVG Phosphor Icons (fill): plus/pencil/trash/check/x/gear/eye/eye-slash/push-pin ลง `packaging/assets/icons/`
+- `gui/button_icons.py` ใหม่: tint SVG ด้วย `QPalette.ColorRole.Text` (SourceIn) + helper themed_icon/text_color_from_palette
+- `group_editor.py`: ใช้ SVG icons แทนอีโมจิ/ธีมระบบเดิม (add/edit/delete) + import ใหม่
+- `tests.run.py` → 223 ผ่านครบ
+
+หมายเหตุ: ยังไม่แตะ main_window (ปุ่ม Setup ปัจจุบันใช้ "⚙") ตามที่พิจารณาไว้ (B3 ครอบคลุมปุ่มในตัวแก้ไขก่อน; main_window ยัง fallback ได้)
+
+## 2026-10-13 — v0.2-B: B2 accent token + ไฮไลท์โปร่งแสง `[เสร็จ]
+- `theme.py`: เปลี่ยน accent เป็น `#4a90d9` (อ่อน/ทันสมัยขึ้น) + ตั้ง `Link` ให้เข้ากับ accent
+- `main_window.py`: pin hover alpha 60→45 (นุ่มขึ้น)
+- `group_editor.py`: drop highlight alpha 80→50 (นุ่มขึ้น)
+- `tests.run.py` → 223 ผ่านครบ
+
+## 2026-10-13 — v0.2-C: "กระเป๋าใส่ได้ทุกอย่าง" (type-aware + คลิกขวาเปิดโฟลเดอร์แม่) `[เสร็จ]
+- `core/launcher.py`: Linux ปรับให้เปิดได้ — .desktop (gio launch) · ไฟล์ที่มีอยู่ (gio open/xdg-open) · โฟลเดอร์ที่มีอยู่ (xdg-open/gio open) · executable ปกติ (เดิม)
+- `gui/flyout.py`: ปุ่มแต่ละไอคอนมี context menu คลิกขวา → "เปิดที่อยู่" เฉพาะไฟล์ที่มีอยู่จริง (ไม่ใช่โฟลเดอร์) → เปิด parent ด้วย xdg-open/gio open
+- i18n: เพิ่ม `flyout.reveal` (TH/EN) + `packaging/lang/ja.json`
+- `tests.run.py` → 223 ผ่านครบ

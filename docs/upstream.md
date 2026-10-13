@@ -19,7 +19,7 @@
 - แก้บั๊ก multi-monitor (#109)
 - tray options (#52) / autostart (#86) — ปิดไปแล้ว
 
-## โครงเก็บข้อมูลของต้นฉบับ (ใช้อ้างอิงทำ importer)
+## โครงเก็บข้อมูลของต้นฉบับ (อ้างอิงย้อนหลัง — importer ถูกตัดใน v0.2)
 - `config/<GroupName>/ObjectData.xml` = ค่าตั้งกลุ่ม + รายการ shortcut
 - `config/<GroupName>/Icons/` = cache ไอคอน
 - `config/<GroupName>/GroupIcon.ico` / `GroupImage.png` = ไอคอนกลุ่ม

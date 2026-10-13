@@ -7,9 +7,10 @@ import tempfile
 from pathlib import Path
 
 from PySide6.QtCore import QFileInfo, QPoint, QRect, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QIcon, QPainter, QPen
+from PySide6.QtGui import QColor, QIcon, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QApplication,
     QColorDialog,
     QComboBox,
     QDialog,
@@ -41,37 +42,41 @@ from taskbargroups.core.models import (
     ColorMode,
     Group,
     Shortcut,
+    is_hex_color,
 )
 from taskbargroups.core.storage import ConfigStore
+from .button_icons import themed_icon, text_color_from_palette
 
 _FALLBACK_GRID_ICON = "application-x-executable"
 _file_icon_provider = QFileIconProvider()
+
+
+def _normalize_hex(value: str) -> str:
+    """ปรับ hex เป็นรูปเต็ม #rrggbb ตัวพิมพ์เล็ก (ย่อ #rgb → #rrggbb)."""
+    value = value.strip()
+    if len(value) == 4:
+        return "#" + "".join(ch * 2 for ch in value[1:].lower())
+    return value.lower()
 
 _ICON_SUFFIXES = {".png", ".svg", ".xpm", ".jpg", ".jpeg"}
 _ICON_SCAN_LIMIT = 4000
 _ICON_DISPLAY_LIMIT = 1000
 
 _ITEM_BUTTON_ICONS = {
-    "add": ("list-add", "list-add-symbolic"),
-    "edit": ("document-edit", "document-edit-symbolic", "edit-rename", "text-editor"),
-    "delete": ("edit-delete", "edit-delete-symbolic", "user-trash", "trash-empty"),
+    "add": ("plus-fill.svg",),
+    "edit": ("pencil-simple-fill.svg",),
+    "delete": ("trash-fill.svg",),
 }
 
 
-def _theme_icon(names: tuple[str, ...]) -> QIcon:
-    for name in names:
-        icon = QIcon.fromTheme(name)
-        if not icon.isNull():
-            return icon
-    return QIcon()
-
-
 def _apply_button_icon(button: QPushButton, kind: str, fallback: str) -> None:
-    icon = _theme_icon(_ITEM_BUTTON_ICONS.get(kind, ()))
+    names = _ITEM_BUTTON_ICONS.get(kind)
+    icon = themed_icon(names[0], text_color_from_palette(button.palette())) if names else QIcon()
     if icon.isNull():
         button.setText(f"{fallback} {button.text()}")
     else:
         button.setIcon(icon)
+
 
 
 class _SystemIconDialog(QDialog):
@@ -209,7 +214,7 @@ class _DropHighlightDelegate(QStyledItemDelegate):
             painter.setRenderHint(QPainter.Antialiasing, True)
             color = option.palette.highlight().color()
             fill = QColor(color)
-            fill.setAlpha(80)
+            fill.setAlpha(50)  # โปร่งแสงขึ้น นุ่มกว่า
             pen = QPen(color)
             pen.setWidth(2)
             painter.setBrush(fill)
@@ -260,15 +265,27 @@ class ShortcutGrid(QListWidget):
     def startDrag(self, supported_actions) -> None:
         self._drag_source_row = self.currentRow()
         self._set_drop_row(None)
-        super().startDrag(supported_actions)
-        self._drag_source_row = None
-        self._set_drop_row(None)
+        QApplication.setOverrideCursor(Qt.SizeAllCursor)
+        try:
+            super().startDrag(supported_actions)
+        finally:
+            QApplication.restoreOverrideCursor()
+            self._drag_source_row = None
+            self._set_drop_row(None)
 
     def dragEnterEvent(self, event) -> None:
+        if event.source() is self:
+            event.setDropAction(Qt.MoveAction)
+            event.accept()
+            return
         event.acceptProposedAction()
 
     def dragMoveEvent(self, event) -> None:
         self._set_drop_row(self._target_row(event.position().toPoint()))
+        if event.source() is self:
+            event.setDropAction(Qt.MoveAction)
+            event.accept()
+            return
         event.acceptProposedAction()
 
     def dragLeaveEvent(self, event) -> None:
@@ -515,10 +532,20 @@ class GroupEditor(QDialog):
             max(0, self.color_combo.findData(self._group.color_mode.value))
         )
         self.color_combo.currentIndexChanged.connect(self._refresh_color_button)
-        self.color_button = QPushButton()
-        self.color_button.clicked.connect(self._pick_color)
+        self.color_swatch = QPushButton()
+        self.color_swatch.setFixedSize(32, 32)
+        self.color_swatch.setCursor(Qt.PointingHandCursor)
+        self.color_swatch.setToolTip(tr("editor.pick_color"))
+        self.color_swatch.clicked.connect(self._pick_color)
+        self.color_hex = QLineEdit(self._custom_color)
+        self.color_hex.setMaxLength(7)
+        self.color_hex.setPlaceholderText("#RRGGBB")
+        self.color_hex.setToolTip(tr("editor.hex_tip"))
+        self.color_hex.textEdited.connect(self._on_hex_edited)
+        self.color_hex.editingFinished.connect(self._on_hex_finished)
         color_row.addWidget(self.color_combo, 1)
-        color_row.addWidget(self.color_button, 1)
+        color_row.addWidget(self.color_swatch)
+        color_row.addWidget(self.color_hex, 1)
         color_widget = QWidget()
         color_widget.setLayout(color_row)
         form.addRow(tr("editor.bg_color"), color_widget)
@@ -644,14 +671,42 @@ class GroupEditor(QDialog):
 
     def _refresh_color_button(self) -> None:
         is_custom = self.color_combo.currentData() == ColorMode.CUSTOM.value
-        self.color_button.setEnabled(is_custom)
-        self.color_button.setText(self._custom_color)
+        self.color_swatch.setEnabled(is_custom)
+        self.color_hex.setEnabled(is_custom)
+        self._update_color_ui(from_swatch=True)
+
+    def _update_color_ui(self, from_swatch: bool = True) -> None:
+        border = self.palette().color(QPalette.ColorRole.Mid).name()
+        color = QColor(self._custom_color)
+        if color.isValid() and is_hex_color(self._custom_color):
+            self.color_swatch.setStyleSheet(
+                f"background: {color.name()}; border: 1px solid {border}; border-radius: 4px;"
+            )
+            if from_swatch:
+                self.color_hex.setText(color.name())
+        else:
+            self.color_swatch.setStyleSheet(
+                f"background: transparent; border: 1px solid {border}; border-radius: 4px;"
+            )
+
+    def _on_hex_edited(self, text: str) -> None:
+        if is_hex_color(text):
+            self._custom_color = _normalize_hex(text)
+            self._update_color_ui(from_swatch=False)
+
+    def _on_hex_finished(self) -> None:
+        text = self.color_hex.text()
+        if is_hex_color(text):
+            self._custom_color = _normalize_hex(text)
+            self._update_color_ui(from_swatch=True)
+        else:
+            self.color_hex.setText(self._custom_color)
 
     def _pick_color(self) -> None:
         color = QColorDialog.getColor(QColor(self._custom_color), self, tr("editor.pick_color"))
         if color.isValid():
             self._custom_color = color.name()
-            self._refresh_color_button()
+            self._update_color_ui(from_swatch=True)
 
     def _pick_icon(self) -> None:
         path, _ = QFileDialog.getOpenFileName(

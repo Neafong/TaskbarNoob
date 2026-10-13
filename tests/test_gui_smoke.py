@@ -67,6 +67,36 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertEqual(group.icon_size, 48)
         self.assertEqual(group.validate(), [])
 
+    def test_editor_hex_field_syncs_custom_color(self) -> None:
+        from taskbargroups.gui.group_editor import GroupEditor
+
+        editor = GroupEditor(self.store)
+        editor.color_combo.setCurrentIndex(
+            editor.color_combo.findData(ColorMode.CUSTOM.value)
+        )
+        editor.color_hex.setText("#abc")
+        editor._on_hex_finished()
+        self.assertEqual(editor._custom_color, "#aabbcc")
+        self.assertEqual(editor.color_hex.text(), "#aabbcc")
+        editor.color_hex.setText("not-a-color")
+        editor._on_hex_finished()
+        self.assertEqual(editor.color_hex.text(), "#aabbcc")
+
+    def test_editor_swatch_toggles_with_color_mode(self) -> None:
+        from taskbargroups.gui.group_editor import GroupEditor
+
+        editor = GroupEditor(self.store)
+        editor.color_combo.setCurrentIndex(
+            editor.color_combo.findData(ColorMode.DARK.value)
+        )
+        self.assertFalse(editor.color_swatch.isEnabled())
+        self.assertFalse(editor.color_hex.isEnabled())
+        editor.color_combo.setCurrentIndex(
+            editor.color_combo.findData(ColorMode.CUSTOM.value)
+        )
+        self.assertTrue(editor.color_swatch.isEnabled())
+        self.assertTrue(editor.color_hex.isEnabled())
+
     def test_flyout_builds_buttons(self) -> None:
         from taskbargroups.gui.flyout import FlyoutWindow
 
