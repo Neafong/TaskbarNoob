@@ -43,12 +43,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--open", dest="open_group", metavar="GROUP", help="เปิด flyout ของกลุ่ม")
     parser.add_argument("--list", action="store_true", help="แสดงชื่อกลุ่มทั้งหมด")
-    parser.add_argument(
-        "--import",
-        dest="import_dir",
-        metavar="DIR",
-        help="นำเข้ากลุ่มจากโฟลเดอร์ Taskbar Groups (Windows) ที่มี ObjectData.xml",
-    )
     parsed, _unknown = parser.parse_known_args(args_list)
 
     if parsed.list:
@@ -56,18 +50,6 @@ def main(argv: list[str] | None = None) -> int:
 
         for name in ConfigStore().list_groups():
             print(name)
-        return 0
-
-    if parsed.import_dir:
-        from taskbargroups.core.importer import GroupImportError, import_group
-        from taskbargroups.core.storage import ConfigStore
-
-        try:
-            dir_name = import_group(ConfigStore(), parsed.import_dir)
-        except GroupImportError as exc:
-            print(f"นำเข้าไม่สำเร็จ: {exc}", file=sys.stderr)
-            return 1
-        print(dir_name)
         return 0
 
     try:

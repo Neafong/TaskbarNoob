@@ -10,7 +10,6 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QDialog,
-    QFileDialog,
     QHBoxLayout,
     QListWidget,
     QListWidgetItem,
@@ -39,7 +38,7 @@ from taskbargroups.core.hotkeys import (
     is_cinnamon,
     unregister_cinnamon_hotkey,
 )
-from taskbargroups.core.importer import GroupImportError, import_group
+
 from taskbargroups.core.i18n import setup, tr
 from taskbargroups.core.panel import (
     PinError,
@@ -238,7 +237,6 @@ class MainWindow(QMainWindow):
             ("main.add_group", self.on_add),
             ("main.edit", self.on_edit),
             ("main.delete", self.on_delete),
-            ("main.import_group", self.on_import),
         ):
             button = QPushButton(tr(key))
             button.clicked.connect(slot)
@@ -448,24 +446,6 @@ class MainWindow(QMainWindow):
                 changed = True
         if changed:
             self.store.save_group(group)
-
-    def on_import(self) -> None:
-        path = QFileDialog.getExistingDirectory(
-            self, tr("main.import_pick_folder")
-        )
-        if not path:
-            return
-        try:
-            dir_name = import_group(self.store, path)
-        except GroupImportError as exc:
-            QMessageBox.warning(self, tr("main.import_failed_title"), str(exc))
-            return
-        self.refresh()
-        QMessageBox.information(
-            self,
-            tr("main.import_ok_title"),
-            tr("main.import_ok_body", dir_name=dir_name),
-        )
 
     def on_delete(self) -> None:
         dir_name = self._current_dir_name()
