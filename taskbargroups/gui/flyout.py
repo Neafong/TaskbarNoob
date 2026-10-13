@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QToolButton,
     QVBoxLayout,
     QWidget,
+    QMenu,
 )
 
 from taskbargroups.core.i18n import tr
@@ -23,6 +24,7 @@ from taskbargroups.core.models import (
     MIN_ICON_SIZE,
     ColorMode,
     Group,
+    Shortcut,
 )
 from taskbargroups.core.storage import ConfigStore, StorageError
 
@@ -138,6 +140,10 @@ class FlyoutWindow(QWidget):
         button.setText(label)
         button.setFixedSize(QSize(icon_size + 28, icon_size + 28))
         button.setToolTip(item.target)
+        button.setContextMenuPolicy(Qt.CustomContextMenu)
+        button.customContextMenuRequested.connect(
+            lambda _pos, it=item: self._show_context_menu(it)
+        )
         button.clicked.connect(lambda _=False, it=item: self._launch(it))
         return button
 
@@ -195,6 +201,32 @@ class FlyoutWindow(QWidget):
         self.show()
         self.raise_()
         self.activateWindow()
+
+    def _show_context_menu(self, item: Shortcut) -> None:
+        path = Path(item.target.strip())
+        if not path.exists() or path.is_dir():
+            return
+        menu = QMenu(self)
+        menu.addAction(tr("flyout.reveal"), lambda: self._reveal(item))
+        menu.exec(QCursor.pos())
+        menu.deleteLater()
+
+    def _reveal(self, item: Shortcut) -> None:
+        path = Path(item.target.strip())
+        if not path.exists():
+            return
+        parent = path.parent
+        if not parent.exists():
+            return
+        try:
+            import subprocess
+            subprocess.Popen(["xdg-open", str(parent)], start_new_session=True)
+        except OSError:
+            try:
+                import subprocess
+                subprocess.Popen(["gio", "open", str(parent)], start_new_session=True)
+            except OSError:
+                pass
 
     def _launch(self, item) -> None:
         try:
