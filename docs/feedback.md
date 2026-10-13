@@ -574,3 +574,171 @@
 ### 🪟 ทิศทาง Windows (ผู้ใช้ตัดสิน 2026-10-12)
 - **เขียน Linux ให้จบก่อน** (Linux = เวอร์ชันปัจจุบัน) · ค่อยทำ **Windows พร้อมเวอร์ชันถัดไป**
 - **แต่ควรรอรวมฟีดแบ็กให้ครบก่อน** ถึงจะลงมือ — ดูแผนใน `docs/roadmap.md`
+
+---
+
+## รอบ #19 — ⚖️ ข้อตัดสินใจ: ตัดฟีเจอร์ "นำเข้ากลุ่ม (Windows)" ออกทั้งชุด (2026-10-12)
+
+### ที่มา (วิเคราะห์ความซ้ำซ้อน 2026-10-12)
+- ผู้ใช้สงสัยว่าปุ่ม **"นำเข้ากลุ่ม"** (หน้าหลัก) ซ้ำกับ **"นำเข้าทั้งหมด"** (Settings) หรือไม่
+- **ข้อเท็จจริง:** **ไม่ซ้ำในเชิงฟังก์ชัน** — คนละฟอร์แมต/คนละจุดประสงค์
+
+  | | นำเข้ากลุ่ม (ปุ่มหน้าหลัก) | นำเข้าทั้งหมด (Settings) |
+  |---|---|---|
+  | อินพุต | โฟลเดอร์ **Windows** ที่มี `ObjectData.xml` (แอปต้นฉบับ) | ไฟล์ **`.zip` สำรอง** ของ **TaskbarNoob** เอง |
+  | ทำอะไร | แปลง **1 กลุ่ม** จาก Taskbar Groups ต้นฉบับ | กู้คืน/รวม **ทุกกลุ่ม** + ลำดับ + ตั้งค่า + ภาษา |
+  | โค้ด | `core/importer.py::import_group` | `core/archive.py::import_config` |
+
+- แต่ **"รู้สึกซ้ำ"** เพราะชื่อขึ้นต้น "นำเข้า" เหมือนกัน + อยู่คนละที่ + มือใหม่แยกไม่ออกว่า `.xml` ต้องกดปุ่มหน้าแรก แต่ `.zip` ต้องเข้า Settings
+
+### ✅ ข้อตัดสินใจ (ผู้ใช้ล็อก 2026-10-12)
+**ตัดออกทั้งชุด — "ระดับ 2" (ลบให้จบ ไม่เก็บแม้แต่ CLI):**
+- **เหตุผลหลัก (มุมมองผลิตภัณฑ์/แบรนด์):**
+  - เป้าหลัก = **Linux Mint** · Windows = เป้าหลัง · migration จากต้นฉบับ = **กรณีครั้งเดียวของคนกลุ่มเล็ก**
+  - ปุ่มนี้ทำให้เราดูเป็น *"ส่วนเสริมของ Taskbar Groups"* ทั้งที่ของเราพร้อมเป็น **ตัวหลัก** เอง
+  - **จุดแข็งที่สุด = "ใช้ง่าย"** → เหลือปุ่มหลัก **add / edit / delete** + **"นำเข้าทั้งหมด" ปุ่มเดียวจบ** = ลด cognitive load
+  - ไม่ต้องยึดติดต้นฉบับ (แอปต้นฉบับหยุดพัฒนาตั้งแต่ 2021) · **App เรา = ตัวของตัวเองล้วนๆ**
+  - ทางเลือกที่ผู้ใช้ใช้จริง (portable zip: `export_all` → `import_all`) ครอบคลุมการย้ายเครื่อง/ลง Windows ใหม่ได้อยู่แล้ว
+- **ราคา/สิ่งที่เสียไป:** คนที่ *ยัง* ใช้แอปต้นฉบับอยู่ตอนนี้จะย้ายกลุ่มเก่าผ่านหน้าจอไม่ได้อีก (ผู้ใช้รับได้)
+- **ขอบเขตตำแหน่ง (ผู้ใช้ย้ำ 2026-10-12):** **"นำเข้าทั้งหมด" คงไว้ที่ Settings ที่เดิม — ไม่ย้าย/ไม่แตะ** · ตัดเฉพาะ "นำเข้ากลุ่ม" + โค้ดที่เกี่ยวข้อง (UI แถวหลักจะโปร่งขึ้น: เหลือ add / edit / delete)
+
+### 📋 เช็กลิสต์งานจริง (ค่อยทำในเซคชันหน้า — v0.2) `[ยังไม่ทำ]`
+- ลบปุ่มใน `gui/main_window.py` (แถว `_nav_buttons` — `("main.import_group", self.on_import)`) + เมธอด `on_import`
+- ลบ `core/importer.py` + เทสต์ `tests/test_importer.py`
+- ลบ CLI `--import` ใน `__main__.py`
+- ลบ i18n keys `main.import_*` (TH/EN) + คีย์ที่ผูกใน `packaging/lang/ja.json` (parity)
+- ลบ/ปรับที่อ้างใน `README.md` (ฟีเจอร์ + CLI) · `docs/upstream.md` (คงไว้เป็น "ประวัติ/แรงบันดาลใจ" ไม่ใช่ฟีเจอร์)
+- อัปเดต `AGENTS.md` (โครงไฟล์/วิธีรัน ไม่มี `--import` แล้ว) + `CHANGELOG.md` → `Removed`
+- รัน `.venv/bin/python tests/run.py` (จำนวนเทสต์จะลดลงตามที่ลบ) + build
+
+**สถานะ:** ⚖️ ล็อกข้อตัดสินใจแล้ว — งานจริงไว้ **เซคชัน/รอบถัดไป (v0.2)**
+
+---
+
+## รอบ #20 — 🎨 UI polish: เคอร์เซอร์ลากกลุ่ม + ไฮไลท์สี (l็อกทำพร้อม v0.2) (2026-10-12)
+
+> ผู้ใช้ชี้จุดที่ยัง "สู้ความสวยของต้นฉบับไม่ได้" — เก็บจุดเล็กๆ ให้ครบ · **ยังไม่ทำ** (ทำพร้อม v0.2)
+
+### 🖱️ จุดที่ 1 — เคอร์เซอร์ตอนลากกลุ่มในหน้าหลัก
+- **อาการ:** ลากกลุ่มในหน้าหลักได้ cursor เป็น **ลูกศรดำ + 🚫** (ForbiddenCursor) แทนที่จะสื่อ "ย้ายได้"
+- **สาเหตุในโค้ด:** `GroupListWidget` (`gui/main_window.py:80-85`) ตั้ง `InternalMove` + `MoveAction` + drop indicator แล้ว
+  แต่ไม่ได้สั่ง `accept` ชัดๆ ใน `dragEnter/dragMove` → Qt ตัดสินเป็น `IgnoreAction` → ขึ้น 🚫 (พฤติกรรม default ของ Qt ไม่ใช่บั๊ก)
+- **✅ ล็อกแนวทาง (ผู้ใช้ยืนยัน 2026-10-12):** อยากได้ **ลูกศร 4 ทิศ ↕️↔️ = `Qt.SizeAllCursor`**
+  (สัญลักษณ์ "ย้าย/move" ที่คนคุ้นที่สุด) — ดีกว่า `SizeVerCursor` (↕ เดี่ยว ซึ่งเป๊ะกับ "สลับลำดับ" แต่คนไม่คุ้นเท่า)
+- **งานจริง (v0.2):**
+  - override `dragEnterEvent`/`dragMoveEvent`: `event.setDropAction(Qt.MoveAction); event.accept()` เมื่อ `event.source() is self` → 🚫 หาย
+  - override `startDrag`: สร้าง `QDrag` + `drag.setCursor(Qt.SizeAllCursor)` → ได้ ↕️↔️ ตอนลาก
+  - ปรับ `ShortcutGrid` (กริดในตัวแก้ไข · `gui/group_editor.py:246-249`, `startDrag` บรรทัด 260) คู่กัน — แพตเทิร์นเดียวกัน (จะใช้ ↕️↔️ หรือ ↕️ ก็ได้ตามความเหมาะของกริด)
+
+### 🎨 จุดที่ 2 — ไฮไลท์สีฟ้าดูเชย
+- **ข้อเท็จจริงในโค้ด:**
+  - สีฟ้าของเราเอง = **`#2f5d8a`** (`gui/theme.py:38` · `QPalette.Highlight` · **เฉพาะ dark theme**)
+    → ผู้ใช้เดามา `#2e5d89` ต่างกันแค่ 1 หน่วย 2 แชนแนล (เกือบเป๊ะ)
+  - **`#1ea0de` ไม่อยู่ในโค้ดเราเลย** → มาจาก **ธีมระบบ Cinnamon** เพราะโหมด **light ใช้ `standardPalette()` ของ OS** (`theme.py:26`) → เราคุมไม่ได้
+  - ไฮไลท์ที่มีความโปร่งแสงอยู่แล้ว: ปุ่มปักหมุด alpha 60 (`main_window.py:166`) · ช่องกริดตอนลาก alpha 80 (`group_editor.py:212`)
+  - แต่ **ไฮไลท์แถวที่เลือก = สีทึบจาก palette** → นี่คือจุดที่ดู "หนัก/เชย"
+- **✅ แนวทาง (ยังไม่ล็อกสีสุดท้าย):**
+  - ทำ **accent token กลาง** ใช้ร่วมกัน: dark palette + pin hover + grid delegate + **เพิ่มคุม light theme ด้วย** (ตอนนี้ light ไม่คุมเลย)
+  - ทำแถวที่เลือกให้โปร่งแสง ผ่าน QSS `QListWidget::item:selected { background: rgba(...) }`
+  - ตัวเลือกโทนนุ่ม/ทันสมัย: `#4a90d9` · `#3d7ebf` หรือสีสันแบบผู้ใช้ `#1ea0de` ที่ alpha ~35%
+- **สิ่งที่ยังต้องรอผู้ใช้:** เคาะสี accent สุดท้าย + ระดับความโปร่งแสง
+
+### 🧩 จุดที่ 3 — ไอคอนปุ่ม (solid) + ไอคอนปุ่มหน้าหลัก
+- **อาการ:** ปุ่ม add/edit/delete ในหน้าหลัก (`main_window.py:237-246`) = **ข้อความล้วน ไม่มีไอคอน** ·
+  ในตัวแก้ไขพยายามดึงไอคอนธีมระบบ (`group_editor.py:54-74`) แต่ถ้าไม่เจอ → ถอยเป็น **emoji** (➕📝🗑️) · OK/Cancel = `QDialogButtonBox` ไม่มีไอคอน
+- **ตรวจแล้วในเครื่อง:** `QIcon.fromTheme("list-add"/"edit-delete"/"document-edit")` = **null หมด**
+  (AppImage ไม่เจอธีมระบบ · `themeSearchPaths=[':/icons']`) → จึงได้ emoji · **QtSvg ใช้งานได้ ✓**
+- **✅ ข้อตัดสินใจ (ผู้ใช้ 2026-10-12):** แพ็ก **ไอคอน SVG "solid" ของเราเอง** (1 สีทึบ แล้ว **tint ตาม palette** ให้เข้ากับ dark/light)
+  → หน้าตาสม่ำเสมอทุกเครื่อง/ทุกธีม · ไม่พึ่งธีม OS · ตรงแนว "แบรนด์ของเราเอง"
+- **งานจริง (v0.2):**
+  - เพิ่มชุดไอคอน SVG: `add` · `edit` · `delete` · `save/ok` · `cancel` (+ พิจารณา `gear` · `pin` · `push-pin`)
+  - ทำ `QIconEngine`/helper tint ตาม `QPalette` (SourceIn) ให้รองรับ dark/light
+  - ดึง `_theme_icon`/`_apply_button_icon` (`group_editor.py:61-74`) → โมดูลกลาง `gui/button_icons.py` ใช้ร่วมสองหน้าต่าง
+  - หน้าหลัก: ใส่ไอคอน add/edit/delete (พอตัด "นำเข้ากลุ่ม" ออก เหลือ 3 ปุ่ม + ⚙ สมดุลพอดี)
+  - ตัวแก้ไข: ใช้ชุดเดียวกัน + ใส่ไอคอนให้ปุ่ม OK/Cancel
+- **แหล่งไอคอนฟรี (ผู้ใช้จะไปหาโหลด — พริกหาเผื่อแล้ว):**
+  - ⭐ **Phosphor Icons** (มีครบ: plus · pencil · trash · gear · push-pin · check · x) — **MIT** · https://phosphoricons.com (เลือก weight = **Fill**)
+  - **Heroicons — Solid** (คุณภาพสูง by Tailwind) — MIT · https://heroicons.com/solid
+  - **Bootstrap Icons** (มี Outline + **Filled**) — MIT · https://icons.getbootstrap.com
+  - **Material Symbols** (ปรับแกน **FILL 1** = solid · ผ่าน Google Fonts) — Apache-2.0 · https://fonts.google.com/icons
+  - **Remix Icon** (มี Line + **Fill**) — Apache-2.0 · https://remixicon.com
+  - ตัวช่วยโหลดทีละไฟล์: https://allsvgicons.com (คัด SVG/PNG รายตัว)
+- **หมายเหตุลิขสิทธิ์:** MIT/Apache-2.0 เข้ากับ GPL-3.0 ของเราได้ → commit ไอคอนที่เลือก + **แนบไฟล์ LICENSE/เครดิตของผู้ให้** ไว้ด้วย (เช่น `packaging/assets/icons/` + `CREDITS`)
+- **✅ ยืนยันชื่อไฟล์ Phosphor Fill แล้ว (โหลดได้จริง · 200 OK · repo `phosphor-icons/core` · path `assets/fill/<ชื่อ>-fill.svg`):**
+  - add = `plus-fill` · edit = `pencil-simple-fill` · delete = `trash-fill`
+  - OK = `check-fill` / `check-circle-fill` · Cancel = `x-fill` / `x-circle-fill`
+  - gear = `gear-six-fill` (แทน glyph ⚙ `main_window.py:248`) · สถานะตา = `eye-fill` / `eye-slash-fill` · pin = `push-pin-fill` / `push-pin-simple-fill`
+  - กระเป๋า (v0.2): เปิด = `arrow-square-out-fill` · เปิดที่อยู่ = `folder-fill`
+
+### 🎨 จุดที่ 4 — ปุ่มเลือกสีในตัวแก้ไขกลุ่ม (swatch + ช่องโค้ดสี)
+- **อาการปัจจุบัน:** `color_button` (`gui/group_editor.py:518-521`) เป็น **ปุ่มข้อความโชว์รหัส hex** (`_refresh_color_button` :645-648) ·
+  กดแล้วเปิด `QColorDialog` (`_pick_color` :650-654) · ปุ่ม disable เมื่อโหมดไม่ใช่ CUSTOM (`is_custom` :646) → ต้องเข้า dialog ถึงจะเห็นสีจริง
+- **✅ ไอเดียผู้ใช้ (2026-10-12):**
+  - เปลี่ยนปุ่มเลือกสีเป็น **ปุ่มสี่เหลี่ยมจัตุรัส (swatch)** แสดงสีจริง → คลิกเปิด color dialog
+  - แยก **ช่องโค้ดสี (hex)** ต่างหาก ให้ user **copy / paste / พิมพ์** รหัสลงไปตรงๆ ได้
+- **ความเห็น/แนวทาง (พริก):** เห็นด้วย — เป็น UX มาตรฐาน
+  - swatch: วาดพื้นสี `_custom_color` + **ขอบ 1px** (กันสีขาว/ดำกลืนพื้นหลัง) · คลิกเปิด `QColorDialog`
+  - ช่อง hex: `QLineEdit` รับ `#RRGGBB` + validator (`is_hex_color` ใน `core/models.py` มีอยู่แล้ว) →
+    ได้ copy/paste/พิมพ์ฟรี (Ctrl+C/V + right-click menu) · จะเพิ่มปุ่ม "คัดลอก" เล็กๆ ก็ได้
+  - **sync 2 ทาง:** เลือกสี → อัปเดตช่อง hex · พิมพ์ hex → อัปเดต swatch (`textEdited` + `editingFinished`)
+  - ข้อควรคิด: รับเฉพาะ RGB hex (alpha แยกเป็น `opacity` อยู่แล้ว) · จะ normalize `#rgb` ย่อ → `#rrggbb` ไหม · ซ่อน/disable ช่อง hex เมื่อโหมดไม่ใช่ CUSTOM ให้ consistent
+  - **ผลกระทบ:** อัปเดตเทสต์ `tests/test_gui_smoke.py` (:55-65) ถ้าเปลี่ยนชนิด widget + เพิ่ม i18n keys (placeholder/tooltip) + parity `packaging/lang/ja.json`
+
+### 📐 จุดที่ 5 — padding ของ popup เฟือง (ตั้งค่า / เกี่ยวกับ)
+- **อาการ:** กดปุ่มเฟือง → popup (`QMenu` ใน `gui/main_window.py:541-545`) มี 2 รายการ (ตั้งค่า/เกี่ยวกับ) ·
+  **ความสูงน้อยไป** → ตัวหนังสือเกือบติดขอบบน/ล่าง แต่ด้านข้างทิ้ง space เยอะ → ดูไม่สมดุล
+- **สาเหตุในโค้ด:** เป็น `QMenu` เปล่า ใช้ padding ดีฟอลต์ของ style (ตื้น) · ไม่มี QSS กำหนดเอง (ทั้งแอปไม่มี global menu style)
+- **✅ ไอเดียผู้ใช้ (2026-10-12):** เพิ่ม space **ด้านบน/ล่าง** อีกนิดให้สมดุล
+- **แนวทาง (พริก):** ใส่ QSS กับเมนู เช่น `QMenu { padding: 6px 4px; } QMenu::item { padding: 8px 22px; }`
+  - ทำ helper กลาง (เช่น `_style_menu(menu)`) แล้ว **ใช้ร่วมกับ context menu ของกลุ่ม** (`_group_context_menu` :515-525) ให้ความสูงสม่ำเสมอ
+  - ตรวจ bg/hover ทั้ง **dark + light** ว่าไม่ทับสี palette เดิม (คงไว้ minimal)
+
+### 📐 จุดที่ 6 — จัดวาง credits + ปุ่มปิด ในหน้าตั้งค่า
+- **อาการ:** `credits_label` ("Made by Noob & Pickle") อยู่แถวของตัวเองชิดขวา (`settings_dialog.py:107-112`) ·
+  `close_button` อีกแถวชิดขวา (`:114-116`) → สองแถวซ้อนกันฝั่งขวา = ดูไม่สมดุล
+- **✅ ไอเดียผู้ใช้ (2026-10-12):** ย้าย credits **ลงแถวล่างสุด** ร่วมกับปุ่มปิด · **credits ชิดซ้าย · ปุ่มปิดชิดขวา**
+- **แนวทาง:** เปลี่ยนเป็น `QHBoxLayout` แถวเดียว: `credits_label` (ซ้าย) + `addStretch(1)` + `close_button` (ขวา) แทนการ `addWidget` สองแถว
+
+### 🔗 จุดที่ 7 — ปุ่มแสดง path config ดูไม่สื่อว่ากดได้
+- **อาการ:** ปุ่มเปิดโฟลเดอร์ config (`settings_dialog.py:97-103`) เป็น `setFlat(True)` → ดูเหมือนข้อความธรรมดา · `PointingHandCursor` + tooltip ช่วยได้ แต่ผู้ใช้ต้องเอาเมาส์ไปวางก่อนถึงจะรู้
+- **✅ ไอเดียผู้ใช้ (2026-10-12):** ทำให้ดู "กดได้" แบบ **สากล เข้าใจทันทีโดยไม่ต้องมีคำอธิบาย** (เช่น ใส่กรอบ)
+- **ตัวเลือกแนวทาง (พริกเสนอ — ยังไม่ล็อก):**
+  - **A. ปุ่ม outline มีกรอบ** + hover เปลี่ยนสีพื้น/ขอบ (สากลสุด · ตรงตามที่ผู้ใช้เสนอ) — เติมไอคอนโฟลเดอร์ท้ายข้อความ (Phosphor `folder-open-fill`) ยิ่งชัด
+  - **B. ลิงก์สไตล์ (link)** — ใช้สี `QPalette.Link` (`#5a9bd4`) + ขีดเส้นใต้ตอน hover (ทุกคนรู้ว่ากดได้) · เชื่อมกับงาน accent token
+  - **C. ช่อง field แบบอ่านอย่างเดียว (read-only `QLineEdit`)** + ปุ่มไอคอนโฟลเดอร์ข้างๆ (แพตเทิร์น "path + browse" ที่เจอบ่อยใน settings)
+- **✅ ล็อก: A** (ปุ่ม outline มีกรอบ + hover + ไอคอน `folder-open` ท้ายข้อความ) — ผู้ใช้ยืนยัน 2026-10-12
+- **หมายเหตุ:** คง tooltip ไว้เป็นโบนัส · ต้องเช็ค dark + light
+
+### 🧪 โน้ตทดสอบ (v0.2) — ไอคอนบน titlebar ต่างกันตาม OS
+- **Windows** = OS วาด titlebar เอง → **เห็นไอคอนเสมอ**
+- **Linux** = WM/ธีมเป็นคนวาด → **แล้วแต่ธีม** (Mint-Y default มักไม่วาด) · แม้แต่ Mint เดียวกันเปลี่ยนธีมก็เปลี่ยน
+- **ที่เชื่อถือได้ทุกที่:** panel/taskbar · Alt+Tab · window list · `.desktop` `Icon=`
+- โค้ดเรา: `app.setWindowIcon(app_icon_path())` (`main_window.py:636-638`) + `setDesktopFileName("taskbargroups")` (`:635`) — **ถูกต้องแล้ว**
+- **งาน v0.2:** ลองทดสอบบนหลาย DE/ธีม (Cinnamon ธีมอื่น · KDE/GNOME ถ้ามี) ว่ารูปแบบการแสดงต่างกันจริงตามที่คาด
+
+**สถานะ:** 🎨 ล็อกแนวทาง — งานจริงพร้อม **v0.2** (รวมกับงาน cleanup รอบ #19 · กระเป๋า รอบ #18)
+
+---
+
+## รอบ #21 — 🍎 แนวทาง macOS (อนาคต · หลัง Windows) — ศึกษาตลาด 2026-10-12
+
+> ผู้ใช้ถามถึงการทำเวอร์ชัน Mac · ติดที่ **ไม่มีเครื่อง Mac ให้ทดลอง** (ทั้งผู้ใช้และผู้ดูแล)
+
+### ศึกษาตลาด — มีแอปแนวเดียวกันแล้ว แต่ไม่หนาแน่น
+- **DockGroups** (dockgroups.com) — **ใกล้สุด**: จัดกลุ่มแอปใน Dock → Open All / Close All คลิกเดียว · SwiftUI native · macOS 14–26 · ฟรี 2 กลุ่ม / Pro $9.99
+- **Bunch** (brettterpstra.com) — batch app launcher จาก **ไฟล์ config ข้อความ** · power-user/scripting · donationware · ไม่มี UI grid
+- **App Groups** (App Store · Ebey Tech) — จัดกลุ่มแอปเป็นคอลเลกชัน เปิดพร้อมกัน · macOS 26+
+- **Parall** — multi-instance + shortcut เปิดไฟล์/โฟลเดอร์ (คนละจุดประสงค์ · แยก profile)
+
+### จุดได้เปรียบถ้าทำ Mac
+- **Portable config** ในโฟลเดอร์แอป (ย้ายเครื่อง/ลงใหม่ก็พกไปได้) — คู่แข่งผูกกับ Dock/App Store
+- **ฟรี + GPL-3.0** (คู่แข่งใกล้สุดคิดเงิน Pro)
+- **ฟอร์แมตกลุ่มเดียวกันข้าม OS** (Win/Linux/Mac ใช้ `group.json` เดียวกัน)
+- **Grid flyout + คลิกขวาเปิดที่อยู่** (ดีไซน์ "กระเป๋า" รอบ #18)
+
+### ข้อจำกัด/แนวทางทำ (ยังไม่ตัดสินใจทำ)
+- **ไม่มีเครื่อง Mac ทดลอง** ทั้งสองฝั่ง → ต้องมี tester ภายนอก
+- **แต่ทำได้บางส่วน:** GitHub Actions มี **macOS runner** → รันเทสต์ `core/` (Python ล้วน) บน macOS อัตโนมัติได้
+- UI/pin/hotkey = OS-specific (mac: global hotkey ผ่าน Quartz/pynput · "pin" = .app bundle/Dock) — งานระดับเทียบ W0–W5 ของ Windows
+
+**สถานะ:** 🍎 ศึกษาไว้ — **อนาคต หลัง Windows (W0–W5)** · ยังไม่ตัดสินใจทำ · รอ tester/เครื่องทดสอบก่อน

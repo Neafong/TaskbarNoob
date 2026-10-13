@@ -91,7 +91,8 @@ config/ (gitignored) — ข้อมูลกลุ่มจริงแบบ 
 ```
 
 ## อนูเบ-ต่อไป (Next Actions)
-1. **เฟสตามแผนครบ → v0.1.0 ขึ้น GitHub แล้ว** — งานต่อไป = เก็บฟีดแบ็กหลังผู้ใช้ลอง / งานค้างใน `docs/feedback.md`
+1. **เฟสตามแผนครบ → v0.1.0 ขึ้น GitHub แล้ว** — งานต่อไป = **ลงมือ v0.2** (คลังไอเดียพร้อมแล้ว: `docs/feedback.md` รอบ #18–#21 + `docs/roadmap.md` ข้อ 3–5)
+   · แบ่งเป็นเฟสย่อยทีหลัง · เริ่มเซคชันใหม่แล้วอ่าน snapshot นี้ + `docs/README.md` + ไฟล์แผนก่อนลงมือ
 2. **จัดระเบียบเอกสาร (ระบบการเขียนแผน):** ✅ เฟส A–E + G เสร็จ (`docs/README.md` · `roadmap.md` · `release-process.md` · `CHANGELOG.md` · `.github/**` · `CONTRIBUTING.md`) — เหลือ **F `docs/windows-plan.md`** (เลื่อนไว้ทำตอนเริ่ม Windows จริง)
 3. **Windows port** = เป้าหลัง (W0–W5 · `docs/windows-plan.md`)
 4. เริ่มงานชุดใหญ่ใน **เซคชั่นใหม่** เสมอ (ประหยัด token) — อ่าน AGENTS.md + `docs/README.md` + ไฟล์แผนก่อนลงมือ
