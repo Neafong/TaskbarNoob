@@ -281,24 +281,10 @@ class ShortcutGrid(QListWidget):
 
     @property
     def drop_highlight_row(self) -> int:
-        """ช่องที่ไอเทมจะลงจอดจริง (โชว์ตรงนี้ ไม่ใช่จุดแทรกดิบ).
-
-        จุดแทรก t นับในลิสต์ก่อนถอดต้นทาง s ออก — ตำแหน่งลงจอดจริงคือ
-        t ถ้า t <= s ไม่งั้น t-1 (เหมือนที่ `_move_item` ทำ) · กรณีไม่ขยับ
-        (t == s หรือ s+1) จะได้ s = ช่องเดิม · ลากไฟล์จากข้างนอก (ไม่มี s)
-        ใช้พฤติกรรมเดิม.
-        """
+        """ช่องคู่สลับที่จะโชว์ไฮไลท์ (ไอเทมที่ลากจะลงช่องนี้พอดี)."""
         if self._drop_row is None or self.count() == 0:
             return -1
-        target = self._drop_row
-        source = self._drag_source_row
-        if source is None:
-            current = self.currentRow()
-            source = current if current >= 0 else None
-        if source is None:
-            return min(target, self.count() - 1)
-        land = target if target <= source else target - 1
-        return max(0, min(land, self.count() - 1))
+        return min(self._drop_row, self.count() - 1)
 
     def startDrag(self, supported_actions) -> None:
         self._drag_source_row = self.currentRow()
@@ -319,11 +305,14 @@ class ShortcutGrid(QListWidget):
         event.acceptProposedAction()
 
     def dragMoveEvent(self, event) -> None:
-        self._set_drop_row(self._target_row(event.position().toPoint()))
         if event.source() is self:
+            partner = self._partner_row(event.position().toPoint())
+            self._set_drop_row(partner if partner is not None else self.count())
             event.setDropAction(Qt.MoveAction)
             event.accept()
             return
+        # ลากไฟล์จากข้างนอก (ต่อท้ายเสมอ) → โชว์ช่องสุดท้าย
+        self._set_drop_row(self.count())
         event.acceptProposedAction()
 
     def dragLeaveEvent(self, event) -> None:
@@ -388,7 +377,7 @@ class ShortcutGrid(QListWidget):
             painter.end()
 
     def dropEvent(self, event) -> None:
-        target = self._target_row(event.position().toPoint())
+        partner = self._partner_row(event.position().toPoint())
         self._set_drop_row(None)
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
@@ -400,7 +389,8 @@ class ShortcutGrid(QListWidget):
         if source is None or source < 0:
             event.ignore()
             return
-        self._move_item(source, target)
+        # ปล่อยที่ว่าง = ย้ายไปท้ายสุด · ปล่อยบนไอเทม = สลับที่กัน
+        self._move_item(source, partner if partner is not None else self.count())
         self.clearSelection()
         event.acceptProposedAction()
         self.orderChanged.emit()
@@ -410,49 +400,34 @@ class ShortcutGrid(QListWidget):
             self._drop_row = row
             self.viewport().update()
 
-    def _target_row(self, pos: QPoint) -> int:
-        """ดัชนีแทรก (0..count) จากพิกัดที่ปล่อย."""
-        count = self.count()
-        if count == 0:
-            return 0
+    def _partner_row(self, pos: QPoint) -> int | None:
+        """แถวไอเทมใต้เมาส์ (คู่สลับ) — None ถ้าปล่อยที่ว่าง."""
         index = self.indexAt(pos)
-        if index.isValid():
-            rect = self.visualRect(index)
-            if pos.x() > rect.center().x():
-                return index.row() + 1
-            return index.row()
-        last = self.visualRect(self.model().index(count - 1, 0))
-        last_cell = QRect(QPoint(0, 0), self.gridSize())
-        last_cell.moveCenter(last.center())
-        if pos.y() > last_cell.bottom() or (
-            last_cell.top() <= pos.y() <= last_cell.bottom()
-            and pos.x() > last_cell.center().x()
-        ):
-            return count
-        best_row = 0
-        best_dist = None
-        for row in range(count):
-            rect = self.visualRect(self.model().index(row, 0))
-            center = rect.center()
-            dist = abs(center.x() - pos.x()) + abs(center.y() - pos.y())
-            if best_dist is None or dist < best_dist:
-                best_dist = dist
-                best_row = row
-        rect = self.visualRect(self.model().index(best_row, 0))
-        if pos.x() > rect.center().x() or pos.y() > rect.center().y():
-            return best_row + 1
-        return best_row
+        return index.row() if index.isValid() else None
 
     def _move_item(self, source: int, target: int) -> None:
-        if target == source or target == source + 1:
+        """สลับไอเทมช่อง source กับช่อง target (target == count คือย้ายไปท้ายสุด)."""
+        count = self.count()
+        if count == 0 or source < 0 or source >= count:
             return
-        item = self.takeItem(source)
-        if item is None:
+        if target >= count:
+            if source == count - 1:
+                return
+            item = self.takeItem(source)
+            if item is None:
+                return
+            self.insertItem(self.count(), item)
+            self.setCurrentItem(item)
             return
-        if target > source:
-            target -= 1
-        self.insertItem(target, item)
-        self.setCurrentItem(item)
+        if target == source or target < 0:
+            return
+        moving = self.takeItem(source)
+        if moving is None:
+            return
+        other = self.takeItem(target - 1 if target > source else target)
+        self.insertItem(source, other)
+        self.insertItem(target, moving)
+        self.setCurrentItem(moving)
 
 DEFAULT_CUSTOM_COLOR = "#3a3a3a"
 _ICON_FILTER = "รูปภาพ (*.png *.svg *.jpg *.jpeg *.ico *.bmp *.xpm);;ทุกไฟล์ (*)"

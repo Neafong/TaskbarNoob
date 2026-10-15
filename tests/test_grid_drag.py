@@ -37,26 +37,35 @@ class MoveItemTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
-    def test_move_forward(self) -> None:
-        grid = _make_grid(self.app, 6)
-        grid._move_item(0, 4)
-        self.assertEqual(_texts(grid), ["i1", "i2", "i3", "i0", "i4", "i5"])
+    def test_swap_distant(self) -> None:
+        grid = _make_grid(self.app, 4)
+        grid._move_item(0, 3)
+        self.assertEqual(_texts(grid), ["i3", "i1", "i2", "i0"])
 
-    def test_move_backward(self) -> None:
+    def test_swap_backward(self) -> None:
         grid = _make_grid(self.app, 6)
         grid._move_item(5, 0)
-        self.assertEqual(_texts(grid), ["i5", "i0", "i1", "i2", "i3", "i4"])
+        self.assertEqual(_texts(grid), ["i5", "i1", "i2", "i3", "i4", "i0"])
 
-    def test_noop_when_same_or_adjacent(self) -> None:
+    def test_swap_adjacent(self) -> None:
+        grid = _make_grid(self.app, 4)
+        grid._move_item(0, 1)
+        self.assertEqual(_texts(grid), ["i1", "i0", "i2", "i3"])
+
+    def test_noop_when_same(self) -> None:
         grid = _make_grid(self.app, 4)
         grid._move_item(2, 2)
-        grid._move_item(2, 3)
         self.assertEqual(_texts(grid), ["i0", "i1", "i2", "i3"])
 
     def test_move_to_end(self) -> None:
         grid = _make_grid(self.app, 4)
         grid._move_item(0, 4)
         self.assertEqual(_texts(grid), ["i1", "i2", "i3", "i0"])
+
+    def test_move_to_end_noop_when_already_last(self) -> None:
+        grid = _make_grid(self.app, 4)
+        grid._move_item(3, 4)
+        self.assertEqual(_texts(grid), ["i0", "i1", "i2", "i3"])
 
 
 @unittest.skipUnless(HAVE_QT, "PySide6 not installed")
@@ -67,7 +76,7 @@ class DropEventTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
-    def test_drop_reorders_to_target(self) -> None:
+    def test_drop_swaps_with_target(self) -> None:
         grid = _make_grid(self.app, 4)
         rect = grid.visualRect(grid.model().index(3, 0))
         pos = QPointF(rect.center().x() + 8, rect.center().y() + 8)
@@ -77,7 +86,7 @@ class DropEventTests(unittest.TestCase):
         changed: list[int] = []
         grid.orderChanged.connect(lambda: changed.append(1))
         grid.dropEvent(event)
-        self.assertEqual(_texts(grid), ["i1", "i2", "i3", "i0"])
+        self.assertEqual(_texts(grid), ["i3", "i1", "i2", "i0"])
         self.assertEqual(changed, [1])
 
     def test_internal_drop_leaves_selection_empty(self) -> None:
@@ -90,7 +99,7 @@ class DropEventTests(unittest.TestCase):
         event = QDropEvent(pos, Qt.MoveAction, mime, Qt.LeftButton, Qt.NoModifier)
         grid._drag_source_row = 0
         grid.dropEvent(event)
-        self.assertEqual(_texts(grid), ["i1", "i2", "i3", "i0"])
+        self.assertEqual(_texts(grid), ["i3", "i1", "i2", "i0"])
         self.assertEqual(grid.selectedItems(), [])
 
     def test_drop_onto_empty_area_moves_to_end(self) -> None:
@@ -116,55 +125,50 @@ class DropEventTests(unittest.TestCase):
         grid.dropEvent(event)
         self.assertEqual(received, [1])
 
-    def test_target_row_clamps_and_finds_cell(self) -> None:
+    def test_partner_row_finds_cell_or_none(self) -> None:
         grid = _make_grid(self.app, 4)
         rect = grid.visualRect(grid.model().index(0, 0))
-        left = grid._target_row(QPoint(rect.left() + 1, rect.center().y()))
-        self.assertEqual(left, 0)
-        right = grid._target_row(QPoint(rect.right() + 1, rect.center().y()))
-        self.assertEqual(right, 1)
+        inside = grid._partner_row(QPoint(rect.center().x(), rect.center().y()))
+        self.assertEqual(inside, 0)
+        outside = grid._partner_row(
+            QPoint(grid.viewport().width() - 2, grid.viewport().height() - 2)
+        )
+        self.assertIsNone(outside)
 
-    def test_drop_highlight_shows_landing_row(self) -> None:
-        # ไฮไลท์ต้องโชว์ช่องที่ไอเทมจะลงจอดจริง ไม่ใช่จุดแทรกดิบ
-        # (จุดแทรก t นับก่อนถอดต้นทาง s: ลงจอด = t ถ้า t <= s ไม่งั้น t-1)
+    def test_drop_highlight_shows_swap_partner(self) -> None:
+        # ไฮไลท์ต้องโชว์ช่องคู่สลับ (ไอเทมที่ลากจะลงช่องนี้พอดี)
         grid = _make_grid(self.app, 4)
-        cases = [
-            # (source, insertion_target, expected_highlight)
-            (0, 1, 0),  # ขยับนิดเดียว = ไม่สลับ โชว์ช่องเดิม
-            (0, 2, 1),  # เลยกลางช่อง 2 → ลงช่อง 2 (นับจาก 1)
-            (2, 0, 0),  # ลากกลับหัว → ลงช่องแรก
-            (1, 4, 3),  # ลากทิ้งท้าย → ลงช่องสุดท้าย
-            (2, 3, 2),  # ขยับนิดเดียว = ไม่สลับ โชว์ช่องเดิม
-        ]
-        for source, target, expected in cases:
-            with self.subTest(source=source, target=target):
-                grid._drag_source_row = source
-                grid._set_drop_row(target)
-                self.assertEqual(grid.drop_highlight_row, expected)
-        grid._drag_source_row = None
+        for partner in (0, 1, 2, 3):
+            with self.subTest(partner=partner):
+                grid._set_drop_row(partner)
+                self.assertEqual(grid.drop_highlight_row, partner)
+        grid._set_drop_row(4)  # ปล่อยที่ว่าง = ไปท้ายสุด → โชว์ช่องสุดท้าย
+        self.assertEqual(grid.drop_highlight_row, 3)
+        grid._set_drop_row(None)
+        self.assertEqual(grid.drop_highlight_row, -1)
 
-    def test_drop_highlight_matches_move_result(self) -> None:
+    def test_drop_highlight_matches_swap_result(self) -> None:
         # ไฮไลท์ต้องตรงกับผล _move_item จริง (กันไฮไลท์หลอกอีก)
-        for source, target in [(0, 1), (0, 2), (2, 0), (1, 4), (3, 3)]:
+        for source, target in [(0, 1), (0, 3), (3, 0), (1, 4), (2, 2)]:
             with self.subTest(source=source, target=target):
                 grid = _make_grid(self.app, 4)
                 item = grid.item(source)
                 grid._drag_source_row = source
                 grid._set_drop_row(target)
-                landed = grid.drop_highlight_row
+                shown = grid.drop_highlight_row
                 grid._move_item(source, target)
-                self.assertEqual(grid.row(item), landed)
+                self.assertEqual(grid.row(item), shown)
                 grid.hide()
                 grid.deleteLater()
 
-    def test_drop_highlight_external_keeps_gap_row(self) -> None:
-        # ลากไฟล์จากข้างนอก (ไม่มีต้นทาง) — คงพฤติกรรมเดิม (โชว์แถวจุดแทรก)
+    def test_drop_highlight_external_shows_last_row(self) -> None:
+        # ลากไฟล์จากข้างนอก (ต่อท้ายเสมอ) — โชว์ช่องสุดท้ายให้ตรงกับผลลัพธ์
         grid = _make_grid(self.app, 4)
         grid.clearSelection()
         grid._drag_source_row = None
-        grid._set_drop_row(2)
+        grid._set_drop_row(grid.count())
         try:
-            self.assertEqual(grid.drop_highlight_row, 2)
+            self.assertEqual(grid.drop_highlight_row, 3)
         finally:
             grid.hide()
             grid.deleteLater()
