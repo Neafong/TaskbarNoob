@@ -135,6 +135,22 @@ class DropEventTests(unittest.TestCase):
         )
         self.assertIsNone(outside)
 
+    def test_partner_row_in_gap_uses_nearest_cell(self) -> None:
+        # ช่องว่างระหว่างเซลล์ต้องได้เซลล์ใกล้สุด — ห้ามตีเป็นท้ายสุด
+        grid = _make_grid(self.app, 4)
+        left = grid.visualRect(grid.model().index(0, 0))
+        right = grid.visualRect(grid.model().index(1, 0))
+        quarter = QPoint(
+            (left.center().x() * 3 + right.center().x()) // 4,
+            (left.center().y() * 3 + right.center().y()) // 4,
+        )
+        three_quarter = QPoint(
+            (left.center().x() + right.center().x() * 3) // 4,
+            (left.center().y() + right.center().y() * 3) // 4,
+        )
+        self.assertEqual(grid._partner_row(quarter), 0)
+        self.assertEqual(grid._partner_row(three_quarter), 1)
+
     def test_drop_highlight_shows_swap_partner(self) -> None:
         # ไฮไลท์ต้องโชว์ช่องคู่สลับ (ไอเทมที่ลากจะลงช่องนี้พอดี)
         grid = _make_grid(self.app, 4)

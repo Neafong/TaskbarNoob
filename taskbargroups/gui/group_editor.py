@@ -401,9 +401,34 @@ class ShortcutGrid(QListWidget):
             self.viewport().update()
 
     def _partner_row(self, pos: QPoint) -> int | None:
-        """แถวไอเทมใต้เมาส์ (คู่สลับ) — None ถ้าปล่อยที่ว่าง."""
+        """แถวไอเทมใต้เมาส์ (คู่สลับ) — None ถ้าปล่อยที่ว่างท้ายสุด.
+
+        ช่องว่างระหว่างเซลล์ใช้เซลล์ใกล้สุด (ไม่ใช่ท้ายสุด) ไม่งั้น stroke
+        กระโดดไปช่องสุดท้ายทั้งที่เมาส์ยังลากไม่ถึง.
+        """
+        count = self.count()
+        if count == 0:
+            return None
         index = self.indexAt(pos)
-        return index.row() if index.isValid() else None
+        if index.isValid():
+            return index.row()
+        last = self.visualRect(self.model().index(count - 1, 0))
+        last_cell = QRect(QPoint(0, 0), self.gridSize())
+        last_cell.moveCenter(last.center())
+        if pos.y() > last_cell.bottom() or (
+            last_cell.top() <= pos.y() <= last_cell.bottom()
+            and pos.x() > last_cell.center().x()
+        ):
+            return None
+        best_row = 0
+        best_dist = None
+        for row in range(count):
+            center = self.visualRect(self.model().index(row, 0)).center()
+            dist = abs(center.x() - pos.x()) + abs(center.y() - pos.y())
+            if best_dist is None or dist < best_dist:
+                best_dist = dist
+                best_row = row
+        return best_row
 
     def _move_item(self, source: int, target: int) -> None:
         """สลับไอเทมช่อง source กับช่อง target (target == count คือย้ายไปท้ายสุด)."""
