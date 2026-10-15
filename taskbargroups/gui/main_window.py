@@ -105,7 +105,8 @@ class GroupListWidget(QListWidget):
         self.setDragDropMode(QAbstractItemView.InternalMove)
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
-        self.setDropIndicatorShown(True)
+        # วาดไฮไลท์คู่สลับเอง (แบบเดียวกับกริด) — ไม่ใช้เส้นแทรกของ Qt
+        self.setDropIndicatorShown(False)
         self.setDefaultDropAction(Qt.MoveAction)
         self.setMovement(QListView.Snap)
         self.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -113,23 +114,91 @@ class GroupListWidget(QListWidget):
         self._hover: tuple[QListWidgetItem | None, bool] = (None, False)
         self._press_pin: QListWidgetItem | None = None
         self._row_hover: int = -1
+        self._drag_source_row: int | None = None
+        self._drop_row: int | None = None
 
     def clear(self) -> None:
         self._hover = (None, False)
         self._press_pin = None
         self._row_hover = -1
+        self._drop_row = None
         super().clear()
 
+    @property
+    def drop_highlight_row(self) -> int:
+        """แถวคู่สลับที่จะโชว์ไฮไลท์ (ไอเทมที่ลากจะลงแถวนี้พอดี)."""
+        if self._drop_row is None or self.count() == 0:
+            return -1
+        return min(self._drop_row, self.count() - 1)
+
     def dropEvent(self, event) -> None:
-        super().dropEvent(event)
+        partner = self._partner_row(event.position().toPoint())
+        self._set_drop_row(None)
+        if event.source() is not None and event.source() is not self:
+            event.ignore()
+            return
+        source = self._drag_source_row
+        if source is None:
+            source = self.currentRow()
+        if source is None or source < 0:
+            event.ignore()
+            return
+        # ปล่อยที่ว่าง = ย้ายไปท้ายสุด · ปล่อยบนแถว = สลับที่กัน (แบบเดียวกับกริด)
+        self._swap_rows(source, partner if partner is not None else self.count())
+        self.clearSelection()
+        event.acceptProposedAction()
         self.orderChanged.emit()
 
+    def _set_drop_row(self, row: int | None) -> None:
+        if row != self._drop_row:
+            self._drop_row = row
+            self.viewport().update()
+
+    def _partner_row(self, pos) -> int | None:
+        """แถวใต้เมาส์ (คู่สลับ) — None ถ้าปล่อยที่ว่างท้ายสุด."""
+        item = self.itemAt(pos)
+        return self.row(item) if item is not None else None
+
+    def _swap_rows(self, source: int, target: int) -> None:
+        """สลับแถว source กับ target (target == count คือย้ายไปท้ายสุด)."""
+        count = self.count()
+        if count == 0 or source < 0 or source >= count:
+            return
+        if target >= count:
+            if source == count - 1:
+                return
+            item = self.takeItem(source)
+            if item is None:
+                return
+            self.insertItem(self.count(), item)
+            self.setCurrentItem(item)
+            return
+        if target == source or target < 0:
+            return
+        moving = self.takeItem(source)
+        if moving is None:
+            return
+        # ถอดทั้งคู่ออกก่อน แล้วเสียบกลับคนละแถว — เสียบแถวเล็กก่อน (ทิศเดียวกับกริด)
+        if source < target:
+            other = self.takeItem(target - 1)
+            self.insertItem(source, other)
+            self.insertItem(target, moving)
+        else:
+            other = self.takeItem(target)
+            self.insertItem(target, moving)
+            self.insertItem(source, other)
+        self.setCurrentItem(moving)
+
     def startDrag(self, supported_actions) -> None:
+        self._drag_source_row = self.currentRow()
+        self._set_drop_row(None)
         QApplication.setOverrideCursor(Qt.SizeAllCursor)
         try:
             super().startDrag(supported_actions)
         finally:
             QApplication.restoreOverrideCursor()
+            self._drag_source_row = None
+            self._set_drop_row(None)
 
     def dragEnterEvent(self, event) -> None:
         if event.source() is self:
@@ -140,10 +209,16 @@ class GroupListWidget(QListWidget):
 
     def dragMoveEvent(self, event) -> None:
         if event.source() is self:
+            partner = self._partner_row(event.position().toPoint())
+            self._set_drop_row(partner if partner is not None else self.count())
             event.setDropAction(Qt.MoveAction)
             event.accept()
             return
         super().dragMoveEvent(event)
+
+    def dragLeaveEvent(self, event) -> None:
+        self._set_drop_row(None)
+        super().dragLeaveEvent(event)
 
     def pin_rect(self, item: QListWidgetItem) -> QRect:
         rect = self.visualItemRect(item)
@@ -221,6 +296,21 @@ class GroupListWidget(QListWidget):
                 color.setAlpha(45)  # ไฮไลท์แถวโปร่งแสง (accent)
                 painter.setBrush(color)
                 rect = self.visualItemRect(row_item)
+                painter.drawRoundedRect(rect.adjusted(1, 3, -1, -3), 6, 6)
+                painter.restore()
+        if 0 <= self.drop_highlight_row < self.count():
+            # ไฮไลท์คู่สลับตอนลาก (เข้มกว่า hover ให้รู้ว่าจะลงแถวนี้)
+            drop_item = self.item(self.drop_highlight_row)
+            if drop_item is not None:
+                painter.save()
+                color = self.palette().color(QPalette.ColorRole.Highlight)
+                fill = QColor(color)
+                fill.setAlpha(50)
+                pen = QPen(color)
+                pen.setWidth(2)
+                painter.setBrush(fill)
+                painter.setPen(pen)
+                rect = self.visualItemRect(drop_item)
                 painter.drawRoundedRect(rect.adjusted(1, 3, -1, -3), 6, 6)
                 painter.restore()
         hovered_item = self._hover[0]

@@ -401,6 +401,86 @@ class GuiSmokeTests(unittest.TestCase):
         widget.hide()
         self.assertEqual(received, [])
 
+    def _make_group_list(self, names):
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QListWidgetItem
+
+        from taskbargroups.gui.main_window import GroupListWidget
+
+        widget = GroupListWidget()
+        for name in names:
+            item = QListWidgetItem(name)
+            item.setData(Qt.UserRole, name)
+            widget.addItem(item)
+        widget.resize(320, 200)
+        widget.show()
+        self.app.processEvents()
+        return widget
+
+    def _group_order(self, widget) -> list:
+        return [widget.item(i).text() for i in range(widget.count())]
+
+    def test_group_list_swap_rows(self) -> None:
+        # หน้าหลักลากสลับต้องสลับที่กัน (แบบเดียวกับกริด) ไม่ใช่เลื่อนทั้งแถว
+        widget = self._make_group_list(["g0", "g1", "g2", "g3"])
+        try:
+            widget._swap_rows(0, 3)
+            self.assertEqual(self._group_order(widget), ["g3", "g1", "g2", "g0"])
+            widget._swap_rows(3, 0)
+            self.assertEqual(self._group_order(widget), ["g0", "g1", "g2", "g3"])
+            widget._swap_rows(1, 1)
+            self.assertEqual(self._group_order(widget), ["g0", "g1", "g2", "g3"])
+        finally:
+            widget.hide()
+            widget.deleteLater()
+
+    def test_group_list_swap_to_end(self) -> None:
+        widget = self._make_group_list(["g0", "g1", "g2", "g3"])
+        try:
+            widget._swap_rows(0, widget.count())
+            self.assertEqual(self._group_order(widget), ["g1", "g2", "g3", "g0"])
+            widget._swap_rows(3, widget.count())
+            self.assertEqual(self._group_order(widget), ["g1", "g2", "g3", "g0"])
+        finally:
+            widget.hide()
+            widget.deleteLater()
+
+    def test_group_list_drop_swaps_with_partner(self) -> None:
+        from PySide6.QtCore import QMimeData, QPointF, Qt
+        from PySide6.QtGui import QDropEvent
+
+        widget = self._make_group_list(["g0", "g1", "g2", "g3"])
+        try:
+            rect = widget.visualItemRect(widget.item(3))
+            pos = QPointF(rect.center().x(), rect.center().y())
+            event = QDropEvent(
+                pos, Qt.MoveAction, QMimeData(), Qt.LeftButton, Qt.NoModifier
+            )
+            widget._drag_source_row = 0
+            changed: list[int] = []
+            widget.orderChanged.connect(lambda: changed.append(1))
+            widget.dropEvent(event)
+            self.assertEqual(self._group_order(widget), ["g3", "g1", "g2", "g0"])
+            self.assertEqual(changed, [1])
+            self.assertEqual(widget.selectedItems(), [])
+            self.assertEqual(widget.count(), 4)
+        finally:
+            widget.hide()
+            widget.deleteLater()
+
+    def test_group_list_drop_highlight(self) -> None:
+        widget = self._make_group_list(["g0", "g1", "g2", "g3"])
+        try:
+            widget._set_drop_row(2)
+            self.assertEqual(widget.drop_highlight_row, 2)
+            widget._set_drop_row(widget.count())
+            self.assertEqual(widget.drop_highlight_row, 3)
+            widget._set_drop_row(None)
+            self.assertEqual(widget.drop_highlight_row, -1)
+        finally:
+            widget.hide()
+            widget.deleteLater()
+
     def test_editor_grid_drops_desktop_icon_source(self) -> None:
         from PySide6.QtCore import QUrl
 
@@ -450,6 +530,7 @@ class GuiSmokeTests(unittest.TestCase):
         widget.addItem(item)
         received: list[bool] = []
         widget.orderChanged.connect(lambda: received.append(True))
+        widget.setCurrentRow(0)  # จำลองลากจริง (มีแถวต้นทางเสมอ)
         event = QDropEvent(
             QPointF(5, 5),
             Qt.MoveAction,
