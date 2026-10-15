@@ -757,6 +757,29 @@ class GuiSmokeTests(unittest.TestCase):
             window = MainWindow(store=self.store)
         self.assertIn("Ctrl+Alt+G", window.list.item(0).text())
 
+    def test_group_preview_size_ignores_icon_slider(self) -> None:
+        # พรีวิวไอคอนกลุ่มต้องคงที่ 48px — สไลเดอร์คุมแค่ไอคอนในกริด
+        from PySide6.QtGui import QColor, QPixmap
+
+        from taskbargroups.gui.group_editor import _GROUP_ICON_PREVIEW, GroupEditor
+
+        red = QPixmap(64, 64)
+        red.fill(QColor("red"))
+        source = Path(self._tmp.name) / "group.png"
+        self.assertTrue(red.save(str(source)))
+        editor = GroupEditor(self.store)
+        editor._icon_source = str(source)
+        for value in (
+            editor.icon_size_slider.minimum(),
+            editor.icon_size_slider.maximum(),
+        ):
+            with self.subTest(size=value):
+                editor.icon_size_slider.setValue(value)
+                pixmap = editor.icon_preview.pixmap()
+                self.assertFalse(pixmap.isNull())
+                self.assertEqual(pixmap.width(), _GROUP_ICON_PREVIEW)
+                self.assertEqual(pixmap.height(), _GROUP_ICON_PREVIEW)
+
     def test_button_svg_assets_resolve(self) -> None:
         # กันบั๊กแพ็กเกจ: SVG ปุ่ม (เฟือง/ตา/...) ต้องหาเจอ ไม่ใช่ไอคอนว่าง
         from PySide6.QtGui import QColor

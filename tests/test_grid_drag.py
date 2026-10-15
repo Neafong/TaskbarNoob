@@ -124,6 +124,36 @@ class DropEventTests(unittest.TestCase):
         right = grid._target_row(QPoint(rect.right() + 1, rect.center().y()))
         self.assertEqual(right, 1)
 
+    def test_hover_cell_same_size_for_all_items(self) -> None:
+        # ไฮไลท์ hover ต้องเท่ากันทุกช่อง — ห้ามยืดหดตามความยาวข้อความ
+        from PySide6.QtGui import QColor, QIcon, QPixmap
+        from PySide6.QtWidgets import QListWidgetItem
+
+        from taskbargroups.gui.group_editor import ShortcutGrid
+
+        def icon() -> QIcon:
+            pixmap = QPixmap(64, 64)
+            pixmap.fill(QColor("red"))
+            return QIcon(pixmap)
+
+        grid = ShortcutGrid()
+        grid.addItem(QListWidgetItem(icon(), "A"))
+        grid.addItem(QListWidgetItem(icon(), "Tahoma2D ชื่อยาว ๆ ตัดหลายบรรทัด"))
+        grid.resize(600, 600)
+        grid.show()
+        self.app.processEvents()
+        try:
+            rects = [grid.visualRect(grid.model().index(r, 0)) for r in range(2)]
+            self.assertNotEqual(
+                rects[0].width(), rects[1].width(), "visualRect ต้องต่างกัน (เทสต์ถึงมีความหมาย)"
+            )
+            cells = [grid._hover_cell(r) for r in range(2)]
+            self.assertEqual(cells[0].size(), cells[1].size())
+            self.assertEqual(cells[0].size(), grid.gridSize())
+        finally:
+            grid.hide()
+            grid.deleteLater()
+
 
 if __name__ == "__main__":
     unittest.main()

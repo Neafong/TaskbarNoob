@@ -835,3 +835,11 @@
   - เทสต์ `test_launcher.py` +6 (dispatch ครบทุกชนิด + LaunchError) · ตรวจรันจริงสคริปต์ +x ผ่าน
 - เทสต์ **233 ผ่าน** · build AppImage ใหม่ + วาง `~/AppImage/Tool/` แล้ว (md5 ตรง `dist/`)
 - ค้าง: ลบ `/mnt/Backup/TaskbarGroups/dist/` (ไฟล์เก่า 0.1.0) — ติด loop mount ต้อง reboot ก่อน (พักไว้หลัง push)
+
+## 2026-10-15 — ปรับ UI ตัวแก้ไขกลุ่ม 2 จุด (พรีวิวไอคอน + ไฮไลท์ hover) `[เสร็จ]`
+- **พรีวิวไอคอนกลุ่มขยายตามสไลเดอร์** — `_refresh_icon_ui` เคยใช้ `pixmap(size)` ตามสไลเดอร์
+  → ตรึง `_GROUP_ICON_PREVIEW = 48` + `setFixedSize` (สไลเดอร์คุมแค่ไอคอนในกริดเพื่อบอกขนาด Layout)
+- **ไฮไลท์ hover ยืดหดตามข้อความ** — `paintEvent` เคยใช้ `visualRect` (กว้างตามข้อความ เช่น Tahoma2D)
+  → helper ใหม่ `ShortcutGrid._hover_cell()` กรอบคงที่ขนาด `gridSize` ชิดขอบเลื่อนหนีแทนตัด (เต็มเท่ากันทุกช่อง)
+  · ถ่ายรูป offscreen ยืนยันกรอบคงที่แล้ว
+- เทสต์ +2 (preview 48px คงที่ทุกค่าสไลเดอร์ · hover cell เท่ากัน + เท่า gridSize) → **235 ผ่าน**

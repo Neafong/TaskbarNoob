@@ -52,6 +52,9 @@ from .theme import app_color, app_text_color
 _FALLBACK_GRID_ICON = "application-x-executable"
 _file_icon_provider = QFileIconProvider()
 
+# ขนาดพรีวิวไอคอนกลุ่ม (คงที่ — ไม่ตามสไลเดอร์ขนาดไอคอน)
+_GROUP_ICON_PREVIEW = 48
+
 
 def _normalize_hex(value: str) -> str:
     """ปรับ hex เป็นรูปเต็ม #rrggbb ตัวพิมพ์เล็ก (ย่อ #rgb → #rrggbb)."""
@@ -330,6 +333,32 @@ class ShortcutGrid(QListWidget):
             self.viewport().update()
         super().leaveEvent(event)
 
+    def _hover_cell(self, row: int) -> QRect:
+        """กรอบไฮไลท์ hover: ขนาดคงที่จาก gridSize (เท่ากันทุกช่อง).
+
+        ห้ามใช้ visualRect ตรง ๆ — ความกว้างมันยืดหดตามความยาวข้อความใต้ไอคอน.
+        ชิดขอบ viewport ให้เลื่อนกรอบหนี (ไม่ตัดทิ้ง) กรอบจะได้เต็มเท่ากันทุกแถว.
+        """
+        item_rect = self.visualRect(self.model().index(row, 0))
+        cell = QRect(QPoint(0, 0), self.gridSize())
+        cell.moveCenter(item_rect.center())
+        area = self.viewport().rect()
+        if cell.width() <= area.width():
+            if cell.left() < area.left():
+                cell.moveLeft(area.left())
+            elif cell.right() > area.right():
+                cell.moveRight(area.right())
+        else:
+            cell = cell.intersected(area)
+        if cell.height() <= area.height():
+            if cell.top() < area.top():
+                cell.moveTop(area.top())
+            elif cell.bottom() > area.bottom():
+                cell.moveBottom(area.bottom())
+        else:
+            cell = cell.intersected(area)
+        return cell
+
     def paintEvent(self, event) -> None:
         super().paintEvent(event)
         if 0 <= self._hover_row < self.count():
@@ -339,7 +368,7 @@ class ShortcutGrid(QListWidget):
             color = self.palette().color(QPalette.ColorRole.Highlight)
             color.setAlpha(45)  # ไฮไลท์ช่องโปร่งแสง (accent เดียวกับหน้าหลัก)
             painter.setBrush(color)
-            cell = self.visualRect(self.model().index(self._hover_row, 0))
+            cell = self._hover_cell(self._hover_row)
             painter.drawRoundedRect(cell.adjusted(2, 2, -2, -2), 10, 10)
             painter.end()
 
@@ -658,6 +687,11 @@ class GroupEditor(QDialog):
 
         icon_row = QHBoxLayout()
         self.icon_preview = QLabel()
+        # พรีวิวไอคอนกลุ่มขนาดคงที่ — ไม่ขยายตามสไลเดอร์ขนาดไอคอน
+        # (สไลเดอร์คุมแค่ไอคอนในกริดด้านล่างเพื่อบอกขนาด Layout)
+        self.icon_preview.setFixedSize(
+            _GROUP_ICON_PREVIEW, _GROUP_ICON_PREVIEW
+        )
         self.icon_preview.setAlignment(Qt.AlignCenter)
         icon_button = QPushButton(tr("editor.pick_icon"))
         icon_button.setToolTip(tr("editor.pick_icon_tip"))
@@ -747,7 +781,9 @@ class GroupEditor(QDialog):
 
     def _refresh_icon_ui(self) -> None:
         size = self.icon_size_slider.value()
-        self.icon_preview.setPixmap(self._preview_icon().pixmap(size, size))
+        self.icon_preview.setPixmap(
+            self._preview_icon().pixmap(_GROUP_ICON_PREVIEW, _GROUP_ICON_PREVIEW)
+        )
         self.items_list.setIconSize(QSize(size, size))
         self.items_list.setGridSize(QSize(max(72, size + 52), max(72, size + 44)))
 
