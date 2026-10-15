@@ -483,9 +483,11 @@ class GuiSmokeTests(unittest.TestCase):
 
     def test_group_list_drop_cell_hugs_row(self) -> None:
         # กรอบ stroke ต้องเกาะขอบแถว (ไม่เล็กจนดูตลก) + มี spacing หายใจ
+        # + padding ซ้าย 0 (สไตล์เว้นที่ไอคอนเอง — ร่อง stroke↔ไอคอน ~1px)
         widget = self._make_group_list(["g0", "g1", "g2", "g3"])
         try:
             self.assertEqual(widget.spacing(), 2)
+            self.assertIn("padding: 3px 2px 3px 0px", widget.styleSheet())
             item = widget.item(1)
             row_rect = widget.visualItemRect(item)
             cell = widget._drop_cell(item)

@@ -139,6 +139,8 @@ class GroupListWidget(QListWidget):
         self.setMouseTracking(True)
         # ระยะห่างระหว่างแถว 2px — stroke คู่สลับจะได้มีที่หายใจ ไม่เบียดแถวข้าง ๆ
         self.setSpacing(2)
+        # padding รอบเนื้อหาแถว — ไอคอนมีที่หายใจ เหลือร่อง ~1px จาก stroke
+        self.setStyleSheet("QListWidget::item { padding: 3px 2px 3px 0px; }")
         self.setItemDelegate(_RowDropHighlightDelegate(self))
         self._hover: tuple[QListWidgetItem | None, bool] = (None, False)
         self._press_pin: QListWidgetItem | None = None
