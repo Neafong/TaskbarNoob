@@ -809,3 +809,14 @@
 - คัดลอกไปที่จริง: `/home/noob/AppImage/Tool/TaskbarNoob-x86_64.AppImage`
 - ตรวจใน AppImage (PYZ): consts ของ `taskbargroups` = `'0.2.0'` · มี `gui.dialogs` · `--list` ออก Tool/Game/Production
 - เทสต์ 224 ผ่าน · ยังไม่ commit / ยังไม่ tag
+
+## 2026-10-15 — ย้าย dev หลัก HDD → SSD + แก้ OpenCode หาโปรเจคไม่เจอ `[เสร็จ]`
+- อาการ: รายชื่อโปรเจคใน OpenCode Desktop หาย + New Project ด้วย `/home/noob/Desktop/TaskbarNoob` ไม่ได้
+  · **ไม่ใช่ไวรัส** · ไฟล์อยู่ครบทั้งสองที่ · เขียน/ลบได้ปกติ · `dmesg` ไม่มี I/O error
+- สาเหตุ: `/mnt/Backup` เป็น NTFS (`fuseblk`) แบบ `noauto` ยังไม่ mount ตอนเปิดแอป → log ฟ้อง
+  `realPath (/mnt/Backup/TaskbarGroups) ENOENT` + `removed=["/mnt/Backup/TaskbarGroups"]`
+  · สองโฟลเดอร์ remote เดียวกัน (`Neafong/TaskbarNoob`) เลยถูกนับเป็นโปรเจคเดียว
+  (worktree=HDD, sandbox=SSD) → สร้าง New Project ซ้ำไม่ได้ ถูกแล้ว
+- แก้: push SSD ขึ้น origin ก่อน (`v0.2-D 086c689` · เทสต์ 224 ผ่าน) · สลับ DB
+  `project.worktree` → SSD แล้ว (HDD เป็น sandbox สำรอง) · แชทเก่ายังค้าง HDD ต้องเปิด **New Session** ใหม่ถึงจะได้ SSD
+- ต่อจากนี้ dev หลักคือ SSD (ext4) · HDD เก็บเป็น `.bak` ไว้ก่อนลบจริง · เปิด OpenCode ต้อง mount Backup ก่อนเสมอ
