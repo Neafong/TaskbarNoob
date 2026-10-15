@@ -919,3 +919,11 @@
   · ไม่ทำ installer ตามที่สั่ง
 - เทสต์ +32 (mock ล้วน รันบน Linux) → **279 ผ่าน** · ตอบคำถามไฟล์เล็ก: โค้ดเรา 60K vs Qt 73M+
   (optimize โค้ดไม่ลดขนาดไฟล์ — ต้อง diet ที่ packaging ถ้าจะเอาเล็ก)
+
+## 2026-10-16 — mp3/mp4 เปิดไม่ขึ้น + คลิกขวา reveal พังมาตั้งแต่ต้น `[เสร็จ]`
+- **mp3 ไม่เปิด:** ไฟล์อยู่บน NTFS (ทุกไฟล์ 0777) → โค้ดดูแค่ `+x` เลยเอา mp3 ไป "รัน" ตรง ๆ
+  (exec ล้มเงียบ) · แก้: `_looks_runnable()` ดู magic (ELF/shebang/MZ) + `+x`
+  · ตรวจกับไฟล์จริง: mp3→gio open (Rhythmbox) · AppImage/ELF→รันตรง
+- **คลิกขวา reveal ไม่เคยทำงาน:** `flyout.py` ลืม import `Path` → NameError ทุกครั้ง
+  (v0.2-C เขียนเสร็จแต่ไม่มีเทสต์เรียกเลยรอดมา) · เติม `explorer /select` (Win) + `open -R` (Mac)
+- เทสต์ +3 (mp3 +x → gio · ELF/shebang → รันตรง · reveal 3 OS) → **282 ผ่าน**

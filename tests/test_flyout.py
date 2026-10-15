@@ -89,6 +89,36 @@ class FlyoutWindowTests(unittest.TestCase):
         self.app.processEvents()
         self.assertEqual(received, [1])
 
+    def test_reveal_uses_platform_opener(self) -> None:
+        import sys
+        from pathlib import Path
+        from unittest import mock
+
+        from taskbargroups.gui.flyout import FlyoutWindow
+
+        target = Path(self._tmp.name) / "song.mp3"
+        target.write_bytes(b"ID3fake")
+        group = self.store.load_group("G")
+        window = FlyoutWindow(group, self.store, "G")
+        try:
+            item = Shortcut(name="s", target=str(target))
+            cases = [
+                ("win32", ["explorer", f"/select,{target}"]),
+                ("darwin", ["open", "-R", str(target)]),
+                ("linux", ["xdg-open", str(target.parent)]),
+            ]
+            for platform, expected in cases:
+                with self.subTest(platform=platform):
+                    with mock.patch.object(
+                        sys, "platform", platform
+                    ), mock.patch("subprocess.Popen") as popen:
+                        window._reveal(item)
+                    popen.assert_called_once_with(
+                        expected, start_new_session=True
+                    )
+        finally:
+            window.deleteLater()
+
 
 @unittest.skipUnless(HAVE_QT, "PySide6 not installed")
 class ControllerTests(unittest.TestCase):

@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **ไฟล์มีเดีย (+x) บนไดรฟ์ NTFS/exFAT เปิดไม่ขึ้น** — ดูแค่ executable-bit ไม่ได้
+  (ไดรฟ์พวกนี้ทุกไฟล์ +x หมด) → ดู magic แทน (ELF/shebang/MZ ถึงรันตรง นอกนั้น `gio open`)
+- **คลิกขวา reveal ไม่เคยทำงานเลย** — `flyout.py` ลืม `from pathlib import Path`
+  (NameError ทุกครั้งที่คลิกขวา) · เติมสาขา Windows (`explorer /select`) + macOS (`open -R`) ด้วย
+
 ### Added
 
 - **Windows/macOS portable (alpha — ยังไม่ได้รันบนเครื่องจริง)**

@@ -72,6 +72,31 @@ class LaunchLinuxDispatchTests(unittest.TestCase):
             [target, "--x"], cwd=None, start_new_session=True
         )
 
+    def test_plus_x_media_file_is_not_executed(self) -> None:
+        # บน NTFS/exFAT ทุกไฟล์ +x หมด — mp3 ต้องเปิดด้วยโปรแกรม Default ไม่ใช่รัน
+        path = Path(self._tmp.name) / "song.mp3"
+        path.write_bytes(b"ID3\x04fake-mp3-data")
+        path.chmod(0o777)
+        with mock.patch("taskbargroups.core.launcher.subprocess.Popen") as popen:
+            launch(Shortcut(name="s", target=str(path)))
+        popen.assert_called_once_with(
+            ["gio", "open", str(path)], cwd=None, start_new_session=True
+        )
+
+    def test_elf_magic_runs_directly(self) -> None:
+        for name in ("game.elf", "SMB1R.x86_64", "noext"):
+            with self.subTest(name=name):
+                path = Path(self._tmp.name) / name
+                path.write_bytes(b"\x7fELFfake-binary")
+                path.chmod(0o755)
+                with mock.patch(
+                    "taskbargroups.core.launcher.subprocess.Popen"
+                ) as popen:
+                    launch(Shortcut(name="g", target=str(path)))
+                popen.assert_called_once_with(
+                    [str(path)], cwd=None, start_new_session=True
+                )
+
     def test_document_file_uses_gio_open(self) -> None:
         target = self._make_file("doc.txt", executable=False)
         with mock.patch("taskbargroups.core.launcher.subprocess.Popen") as popen:

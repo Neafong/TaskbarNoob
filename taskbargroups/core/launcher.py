@@ -28,6 +28,22 @@ def _resolve_cwd(working_dir: str | None) -> str | None:
     return str(path) if path.is_dir() else None
 
 
+def _looks_runnable(path: Path) -> bool:
+    """ไฟล์นี้รันเป็นโปรแกรมได้จริงไหม (ดู magic ไม่ดูแค่ +x).
+
+    +x เชื่อไม่ได้บนไดรฟ์ NTFS/exFAT/Samba (ทุกไฟล์ +x หมด — mp3 ยัง +x เลย)
+    เลยต้องดูเนื้อหา: ELF (รวม AppImage) · shebang · MZ (Windows exe).
+    """
+    try:
+        with path.open("rb") as handle:
+            head = handle.read(4)
+    except OSError:
+        return False
+    if head[:4] == b"\x7fELF" or head[:2] == b"#!" or head[:2] == b"MZ":
+        return os.access(path, os.X_OK)
+    return False
+
+
 def launch(shortcut: Shortcut) -> None:
     target = shortcut.target.strip()
     if not target:
@@ -58,10 +74,10 @@ def _launch_linux(target: str, args: list[str], cwd: str | None) -> None:
                 subprocess.Popen(["gio", "open", str(path)], cwd=cwd, start_new_session=True)
             return
         if path.is_file():
-            # ไฟล์ที่รันได้ (AppImage/ELF/สคริปต์ +x) → รันตรง ๆ
-            # (ห้ามผ่าน `gio open`: default app ของระบบคือ editor/disk-mounter
-            #  หรือไม่มี handler เลย — แอปจะไม่เปิด)
-            if os.access(path, os.X_OK):
+            # ไฟล์ที่รันได้จริง (ดู magic ไม่ดูแค่ +x — บน NTFS/exFAT ทุกไฟล์ +x
+            #  หมดแม้แต่ mp3) → รันตรง ๆ · ไฟล์อื่น (เอกสาร/มีเดีย) → gio open
+            #  (ห้ามสลับกัน: gio open บนไฟล์รันได้จะเปิดผิด — editor/disk-mounter)
+            if _looks_runnable(path):
                 subprocess.Popen([str(path), *args], cwd=cwd, start_new_session=True)
                 return
             # ไฟล์เอกสารทั่วไป → เปิดด้วยโปรแกรม Default

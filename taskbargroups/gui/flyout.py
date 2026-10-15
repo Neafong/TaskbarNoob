@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import sys
+from pathlib import Path
 
 from PySide6.QtCore import QObject, QPoint, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QCursor, QGuiApplication
@@ -220,10 +222,22 @@ class FlyoutWindow(QWidget):
             return
         try:
             import subprocess
-            subprocess.Popen(["xdg-open", str(parent)], start_new_session=True)
+
+            if sys.platform == "win32":
+                # เลือกไฟล์ค้างไว้ใน Explorer
+                subprocess.Popen(
+                    ["explorer", f"/select,{path}"], start_new_session=True
+                )
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", "-R", str(path)], start_new_session=True)
+            else:
+                subprocess.Popen(["xdg-open", str(parent)], start_new_session=True)
         except OSError:
+            if sys.platform != "linux":
+                return
             try:
                 import subprocess
+
                 subprocess.Popen(["gio", "open", str(parent)], start_new_session=True)
             except OSError:
                 pass
