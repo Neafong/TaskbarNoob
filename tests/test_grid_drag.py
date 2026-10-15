@@ -47,6 +47,15 @@ class MoveItemTests(unittest.TestCase):
         grid._move_item(5, 0)
         self.assertEqual(_texts(grid), ["i5", "i1", "i2", "i3", "i4", "i0"])
 
+    def test_swap_backward_full_order(self) -> None:
+        # ลากย้อนต้องสลับแค่ 2 ตัว ห้ามหมุน (4→1 แล้ว 5→4, 1→5 คือบั๊ก)
+        grid = _make_grid(self.app, 4)
+        grid._move_item(3, 0)
+        self.assertEqual(_texts(grid), ["i3", "i1", "i2", "i0"])
+        grid = _make_grid(self.app, 4)
+        grid._move_item(2, 0)
+        self.assertEqual(_texts(grid), ["i2", "i1", "i0", "i3"])
+
     def test_swap_adjacent(self) -> None:
         grid = _make_grid(self.app, 4)
         grid._move_item(0, 1)

@@ -449,9 +449,16 @@ class ShortcutGrid(QListWidget):
         moving = self.takeItem(source)
         if moving is None:
             return
-        other = self.takeItem(target - 1 if target > source else target)
-        self.insertItem(source, other)
-        self.insertItem(target, moving)
+        # ถอดทั้งคู่ออกก่อน แล้วเสียบกลับคนละช่อง — ลำดับเสียบต้องตามทิศ
+        # (เสียบช่องเล็กก่อน ไม่งั้นดัชนีเลื่อนแล้วกลายเป็นหมุน 3 ตัว)
+        if source < target:
+            other = self.takeItem(target - 1)
+            self.insertItem(source, other)
+            self.insertItem(target, moving)
+        else:
+            other = self.takeItem(target)
+            self.insertItem(target, moving)
+            self.insertItem(source, other)
         self.setCurrentItem(moving)
 
 DEFAULT_CUSTOM_COLOR = "#3a3a3a"
