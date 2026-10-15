@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 
 from PySide6.QtCore import QFileInfo, QPoint, QRect, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QIcon, QPainter, QPalette, QPen
+from PySide6.QtGui import QColor, QIcon, QPainter, QPalette, QPen, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -45,7 +45,9 @@ from taskbargroups.core.models import (
     is_hex_color,
 )
 from taskbargroups.core.storage import ConfigStore
-from .button_icons import themed_icon, text_color_from_palette
+from .button_icons import themed_icon
+from .dialogs import show_information, show_warning
+from .theme import app_color, app_text_color
 
 _FALLBACK_GRID_ICON = "application-x-executable"
 _file_icon_provider = QFileIconProvider()
@@ -71,11 +73,27 @@ _ITEM_BUTTON_ICONS = {
 
 def _apply_button_icon(button: QPushButton, kind: str, fallback: str) -> None:
     names = _ITEM_BUTTON_ICONS.get(kind)
-    icon = themed_icon(names[0], text_color_from_palette(button.palette())) if names else QIcon()
+    icon = themed_icon(names[0], app_text_color()) if names else QIcon()
     if icon.isNull():
         button.setText(f"{fallback} {button.text()}")
     else:
         button.setIcon(icon)
+
+
+def _style_dialog_buttons(box: QDialogButtonBox) -> None:
+    """ปุ่ม OK/Cancel ของ dialog: ใช้ข้อความตามภาษา + ไอคอน SVG ของเรา."""
+    ok_button = box.button(QDialogButtonBox.Ok)
+    if ok_button is not None:
+        ok_button.setText(tr("dialog.ok"))
+        icon = themed_icon("check-fill.svg", app_text_color())
+        if not icon.isNull():
+            ok_button.setIcon(icon)
+    cancel_button = box.button(QDialogButtonBox.Cancel)
+    if cancel_button is not None:
+        cancel_button.setText(tr("dialog.cancel"))
+        icon = themed_icon("x-fill.svg", app_text_color())
+        if not icon.isNull():
+            cancel_button.setIcon(icon)
 
 
 
@@ -252,9 +270,11 @@ class ShortcutGrid(QListWidget):
         self.setDefaultDropAction(Qt.MoveAction)
         self.setAcceptDrops(True)
         self.setDropIndicatorShown(False)
+        self.setMouseTracking(True)
         self.setItemDelegate(_DropHighlightDelegate(self))
         self._drag_source_row: int | None = None
         self._drop_row: int | None = None
+        self._hover_row: int = -1
 
     @property
     def drop_highlight_row(self) -> int:
@@ -291,6 +311,37 @@ class ShortcutGrid(QListWidget):
     def dragLeaveEvent(self, event) -> None:
         self._set_drop_row(None)
         super().dragLeaveEvent(event)
+
+    def clear(self) -> None:
+        self._hover_row = -1
+        super().clear()
+
+    def mouseMoveEvent(self, event) -> None:
+        hovered = self.itemAt(event.position().toPoint())
+        row = self.row(hovered) if hovered is not None else -1
+        if row != self._hover_row:
+            self._hover_row = row
+            self.viewport().update()
+        super().mouseMoveEvent(event)
+
+    def leaveEvent(self, event) -> None:
+        if self._hover_row != -1:
+            self._hover_row = -1
+            self.viewport().update()
+        super().leaveEvent(event)
+
+    def paintEvent(self, event) -> None:
+        super().paintEvent(event)
+        if 0 <= self._hover_row < self.count():
+            painter = QPainter(self.viewport())
+            painter.setRenderHint(QPainter.Antialiasing, True)
+            painter.setPen(Qt.NoPen)
+            color = self.palette().color(QPalette.ColorRole.Highlight)
+            color.setAlpha(45)  # ไฮไลท์ช่องโปร่งแสง (accent เดียวกับหน้าหลัก)
+            painter.setBrush(color)
+            cell = self.visualRect(self.model().index(self._hover_row, 0))
+            painter.drawRoundedRect(cell.adjusted(2, 2, -2, -2), 10, 10)
+            painter.end()
 
     def dropEvent(self, event) -> None:
         target = self._target_row(event.position().toPoint())
@@ -379,6 +430,7 @@ class ShortcutDialog(QDialog):
 
         target_row = QHBoxLayout()
         self.target_edit = QLineEdit(self._shortcut.target)
+        self.target_edit.textChanged.connect(self._on_target_changed)
         target_browse = QPushButton(tr("shortcut.browse"))
         target_browse.clicked.connect(self._browse_target)
         target_row.addWidget(self.target_edit)
@@ -395,28 +447,33 @@ class ShortcutDialog(QDialog):
         cwd_row.addWidget(cwd_browse)
         cwd_widget = QWidget()
         cwd_widget.setLayout(cwd_row)
-        form.addRow("Working dir", cwd_widget)
+        form.addRow(tr("shortcut.working_dir"), cwd_widget)
 
         self.args_edit = QLineEdit(self._shortcut.arguments)
-        form.addRow("Arguments", self.args_edit)
+        form.addRow(tr("shortcut.arguments"), self.args_edit)
 
         icon_row = QHBoxLayout()
-        self.icon_label = QLabel(self._current_icon_label())
+        self.icon_preview = QLabel()
+        self.icon_preview.setFixedSize(48, 48)
+        self.icon_preview.setAlignment(Qt.AlignCenter)
         pick_icon = QPushButton(tr("shortcut.pick_file"))
         pick_icon.clicked.connect(self._pick_icon)
         auto_icon = QPushButton(tr("shortcut.auto_icon"))
         auto_icon.setToolTip(core_icons.platform_note())
         auto_icon.clicked.connect(self._auto_icon)
-        icon_row.addWidget(self.icon_label, 1)
+        icon_row.addWidget(self.icon_preview)
         icon_row.addWidget(pick_icon)
         icon_row.addWidget(auto_icon)
         icon_widget = QWidget()
         icon_widget.setLayout(icon_row)
-        form.addRow(tr("shortcut.icon"), icon_widget)
+        # ไม่มีคำว่า "ไอคอน" — โชว์รูปไอคอนแทน
+        form.addRow(icon_widget)
+        self._update_icon_preview()
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self
         )
+        _style_dialog_buttons(buttons)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         form.addRow(buttons)
@@ -433,12 +490,36 @@ class ShortcutDialog(QDialog):
         if path:
             self.cwd_edit.setText(path)
 
-    def _current_icon_label(self) -> str:
-        if self._icon_source:
-            return Path(self._icon_source).name
-        if self._shortcut.icon:
-            return self._shortcut.icon
-        return tr("shortcut.auto_placeholder")
+    def _on_target_changed(self) -> None:
+        if self._icon_source is None:
+            self._update_icon_preview()
+
+    def _update_icon_preview(self) -> None:
+        """โชว์รูปไอคอนปัจจุบัน (48px) แทนข้อความ."""
+        pixmap: QPixmap | None = None
+        for candidate in (
+            Path(self._icon_source) if self._icon_source else None,
+            Path(self._shortcut.icon) if self._shortcut.icon else None,
+        ):
+            if candidate is not None and candidate.is_file():
+                loaded = QPixmap(str(candidate))
+                if not loaded.isNull():
+                    pixmap = loaded
+                    break
+        if pixmap is None:
+            auto = core_icons.resolve_icon_source(self.target_edit.text().strip() or None)
+            if auto is not None and auto.is_file():
+                loaded = QPixmap(str(auto))
+                if not loaded.isNull():
+                    pixmap = loaded
+        if pixmap is None:
+            pixmap = QIcon.fromTheme(_FALLBACK_GRID_ICON).pixmap(48, 48)
+        if pixmap is not None and not pixmap.isNull():
+            self.icon_preview.setPixmap(
+                pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            )
+        else:
+            self.icon_preview.clear()
 
     def _pick_icon(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
@@ -446,7 +527,7 @@ class ShortcutDialog(QDialog):
         )
         if path:
             self._icon_source = path
-            self.icon_label.setText(self._current_icon_label())
+            self._update_icon_preview()
 
     def _auto_icon(self) -> None:
         target = self.target_edit.text().strip()
@@ -454,18 +535,18 @@ class ShortcutDialog(QDialog):
         if source is None and target and os.access(target, os.X_OK):
             source = core_icons.icon_from_executable(target)
         if source is None:
-            QMessageBox.information(
+            show_information(
                 self,
                 tr("shortcut.no_icon_title"),
                 tr("shortcut.no_icon_body"),
             )
             return
         self._icon_source = str(source)
-        self.icon_label.setText(self._current_icon_label())
+        self._update_icon_preview()
 
     def _on_accept(self) -> None:
         if not self.target_edit.text().strip():
-            QMessageBox.warning(
+            show_warning(
                 self, tr("err.generic"), tr("shortcut.missing_target")
             )
             return
@@ -619,6 +700,7 @@ class GroupEditor(QDialog):
         layout.addLayout(item_buttons)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        _style_dialog_buttons(buttons)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -676,7 +758,7 @@ class GroupEditor(QDialog):
         self._update_color_ui(from_swatch=True)
 
     def _update_color_ui(self, from_swatch: bool = True) -> None:
-        border = self.palette().color(QPalette.ColorRole.Mid).name()
+        border = app_color(QPalette.ColorRole.Mid).name()
         color = QColor(self._custom_color)
         if color.isValid() and is_hex_color(self._custom_color):
             self.color_swatch.setStyleSheet(
@@ -834,7 +916,7 @@ class GroupEditor(QDialog):
     def _on_accept(self) -> None:
         errors = self.result_group().validate()
         if errors:
-            QMessageBox.warning(self, tr("err.invalid_data"), "\n".join(errors))
+            show_warning(self, tr("err.invalid_data"), "\n".join(errors))
             return
         self.accept()
 

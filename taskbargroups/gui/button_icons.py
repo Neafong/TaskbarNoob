@@ -45,5 +45,9 @@ def themed_icon(name: str, base_color: QColor | None = None) -> QIcon:
     return icon
 
 
-def text_color_from_palette(palette) -> QColor:
-    return palette.color(palette.ColorRole.Text)
+def tinted_icon_pixmap(name: str, size: int, color: QColor) -> QPixmap | None:
+    """pixmap ของ SVG ที่ tint แล้ว (สำหรับวาดเองใน paintEvent)."""
+    svg = _svg_path(name)
+    if svg is None:
+        return None
+    return _tinted_pixmap(svg, size, color)

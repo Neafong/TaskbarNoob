@@ -52,12 +52,14 @@ from taskbargroups.core.settings import Settings
 from taskbargroups.core.storage import ConfigStore, StorageError, safe_dir_name
 
 from .about_dialog import AboutDialog
+from .button_icons import themed_icon, tinted_icon_pixmap
+from .dialogs import show_information, show_question, show_warning
 from .flyout import FlyoutController, FlyoutWindow
 from .group_editor import GroupEditor
 from .hotkey_dialog import HotkeyDialog
 from .icons import group_icon
 from .settings_dialog import SettingsDialog
-from .theme import apply_theme, resolve_theme
+from .theme import app_text_color, apply_theme, resolve_theme
 
 ICON_SIZE = QSize(32, 32)
 
@@ -71,6 +73,21 @@ def _style_menu(menu: QMenu) -> QMenu:
         "QMenu::item { padding: 8px 22px; }"
     )
     return menu
+
+
+_NAV_BUTTON_ICONS = {
+    "main.add_group": "plus-fill.svg",
+    "main.edit": "pencil-simple-fill.svg",
+    "main.delete": "trash-fill.svg",
+}
+_SETUP_ICON = "gear-six-fill.svg"
+
+
+def _apply_nav_icon(button: QPushButton, kind: str) -> None:
+    """ติดไอคอน SVG ของเราให้ปุ่มหน้าหลัก (tint ด้วย app text ตรงๆ — ไม่รอ palette event)."""
+    icon = themed_icon(kind, app_text_color())
+    if not icon.isNull():
+        button.setIcon(icon)
 
 
 class GroupListWidget(QListWidget):
@@ -95,6 +112,13 @@ class GroupListWidget(QListWidget):
         self.setMouseTracking(True)
         self._hover: tuple[QListWidgetItem | None, bool] = (None, False)
         self._press_pin: QListWidgetItem | None = None
+        self._row_hover: int = -1
+
+    def clear(self) -> None:
+        self._hover = (None, False)
+        self._press_pin = None
+        self._row_hover = -1
+        super().clear()
 
     def dropEvent(self, event) -> None:
         super().dropEvent(event)
@@ -160,11 +184,19 @@ class GroupListWidget(QListWidget):
         if state != self._hover:
             self._hover = state
             self.viewport().update()
+        hovered = self.itemAt(event.position().toPoint())
+        row = self.row(hovered) if hovered is not None else -1
+        if row != self._row_hover:
+            self._row_hover = row
+            self.viewport().update()
         super().mouseMoveEvent(event)
 
     def leaveEvent(self, event) -> None:
         if self._hover != (None, False):
             self._hover = (None, False)
+            self.viewport().update()
+        if self._row_hover != -1:
+            self._row_hover = -1
             self.viewport().update()
         super().leaveEvent(event)
 
@@ -180,6 +212,17 @@ class GroupListWidget(QListWidget):
         super().paintEvent(event)
         painter = QPainter(self.viewport())
         painter.setRenderHint(QPainter.Antialiasing, True)
+        if 0 <= self._row_hover < self.count():
+            row_item = self.item(self._row_hover)
+            if row_item is not None:
+                painter.save()
+                painter.setPen(Qt.NoPen)
+                color = self.palette().color(QPalette.ColorRole.Highlight)
+                color.setAlpha(45)  # ไฮไลท์แถวโปร่งแสง (accent)
+                painter.setBrush(color)
+                rect = self.visualItemRect(row_item)
+                painter.drawRoundedRect(rect.adjusted(1, 3, -1, -3), 6, 6)
+                painter.restore()
         hovered_item = self._hover[0]
         for row in range(self.count()):
             item = self.item(row)
@@ -200,7 +243,7 @@ class GroupListWidget(QListWidget):
 
     def _status_color(self, pinned: bool) -> QColor:
         """สีไอค่อนสถานะ (ตา) แบบธีม-aware: พื้นสว่าง→เทาเข้ม · พื้นมืด→ขาว
-        (ไม่ใช้ Highlight เพื่อไม่ให้กลืนกับแถวที่ถูกเลือก)."""
+        (ไม่ใช้ Highlight เพื่อไม่ให้กลืนกับแถวที่ถูกเลือก · อ่านตอน paint ซึ่ง palette สดเสมอ)."""
         base = self.palette().color(QPalette.ColorRole.Base)
         color = QColor(255, 255, 255) if base.lightness() < 128 else QColor(82, 82, 92)
         if not pinned:
@@ -208,10 +251,19 @@ class GroupListWidget(QListWidget):
         return color
 
     def _paint_pin_shape(self, painter: QPainter, rect: QRect, pinned: bool) -> None:
-        """วาดไอค่อนสถานะ: ตาเปิด (ปัก/โชว์) · ตามิด (ซ่อน)."""
+        """วาดไอค่อนสถานะ: ตาเปิด (ปัก/โชว์) · ตามิด (ซ่อน) — SVG ของเรา tint ตามธีม."""
+        color = self._status_color(pinned)
+        name = "eye-fill.svg" if pinned else "eye-slash-fill.svg"
+        side = max(16, min(rect.width(), rect.height()) - 6)
+        pixmap = tinted_icon_pixmap(name, side, color)
+        if pixmap is not None and not pixmap.isNull():
+            target = QRect(0, 0, side, side)
+            target.moveCenter(rect.center())
+            painter.drawPixmap(target, pixmap)
+            return
+        # fallback: วาดเส้นเอง (กรณีหา asset ไม่เจอ เช่น ใน bundle)
         painter.save()
         painter.setRenderHint(QPainter.Antialiasing, True)
-        color = self._status_color(pinned)
         size = min(rect.width(), rect.height())
         center = rect.center()
         cx, cy = center.x(), center.y()
@@ -269,15 +321,15 @@ class MainWindow(QMainWindow):
             ("main.delete", self.on_delete),
         ):
             button = QPushButton(tr(key))
+            _apply_nav_icon(button, _NAV_BUTTON_ICONS[key])
             button.clicked.connect(slot)
             row.addWidget(button)
             self._nav_buttons.append((key, button))
         row.addStretch(1)
-        self.setup_button = QPushButton("⚙")
+        self.setup_button = QPushButton()
         self.setup_button.setToolTip(tr("main.setup_tooltip"))
-        gear_font = self.setup_button.font()
-        gear_font.setPixelSize(28)
-        self.setup_button.setFont(gear_font)
+        self.setup_button.setIcon(themed_icon(_SETUP_ICON, app_text_color()))
+        self.setup_button.setIconSize(QSize(26, 26))
         self.setup_button.setFixedWidth(52)
         self.setup_button.clicked.connect(self._open_setup_menu)
         row.addWidget(self.setup_button)
@@ -317,11 +369,19 @@ class MainWindow(QMainWindow):
         if changed:
             reload_grouped_window_applet()
 
+    def refresh_icons(self) -> None:
+        """ทาสีไอคอนปุ่มใหม่ตามธีมปัจจุบัน (เรียกหลังสลับธีม — ใช้ app palette ตรงๆ)."""
+        for key, button in self._nav_buttons:
+            _apply_nav_icon(button, _NAV_BUTTON_ICONS[key])
+        self.setup_button.setIcon(themed_icon(_SETUP_ICON, app_text_color()))
+        self.list.viewport().update()
+
     def retranslate(self) -> None:
         """อัปเดตข้อความ UI ตามภาษาที่ active อยู่ (เรียกหลังสลับภาษาแบบทันที)."""
         self.setWindowTitle(tr("app.title"))
         for key, button in self._nav_buttons:
             button.setText(tr(key))
+        self.refresh_icons()
         self.setup_button.setToolTip(tr("main.setup_tooltip"))
         self.refresh()
 
@@ -358,7 +418,7 @@ class MainWindow(QMainWindow):
         try:
             self.store.save_order(order)
         except StorageError as exc:
-            QMessageBox.warning(self, tr("err.generic"), str(exc))
+            show_warning(self, tr("err.generic"), str(exc))
 
     def _current_dir_name(self) -> str | None:
         item = self.list.currentItem()
@@ -376,7 +436,7 @@ class MainWindow(QMainWindow):
         try:
             group = self.store.load_group(dir_name)
         except StorageError as exc:
-            QMessageBox.warning(self, tr("err.generic"), str(exc))
+            show_warning(self, tr("err.generic"), str(exc))
             return
         dialog = GroupEditor(self.store, self, group=group, dir_name=dir_name)
         if dialog.exec() == QDialog.Accepted:
@@ -404,10 +464,10 @@ class MainWindow(QMainWindow):
                 self.store.delete_group(old_dir)
             self._cache_shortcut_icons(group, new_dir, pending)
         except StorageError as exc:
-            QMessageBox.warning(self, tr("err.generic"), str(exc))
+            show_warning(self, tr("err.generic"), str(exc))
             return
         if group.name != original_name:
-            QMessageBox.information(
+            show_information(
                 self,
                 tr("main.name_taken_title"),
                 tr("main.name_taken_body", name=original_name, new_name=group.name),
@@ -481,7 +541,7 @@ class MainWindow(QMainWindow):
         dir_name = self._current_dir_name()
         if dir_name is None:
             return
-        answer = QMessageBox.question(
+        answer = show_question(
             self,
             tr("main.confirm_delete_title"),
             tr("main.confirm_delete_body", dir_name=dir_name),
@@ -492,7 +552,7 @@ class MainWindow(QMainWindow):
         try:
             self.store.delete_group(dir_name)
         except StorageError as exc:
-            QMessageBox.warning(self, tr("err.generic"), str(exc))
+            show_warning(self, tr("err.generic"), str(exc))
             return
         self._cleanup_launcher(dir_name, desktop_file_name(dir_name))
         if is_cinnamon():
@@ -509,7 +569,7 @@ class MainWindow(QMainWindow):
         try:
             group = self.store.load_group(dir_name)
         except StorageError as exc:
-            QMessageBox.warning(self, tr("err.generic"), str(exc))
+            show_warning(self, tr("err.generic"), str(exc))
             return
         self._flyout = FlyoutWindow(group, self.store, dir_name)
         self._flyout.show_at_cursor()
@@ -544,7 +604,7 @@ class MainWindow(QMainWindow):
             new_name = tr("ctx.copy_suffix", name=group.name)
             self.store.duplicate_group(dir_name, new_name)
         except StorageError as exc:
-            QMessageBox.warning(self, tr("err.generic"), str(exc))
+            show_warning(self, tr("err.generic"), str(exc))
             return
         self.refresh()
 
@@ -570,7 +630,7 @@ class MainWindow(QMainWindow):
         try:
             group = self.store.load_group(dir_name)
         except StorageError as exc:
-            QMessageBox.warning(self, tr("err.generic"), str(exc))
+            show_warning(self, tr("err.generic"), str(exc))
             return
         if desktop_id in pinned_desktop_ids():
             self._unpin(dir_name, desktop_id)
@@ -581,7 +641,7 @@ class MainWindow(QMainWindow):
         try:
             path = install_launcher(group, self.store, dir_name)
         except OSError as exc:
-            QMessageBox.warning(self, tr("err.generic"), str(exc))
+            show_warning(self, tr("err.generic"), str(exc))
             return
         lines = [tr("main.launcher_installed", path=path), ""]
         try:
@@ -593,13 +653,13 @@ class MainWindow(QMainWindow):
                 QTimer.singleShot(2500, reload_grouped_window_applet)
             lines.append(tr("main.pin_ok"))
         self.refresh()
-        QMessageBox.information(self, tr("main.pin_title"), "\n".join(lines))
+        show_information(self, tr("main.pin_title"), "\n".join(lines))
 
     def _unpin(self, dir_name: str, desktop_id: str) -> None:
         try:
             removed = unpin_from_panel(desktop_id)
         except PinError as exc:
-            QMessageBox.warning(self, tr("main.unpin_failed"), str(exc))
+            show_warning(self, tr("main.unpin_failed"), str(exc))
             return
         self.refresh()
         message = (
@@ -607,7 +667,7 @@ class MainWindow(QMainWindow):
             if removed
             else tr("main.unpin_not_found")
         )
-        QMessageBox.information(self, tr("main.unpin_title"), message)
+        show_information(self, tr("main.unpin_title"), message)
 
     def on_install_launcher(self) -> None:
         dir_name = self._current_dir_name()
@@ -617,9 +677,9 @@ class MainWindow(QMainWindow):
             group = self.store.load_group(dir_name)
             path = install_launcher(group, self.store, dir_name)
         except (StorageError, OSError) as exc:
-            QMessageBox.warning(self, tr("err.generic"), str(exc))
+            show_warning(self, tr("err.generic"), str(exc))
             return
-        QMessageBox.information(
+        show_information(
             self,
             tr("main.launcher_installed_title"),
             tr("main.launcher_installed_body", path=path),
@@ -632,7 +692,7 @@ class MainWindow(QMainWindow):
         try:
             group = self.store.load_group(dir_name)
         except StorageError as exc:
-            QMessageBox.warning(self, tr("err.generic"), str(exc))
+            show_warning(self, tr("err.generic"), str(exc))
             return
         HotkeyDialog(group, self.store, dir_name, self).exec()
         self.refresh()

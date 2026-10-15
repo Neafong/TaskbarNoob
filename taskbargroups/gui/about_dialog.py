@@ -81,6 +81,10 @@ class AboutDialog(QDialog):
             layout.addWidget(donate)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Close)
+        close_button = buttons.button(QDialogButtonBox.Close)
+        if close_button is not None:
+            close_button.setText(tr("dialog.close"))
+            close_button.setIcon(QIcon())
         buttons.rejected.connect(self.accept)
         buttons.accepted.connect(self.accept)
         layout.addWidget(buttons)

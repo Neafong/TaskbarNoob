@@ -2,7 +2,7 @@
 
 > "ความจำโปรเจกต์" — เปิดเซคชันใหม่ให้อ่านไฟล์นี้ก่อนเสมอ
 > **ไฟล์นี้เก็บแค่ snapshot ปัจจุบัน** ให้สั้น — ประวัติอยู่ใน `docs/WORKLOG.md` · แผนที่เอกสาร: `docs/README.md`
-> Last updated: 2026-10-12
+> Last updated: 2026-10-13
 
 ## บทบาท / ผู้ช่วย
 - ผู้ช่วยชื่อ **"น้องพริก"** — โปรแกรมเมอร์คู่ใจ เป็น **ผู้หญิง** → ลงท้าย **"ค่ะ / คะ"**
@@ -32,8 +32,12 @@
 ## สถานะปัจจุบัน
 - **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12):** repo `github.com/Neafong/TaskbarNoob` (Public) ·
   Release แนบ `TaskbarNoob-x86_64.AppImage` + `taskbargroups_0.1.0_amd64.deb` · GPL-3.0 · README มี badge + Screenshots
-- **โค้ดล่าสุด:** v0.2-A เสร็จ — ตัด "นำเข้ากลุ่ม (Windows)" ทั้งชุด (ปุ่ม + CLI `--import` + `core/importer.py`)
-  · **221 เทสต์** · import/export zip (P18) ยังอยู่ · ภาษา TH/EN + asset ตัวอย่าง `packaging/lang/ja.json`
+- **โค้ดล่าสุด:** **v0.2-A/B/C เสร็จ + commit แล้ว** (2026-10-13) — ตัด "นำเข้ากลุ่ม (Windows)" ทั้งชุด
+  (ปุ่ม + CLI `--import` + `core/importer.py`) · "กระเป๋าใส่ได้ทุกอย่าง" (launcher type-aware + flyout คลิกขวาเปิดที่อยู่)
+  · UI polish (accent token · ไอคอน SVG ของเรา tint ตามธีม · swatch สี + ช่อง hex · แก้เมนู/ลาก)
+  · **223 เทสต์** · import/export zip (P18) ยังอยู่ · ภาษา TH/EN + asset ตัวอย่าง `packaging/lang/ja.json`
+- **git:** history เดิมกู้คืนจาก HDD backup แล้ว (`.git`/`.github`/`.gitignore` ครบ) · `main` ต่อเนื่องจาก `origin/main`
+  · ยัง**ไม่ push** (รอเทสต์ local + ทำ Windows ก่อน) · **ยังไม่ออก tag v0.2.0 / ยังไม่ repackage รอบใหม่**
 - **แผนต่อจากนี้:** ดู `docs/roadmap.md` + `docs/feedback.md` (งานถัดไป = เก็บฟีดแบ็กผู้ใช้ · Windows port เป้าหลัง)
 - **ยังเทสต์บนเครื่องนี้ไม่ได้:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่น (hotkey/pin = Cinnamon-only)
 
@@ -59,13 +63,27 @@
 - **packaging:** เครื่องไม่มี pip/python3-venv (venv `--without-pip`) · repo อยู่บน fuseblk (chmod ไม่ติด → สคริปต์ `.deb` สเตจ `/tmp`)
   · ไม่มี `libxcb-cursor0` → รันจากซอร์สต้องมี `lib/libxcb-cursor.so.0` แล้ว `__main__` re-exec ตั้ง `LD_LIBRARY_PATH`
 
+## ที่เก็บไฟล์ (เครื่องนี้) — ข้อตกลง 🚩
+
+> ตั้งขึ้นเพราะเดิมไฟล์เกลื่อนหลายที่ พอความจำหายแล้วสร้างใหม่ เลยหาไม่เจอ — **รวมที่เดียว**
+
+- **โปรเจกต์ (ทำงาน):** `/home/noob/Desktop/TaskbarNoob` (SSD) = source หลัก
+- **AppImage ที่ใช้จริง/เทสต์ = ที่เดียว:** `/home/noob/AppImage/Tool/TaskbarNoob-x86_64.AppImage`
+  → หลัง `bash packaging/build_appimage.sh` **คัดลอกไฟล์ไปทับที่นี่เสมอ** · **อย่าเทสต์จาก `dist/` ตรง ๆ**
+- **config จริง (portable):** `/home/noob/AppImage/Tool/config/` (อยู่ข้าง AppImage) — groups: Game · Production · Tool
+  · รันจากซอร์สให้ชี้มาที่นี่: `TASKBARGROUPS_CONFIG=$HOME/AppImage/Tool/config`
+- **build output:** `<repo>/dist/` = ที่พักผลลัพธ์ชั่วคราว (gitignored) — ไม่ใช่ที่ใช้ประจำ
+- **HDD เก่า:** `/mnt/Backup/TaskbarGroups/` = **สำรองเท่านั้น** (มี `.git` history + สำเนา config) · อย่ารันจากที่นี่
+- **กติกา:** AppImage มีที่เดียว · กลุ่มจริงมีที่เดียว · ถ้าเจอไฟล์ซ้ำที่อื่น = ให้ถือที่ตามข้างบนนี้
+
 ## วิธีรัน / Dev
 - รันแอป: `.venv/bin/python -m taskbargroups`
 - เปิด flyout: `... -m taskbargroups --open "<GroupDir>"` · list: `... --list`
-- เทสต์: `.venv/bin/python tests/run.py` → **221 ผ่าน**
+- เทสต์: `.venv/bin/python tests/run.py` → **223 ผ่าน**
   · (ถ้ารัน `python -m unittest discover -s tests` ผลเทสต์เท่ากันแต่ตอนปิด PySide6 6.12 จะ segfault
     ใน `destroyQCoreApplication()` — บั๊กฝั่ง Qt · `tests/run.py` เรียก `os._exit()` เลี่ยงให้)
 - แพ็ก: `bash packaging/build_appimage.sh` → `dist/TaskbarNoob-x86_64.AppImage`
+  · **แล้วคัดลอกไปทับ `~/AppImage/Tool/TaskbarNoob-x86_64.AppImage`** (ที่ใช้จริง — ดูหัวข้อ "ที่เก็บไฟล์")
 - แพ็ก `.deb`: `bash packaging/build_deb.sh` → `dist/taskbargroups_<ver>_amd64.deb`
 
 ## โครงไฟล์

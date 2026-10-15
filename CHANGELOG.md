@@ -6,6 +6,28 @@
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-10-14
+
+รุ่นปรับปรุงใหญ่: "กระเป๋าใส่ได้ทุกอย่าง" + UI polish · ยังเน้น Linux Mint (Cinnamon)
+
+### Added
+
+- **กระเป๋าใส่ได้ทุกอย่าง** — launcher แบบ type-aware เปิด target ได้หลายชนิด (แอป · โฟลเดอร์ · ไฟล์ · URL)
+- **flyout คลิกขวาเปิดที่อยู่** — เปิดตำแหน่งโฟลเดอร์ที่มีไฟล์นั้น
+
+### Changed
+
+- **UI polish** — accent token กลาง (ปรับสีได้ที่เดียว) · ไอคอน SVG ของเรา tint ตามธีม
+  · swatch สี + ช่อง hex · จัดเมนู/ลากใหม่
+- **accent สีฟ้า** — ปรับเป็น `#1f9ede` (สดขึ้น) ใช้ทุกจุด (hover · selection · drop · ลิงก์)
+- **hover ช่องกริด** ในตัวแก้ไข — ไฮไลท์ช่องโปร่งแสงแบบเดียวกับหน้าหลัก
+- **i18n** — ไทยล้วน/อังกฤษล้วน · popup ไม่มีไอคอนปุ่ม + คำแปลครบ (`ตกลง`/`ยกเลิก`/`ปิด`)
+
+### Fixed
+
+- **ไอคอนไม่รีเฟรชตอนสลับธีม** (ต้องคลิก 2 รอบ) — อ่านสีจาก app palette ตรง ๆ ตอน tint
+- ชื่อ/คำแปลผสมไทย-อังกฤษในกล่องข้อความ (`โฟลเดอร์ทำงาน` · `อาร์กิวเมนต์` · `รายการทางลัด`)
+
 ### Removed
 
 - ตัดฟีเจอร์ "นำเข้ากลุ่ม (Windows Taskbar Groups)" ทั้งชุด — ลบปุ่ม + CLI `--import` +
@@ -51,5 +73,6 @@
 
 - ขั้นตอน bump → build → tag → Release ดู [`docs/release-process.md`](docs/release-process.md)
 
-[Unreleased]: https://github.com/Neafong/TaskbarNoob/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Neafong/TaskbarNoob/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Neafong/TaskbarNoob/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Neafong/TaskbarNoob/releases/tag/v0.1.0

@@ -26,7 +26,13 @@ from taskbargroups.core.archive import delete_backups, list_backups
 from taskbargroups.core.i18n import available_languages, export_language, import_language, tr
 from taskbargroups.core.settings import Settings
 
-from .theme import apply_theme, resolve_theme
+from .dialogs import (
+    show_information,
+    show_question,
+    show_warning,
+    style_message_box,
+)
+from .theme import app_color, apply_theme, resolve_theme
 
 _THEME_VALUES = ("auto", "light", "dark")
 
@@ -116,11 +122,13 @@ class SettingsDialog(QDialog):
         layout.addLayout(bottom)
 
     def _style_config_button(self) -> None:
-        """ปุ่มเปิดโฟลเดอร์ config ให้ดู "กดได้" (กรอบ + hover) ไม่แบนเหมือนข้อความ."""
-        pal = self.palette()
-        border = pal.color(QPalette.ColorRole.Mid).name()
-        text = pal.color(QPalette.ColorRole.Text).name()
-        hover_bg = pal.color(QPalette.ColorRole.AlternateBase).name()
+        """ปุ่มเปิดโฟลเดอร์ config ให้ดู "กดได้" (กรอบ + hover) ไม่แบนเหมือนข้อความ.
+
+        อ่านสีจาก app ตรงๆ (ไม่รอ palette event — กันสีค้างตอนสลับธีม).
+        """
+        border = app_color(QPalette.ColorRole.Mid).name()
+        text = app_color(QPalette.ColorRole.Text).name()
+        hover_bg = app_color(QPalette.ColorRole.AlternateBase).name()
         self.config_button.setStyleSheet(
             "text-align: left;"
             f"QPushButton {{ border: 1px solid {border}; border-radius: 4px;"
@@ -135,6 +143,9 @@ class SettingsDialog(QDialog):
         if app is not None:
             apply_theme(app, resolve_theme(value, app))
         self._style_config_button()
+        main = self._main
+        if hasattr(main, "refresh_icons"):
+            main.refresh_icons()
 
     def _on_language_changed(self, index: int) -> None:
         code = self.language_combo.itemData(index)
@@ -198,10 +209,10 @@ class SettingsDialog(QDialog):
         try:
             out = archive.export_config(self._settings.config_dir, path)
         except archive.ArchiveError as exc:
-            QMessageBox.warning(self, tr("err.generic"), self._archive_error(exc))
+            show_warning(self, tr("err.generic"), self._archive_error(exc))
             return
         report = archive.inspect_zip(out)
-        QMessageBox.information(
+        show_information(
             self,
             tr("settings.export_all_dialog_title"),
             tr(
@@ -226,7 +237,7 @@ class SettingsDialog(QDialog):
         try:
             report = archive.inspect_zip(path)
         except archive.ArchiveError as exc:
-            QMessageBox.warning(self, tr("err.generic"), self._archive_error(exc))
+            show_warning(self, tr("err.generic"), self._archive_error(exc))
             return
 
         box = QMessageBox(self)
@@ -240,12 +251,13 @@ class SettingsDialog(QDialog):
         )
         box.addButton(tr("settings.cancel"), QMessageBox.RejectRole)
         box.setDefaultButton(merge_btn)
+        style_message_box(box)
         box.exec()
         clicked = box.clickedButton()
         if clicked is merge_btn:
             self._run_import(path, "merge")
         elif clicked is replace_btn:
-            confirm = QMessageBox.question(
+            confirm = show_question(
                 self,
                 tr("settings.import_confirm_title"),
                 tr("settings.import_confirm_replace"),
@@ -261,7 +273,7 @@ class SettingsDialog(QDialog):
         try:
             report = archive.import_config(path, self._settings.config_dir, mode=mode)
         except archive.ArchiveError as exc:
-            QMessageBox.warning(self, tr("err.generic"), self._archive_error(exc))
+            show_warning(self, tr("err.generic"), self._archive_error(exc))
             return
         message = tr("settings.import_summary", count=len(report.groups_imported))
         if report.groups_kept:
@@ -272,7 +284,7 @@ class SettingsDialog(QDialog):
             message += tr("settings.import_backup_note", path=str(report.backup_dir))
         if isinstance(self._main, QWidget):
             self._main.refresh()
-        QMessageBox.information(
+        show_information(
             self, tr("settings.import_confirm_title"), message
         )
 
@@ -299,7 +311,7 @@ class SettingsDialog(QDialog):
     def _on_delete_backups(self) -> None:
         backups = list_backups(self._settings.config_dir)
         if not backups:
-            QMessageBox.information(
+            show_information(
                 self,
                 tr("settings.delete_backups_title"),
                 tr("settings.delete_backups_none"),
@@ -324,19 +336,20 @@ class SettingsDialog(QDialog):
             tr("settings.delete_backups"), QMessageBox.DestructiveRole
         )
         box.addButton(tr("settings.cancel"), QMessageBox.RejectRole)
+        style_message_box(box)
         box.exec()
         if box.clickedButton() is not delete_btn:
             return
         try:
             removed = delete_backups(self._settings.config_dir, backups)
         except OSError as exc:
-            QMessageBox.warning(
+            show_warning(
                 self,
                 tr("err.generic"),
                 f"{tr('err.backup_delete_failed')}: {exc}",
             )
             return
-        QMessageBox.information(
+        show_information(
             self,
             tr("settings.delete_backups_title"),
             tr("settings.delete_backups_done", n=removed),
@@ -369,9 +382,9 @@ class SettingsDialog(QDialog):
         try:
             export_language(Path(path), language, self._settings.config_dir)
         except OSError as exc:
-            QMessageBox.warning(self, tr("err.generic"), str(exc))
+            show_warning(self, tr("err.generic"), str(exc))
             return
-        QMessageBox.information(
+        show_information(
             self,
             tr("settings.export_dialog_title"),
             tr("settings.export_ok", path=path),
@@ -388,7 +401,7 @@ class SettingsDialog(QDialog):
             return
         code = import_language(Path(path), self._settings.config_dir)
         if code is None:
-            QMessageBox.warning(
+            show_warning(
                 self, tr("err.generic"), tr("settings.import_invalid")
             )
             return
@@ -400,7 +413,7 @@ class SettingsDialog(QDialog):
                     break
             self.language_combo.addItem(label, code)
         self.language_combo.setCurrentIndex(self.language_combo.findData(code))
-        QMessageBox.information(
+        show_information(
             self,
             tr("settings.import_dialog_title"),
             tr("settings.import_ok", language=code),

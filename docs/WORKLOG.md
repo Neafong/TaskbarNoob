@@ -757,3 +757,55 @@
 - `gui/flyout.py`: ปุ่มแต่ละไอคอนมี context menu คลิกขวา → "เปิดที่อยู่" เฉพาะไฟล์ที่มีอยู่จริง (ไม่ใช่โฟลเดอร์) → เปิด parent ด้วย xdg-open/gio open
 - i18n: เพิ่ม `flyout.reveal` (TH/EN) + `packaging/lang/ja.json`
 - `tests.run.py` → 223 ผ่านครบ
+
+## 2026-10-14 — ซ่อม UI ตามรีวิวผู้ใช้ (รอบ 7 จุด) `[เสร็จ]`
+- **1.1:** `main_window.GroupListWidget` เติมไฮไลท์แถวโปร่งแสง (accent alpha 45) ตอน hover
+  (`_row_hover` เก็บเป็นเลขแถวกัน dangling · `clear()` รีเซ็ต state · ของเดิมมีแค่โซนตาเลยดูเหมือนหาย)
+- **1.2:** ตาปัก/ถอนใช้ SVG `eye-fill/eye-slash-fill` tint ตามธีม (`button_icons.tinted_icon_pixmap` ใหม่)
+  · โค้ดวาดเส้นเดิมเหลือเป็น fallback กัน asset หาไม่เจอ
+- **1.3:** ปุ่มเพิ่ม/แก้ไข/ลบ + เฟือง หน้าหลักใช้ SVG (`plus/pencil/trash/gear`) tint ตามธีม · re-apply ใน `retranslate`
+- **2:** `shortcut.title` TH = "ทางลัด" · แถวไอคอนตัดคำว่า "ไอคอน" โชว์รูป 48px แทน
+  (`_update_icon_preview`: manual pick → shortcut.icon → auto resolve → fallback · refresh ตอนพิมพ์ target ถ้ายังไม่เคย pick)
+  · ปุ่ม OK/Cancel = ตกลง/ยกเลิก + SVG (check/x) ผ่าน helper `_style_dialog_buttons`
+- **3.1:** GroupEditor OK/Cancel = ตกลง/ยกเลิก + SVG เช่นกัน
+- i18n: คีย์ใหม่ `dialog.ok/cancel` (TH/EN + `ja.json` parity)
+- เทสต์ 223 ผ่าน · smoke offscreen ตรวจไอคอน/ข้อความ/paintEvent ครบ
+
+## 2026-10-14 — popup เล็กไทยล้วน + ปุ่มไม่มีไอคอน `[เสร็จ]`
+- `gui/dialogs.py` ใหม่: `style_message_box` (ลบไอคอนปุ่มทุกปุ่ม + ตั้งข้อความตามภาษา)
+  + `show_warning/information/critical/question` (คืนค่า exec เหมือน static เดิม)
+- เปลี่ยน static `QMessageBox.*` ทั้ง 39 จุด (main/group_editor/hotkey/settings) มาใช้ helper
+  · กล่อง custom ใน settings เรียก `style_message_box` ก่อน `exec`
+- About: ปุ่ม Close = "ปิด" ไม่มีไอคอน · Yes/No = ใช่/ไม่ใช่ · i18n `dialog.close/yes/no` (TH/EN + `ja.json`)
+- เทสต์: อัปเดต 2 mock ใน `test_gui_smoke.py` ให้ mock `show_question/show_information`
+  (mock static เดิมไม่โดนเรียก → dialog จริง block ทำให้ suite hang) → 223 ผ่าน
+- i18n parity: `shortcut.working_dir`="โฟลเดอร์ทำงาน" · `shortcut.arguments`="อาร์กิวเมนต์"
+  · `editor.shortcut_list_hint`="รายการทางลัด" · โค้ดเลิก hardcode ใช้ `tr()` · ตรวจแล้ว EN ไม่มีภาษาไทยปน
+
+## 2026-10-14 — แก้ไอคอนไม่รีเฟรชตอนสลับธีม (บั๊กคลิก 2 รอบ) `[เสร็จ]`
+- สาเหตุ: `app.setPalette()` ส่ง PaletteChange เป็น event คิวไว้ แต่โค้ด tint ไอคอนอ่าน `widget.palette()`
+  ทันที → ได้สีเก่า · ตาลูกตารอดเพราะวาดใน paintEvent (เกิดหลัง event เสมอ)
+  · หลักฐาน: จังหวะสลับธีม tint ได้ #000000 ทั้งที่ app เป็น #dddddd แล้ว
+- `theme.py`: เพิ่ม `app_color(role)` + `app_text_color()` อ่าน app palette ตรงๆ (ค่าจริงทันที ไม่รอ event)
+- ใช้ทุกจุดที่ tint ตอน action: ปุ่มหน้าหลัก/เฟือง · ปุ่ม config (กรอบ+hover) · ปุ่มตัวแก้ไข/OK-Cancel · ขอบ swatch
+  · paint-time (hover แถว/ตา/`_status_color`) คง `widget.palette()` ไว้ (สดเสมอ + มีเทสต์บังคับระดับ widget)
+- `MainWindow.refresh_icons()` ใหม่ + `settings._on_theme_changed` เรียกหลัง `apply_theme`
+  → สลับธีมปุ๊บไอคอนเปลี่ยนทันที ไม่ต้องสลับภาษาซ้ำ
+- regression test `test_theme_switch_retints_icons_immediately` (+ลบ helper `text_color_from_palette` กันกลับมาใช้ผิด)
+- เทสต์ 224 ผ่าน (223 เดิม + 1 ใหม่)
+
+## 2026-10-14 — hover กริด + เปลี่ยน accent เป็น `#1f9ede` `[เสร็จ]`
+- `ShortcutGrid` (กริดไอคอนในตัวแก้ไข): เติมไฮไลท์ช่องโปร่งแสงตอน hover (accent alpha 45 ·
+  `_hover_row` เป็นเลขแถว + `setMouseTracking` + `clear()` รีเซ็ต) — แบบเดียวกับหน้าหลัก
+- `theme.py`: accent `#4a90d9` → **`#1f9ede`** (ฟ้าสดตามที่ผู้ใช้ดูดสีมา) · `Link` (darker 110) กับทุกจุดที่ใช้
+  `Highlight` (hover แถว/ตา/drop กริด/selection) เปลี่ยนตามอัตโนมัติเพราะอ่านจาก palette
+- เทสต์ 224 ผ่าน
+
+## 2026-10-14 — bump v0.2.0 + build AppImage `[เสร็จ]`
+- `__init__.py`: `0.1.0` → **`0.2.0`** (About อ่านจากตัวนี้ — ที่ก่อนหน้าโชว์ 0.1.0)
+- `CHANGELOG.md`: ย้าย `[Unreleased]` → **`[0.2.0] — 2026-10-14`** (everything-bag · UI polish ·
+  accent `#1f9ede` · hover กริด · แก้ไอคอนไม่รีเฟรชตอนสลับธีม · i18n)
+- ลบ `dist/` เก่า → build ใหม่ `bash packaging/build_appimage.sh` → `dist/TaskbarNoob-x86_64.AppImage` (50M)
+- คัดลอกไปที่จริง: `/home/noob/AppImage/Tool/TaskbarNoob-x86_64.AppImage`
+- ตรวจใน AppImage (PYZ): consts ของ `taskbargroups` = `'0.2.0'` · มี `gui.dialogs` · `--list` ออก Tool/Game/Production
+- เทสต์ 224 ผ่าน · ยังไม่ commit / ยังไม่ tag

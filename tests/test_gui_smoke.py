@@ -612,7 +612,7 @@ class GuiSmokeTests(unittest.TestCase):
         ) as unpin_mock, mock.patch.object(
             main_window, "reload_grouped_window_applet", return_value=True
         ) as reload_mock, mock.patch.object(
-            QMessageBox, "question", return_value=QMessageBox.Yes
+            main_window, "show_question", return_value=QMessageBox.Yes
         ):
             window = MainWindow(store=self.store)
             window.list.setCurrentRow(0)
@@ -672,8 +672,7 @@ class GuiSmokeTests(unittest.TestCase):
     def test_duplicate_group_name_gets_suffix(self) -> None:
         from unittest import mock
 
-        from PySide6.QtWidgets import QMessageBox
-
+        from taskbargroups.gui import main_window
         from taskbargroups.gui.main_window import MainWindow
 
         self.store.save_group(Group(name="Work"))
@@ -690,7 +689,7 @@ class GuiSmokeTests(unittest.TestCase):
             def pending_icons(self):
                 return {}
 
-        with mock.patch.object(QMessageBox, "information") as info_mock:
+        with mock.patch.object(main_window, "show_information") as info_mock:
             window = MainWindow(store=self.store)
             window._persist(FakeDialog())
 
@@ -711,6 +710,36 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertNotEqual(th_text, en_text)
         self.assertEqual(en_text, "Add group")
         setup("th")
+
+    def test_theme_switch_retints_icons_immediately(self) -> None:
+        """regression คลิก 2 รอบ: สลับธีมแล้วไอคอนต้องได้สีใหม่ทันที ไม่รอ event."""
+        from PySide6.QtGui import QColor
+
+        from taskbargroups.gui.main_window import MainWindow
+        from taskbargroups.gui.theme import app_text_color, apply_theme
+
+        app = QApplication.instance() or QApplication([])
+        self.addCleanup(apply_theme, app, "light")
+        apply_theme(app, "light")
+        window = MainWindow(store=self.store)
+        window.show()
+        app.processEvents()
+        apply_theme(app, "dark")
+        # ไม่ processEvents — จำลองจังหวะเดียวกับ _on_theme_changed
+        # (widget.palette() ยังเป็นสีเก่า แต่ app palette เป็นสีใหม่แล้ว)
+        self.assertEqual(app_text_color().name(), QColor("#dddddd").name())
+        window.refresh_icons()
+        button = window._nav_buttons[0][1]
+        pixmap = button.icon().pixmap(32, 32)
+        self.assertFalse(pixmap.isNull())
+        image = pixmap.toImage()
+        expected = QColor("#dddddd").name()
+        found = any(
+            image.pixelColor(x, y).name() == expected
+            for x in range(image.width())
+            for y in range(image.height())
+        )
+        self.assertTrue(found, "ไอคอนต้องถูก tint ด้วยสีธีมใหม่ทันที")
 
     def test_refresh_shows_hotkey_inline(self) -> None:
         from unittest import mock

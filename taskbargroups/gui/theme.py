@@ -35,10 +35,27 @@ def apply_theme(app: QApplication, theme: str) -> None:
     palette.setColor(QPalette.ColorRole.ButtonText, QColor("#eeeeee"))
     palette.setColor(QPalette.ColorRole.ToolTipBase, QColor("#3c3c3c"))
     palette.setColor(QPalette.ColorRole.ToolTipText, QColor("#eeeeee"))
-    # Accent token (กลาง ทันสมัย ไม่หนักเท่าเดิม)
-    accent = QColor("#4a90d9")
+    # Accent token (#1f9ede — ฟ้าสด ทันสมัย; เปลี่ยนทุกจุดที่ใช้ Highlight ตาม)
+    accent = QColor("#1f9ede")
     palette.setColor(QPalette.ColorRole.Highlight, accent)
     palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#ffffff"))
     palette.setColor(QPalette.ColorRole.PlaceholderText, QColor("#9e9e9e"))
     palette.setColor(QPalette.ColorRole.Link, accent.darker(110))
     app.setPalette(palette)
+
+
+def app_color(role: QPalette.ColorRole) -> QColor:
+    """สีจาก app palette ตรงๆ (ค่าจริงทันทีหลัง apply_theme ไม่ต้องรอ PaletteChange event).
+
+    ใช้ทาสีไอคอน/สไตล์ตอนสลับธีม — กันบั๊ก "คลิก 2 รอบ" ที่อ่าน widget.palette()
+    แล้วได้สีเก่าเพราะ event ยังส่งไม่ถึงวิดเจ็ต.
+    """
+    app = QApplication.instance()
+    if app is None:
+        return QColor()
+    return app.palette().color(role)
+
+
+def app_text_color() -> QColor:
+    """สี text สำหรับ tint ไอคอน — อ่านจาก app ทันที ไม่รอ event."""
+    return app_color(QPalette.ColorRole.Text)

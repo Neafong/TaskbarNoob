@@ -21,6 +21,8 @@ from taskbargroups.core.i18n import tr
 from taskbargroups.core.models import Group
 from taskbargroups.core.storage import ConfigStore
 
+from .dialogs import show_information, show_warning
+
 _MODIFIER_MAP = {
     "Ctrl": "<Control>",
     "Shift": "<Shift>",
@@ -104,22 +106,22 @@ class HotkeyDialog(QDialog):
 
     def _install(self) -> None:
         if not hotkeys.is_cinnamon():
-            QMessageBox.warning(
+            show_warning(
                 self, tr("hotkey.unsupported_title"), tr("hotkey.unsupported_body")
             )
             return
         binding = qt_sequence_to_cinnamon(self.key_edit.keySequence())
         if not binding:
-            QMessageBox.warning(self, tr("err.generic"), tr("hotkey.no_binding"))
+            show_warning(self, tr("err.generic"), tr("hotkey.no_binding"))
             return
         try:
             hotkeys.register_cinnamon_hotkey(
                 self._slot(), self.group.name, build_exec(self.dir_name), binding
             )
         except hotkeys.HotkeyError as exc:
-            QMessageBox.warning(self, tr("err.generic"), str(exc))
+            show_warning(self, tr("err.generic"), str(exc))
             return
-        QMessageBox.information(
+        show_information(
             self,
             tr("hotkey.success_title"),
             tr("hotkey.success_body", binding=binding, name=self.group.name),
@@ -128,16 +130,16 @@ class HotkeyDialog(QDialog):
 
     def _remove(self) -> None:
         if not hotkeys.is_cinnamon():
-            QMessageBox.warning(
+            show_warning(
                 self, tr("hotkey.unsupported_title"), tr("hotkey.unsupported_body")
             )
             return
         try:
             hotkeys.unregister_cinnamon_hotkey(self._slot())
         except hotkeys.HotkeyError as exc:
-            QMessageBox.warning(self, tr("err.generic"), str(exc))
+            show_warning(self, tr("err.generic"), str(exc))
             return
-        QMessageBox.information(
+        show_information(
             self,
             tr("hotkey.success_title"),
             tr("hotkey.remove_success", name=self.group.name),

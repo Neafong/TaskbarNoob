@@ -14,24 +14,26 @@
 
 1. **bump version** — แก้ `taskbargroups/__init__.py` → `__version__ = "x.y.z"`
 2. **อัปเดต `CHANGELOG.md`** — หัวข้อใหม่ใต้ "Unreleased" ตามแนวคิด [Keep a Changelog](https://keepachangelog.com/)
-3. **เทสต์** — `.venv/bin/python tests/run.py` ต้องผ่าน (ปัจจุบัน 221)
+3. **เทสต์** — `.venv/bin/python tests/run.py` ต้องผ่าน (ปัจจุบัน 223)
 4. **build** — `bash packaging/build_appimage.sh` และ `bash packaging/build_deb.sh`
-5. **smoke test** — ตรวจ boot: `dist/TaskbarNoob-x86_64.AppImage --list` (หรือรันจากซอร์ส)
-6. **commit + push** (กุญแจ SSH ตั้งไว้แล้ว):
+5. **คัดลอก AppImage ไปที่ใช้งานจริง** — `cp dist/TaskbarNoob-x86_64.AppImage ~/AppImage/Tool/`
+   (ที่เดียวที่ใช้รัน/เทสต์ — ดูข้อตกลง "ที่เก็บไฟล์" ใน `../AGENTS.md` · อย่าเทสต์จาก `dist/` ตรง ๆ)
+6. **smoke test** — ตรวจ boot: `~/AppImage/Tool/TaskbarNoob-x86_64.AppImage --list` (หรือรันจากซอร์ส)
+7. **commit + push** (กุญแจ SSH ตั้งไว้แล้ว):
    ```bash
    git add -A && git commit -m "vX.Y.Z: <สรุปสั้น>"
    git push
    ```
-7. **สร้างแท็ก**:
+8. **สร้างแท็ก**:
    ```bash
    git tag -a vX.Y.Z -m "TaskbarNoob vX.Y.Z: <สรุปสั้น>"
    git push origin vX.Y.Z
    ```
-8. **สร้าง GitHub Release** (เว็บ): https://github.com/Neafong/TaskbarNoob/releases/new
+9. **สร้าง GitHub Release** (เว็บ): https://github.com/Neafong/TaskbarNoob/releases/new
    - Choose a tag: `vX.Y.Z` · title `TaskbarNoob vX.Y.Z` · release notes (ไทย)
    - แนบ assets: `dist/TaskbarNoob-x86_64.AppImage` + `dist/taskbargroups_<ver>_amd64.deb`
    - **ไม่** ติ๊ก Pre-release (เว้นใช้กับ rc) · เผยแพร่
-9. **อัปเดตเอกสาร** — `docs/WORKLOG.md` (บันทึกงาน) + `docs/feedback.md` (ถ้าปิดฟีดแบ็ก) · อัปเดต `AGENTS.md` snapshot
+10. **อัปเดตเอกสาร** — `docs/WORKLOG.md` (บันทึกงาน) + `docs/feedback.md` (ถ้าปิดฟีดแบ็ก) · อัปเดต `AGENTS.md` snapshot
 
 ## งานระหว่างรุ่น (เท่าปกติ)
 
