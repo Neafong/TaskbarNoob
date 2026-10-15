@@ -2,7 +2,7 @@
 
 > "ความจำโปรเจกต์" — เปิดเซคชันใหม่ให้อ่านไฟล์นี้ก่อนเสมอ
 > **ไฟล์นี้เก็บแค่ snapshot ปัจจุบัน** ให้สั้น — ประวัติอยู่ใน `docs/WORKLOG.md` · แผนที่เอกสาร: `docs/README.md`
-> Last updated: 2026-10-13
+> Last updated: 2026-10-16
 
 ## บทบาท / ผู้ช่วย
 - ผู้ช่วยชื่อ **"น้องพริก"** — โปรแกรมเมอร์คู่ใจ เป็น **ผู้หญิง** → ลงท้าย **"ค่ะ / คะ"**
@@ -32,12 +32,14 @@
 ## สถานะปัจจุบัน
 - **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12):** repo `github.com/Neafong/TaskbarNoob` (Public) ·
   Release แนบ `TaskbarNoob-x86_64.AppImage` + `taskbargroups_0.1.0_amd64.deb` · GPL-3.0 · README มี badge + Screenshots
-- **โค้ดล่าสุด:** **v0.2-A/B/C เสร็จ + commit แล้ว** (2026-10-13) — ตัด "นำเข้ากลุ่ม (Windows)" ทั้งชุด
-  (ปุ่ม + CLI `--import` + `core/importer.py`) · "กระเป๋าใส่ได้ทุกอย่าง" (launcher type-aware + flyout คลิกขวาเปิดที่อยู่)
-  · UI polish (accent token · ไอคอน SVG ของเรา tint ตามธีม · swatch สี + ช่อง hex · แก้เมนู/ลาก)
-  · **223 เทสต์** · import/export zip (P18) ยังอยู่ · ภาษา TH/EN + asset ตัวอย่าง `packaging/lang/ja.json`
-- **git:** history เดิมกู้คืนจาก HDD backup แล้ว (`.git`/`.github`/`.gitignore` ครบ) · `main` ต่อเนื่องจาก `origin/main`
-  · ยัง**ไม่ push** (รอเทสต์ local + ทำ Windows ก่อน) · **ยังไม่ออก tag v0.2.0 / ยังไม่ repackage รอบใหม่**
+- **โค้ดล่าสุด:** **v0.2-D + ซ่อมหลัง 0.1 เสร็จ + push แล้ว** (2026-10-15/16) — กล่องไทยล้วน · accent `#1f9ede`
+  · แพ็ก SVG เข้า bundle + หา assets ใต้ `_internal/` (PyInstaller 6) · ไฟล์ +x รันตรง (ไม่ผ่าน `gio open`)
+  · ลากสลับกริด/หน้าหลักเป็น **swap** (ไฮไลท์ตรงช่องลง · stroke ใต้เนื้อหา · spacing/padding ร่อง 1px)
+  · พรีวิวไอคอนกลุ่มตรึง 48px · hover กริดเท่ากันทุกช่อง · **247 เทสต์**
+  · import/export zip (P18) ยังอยู่ · ภาษา TH/EN + asset ตัวอย่าง `packaging/lang/ja.json`
+- **git:** `main` ตรง `origin/main` (push แล้ว e640778) · AppImage ใหม่วาง `~/AppImage/Tool/` แล้ว
+  · **ยังไม่ออก tag v0.2.0 / ยังไม่ repackage `.deb`** · ลบ AppImage เก่า 0.1.0 ที่
+  `/mnt/Backup/TaskbarGroups/dist/` **หลัง reboot** (ติด loop mount — ดู `docs/WORKLOG.md` ท้าย)
 - **แผนต่อจากนี้:** ดู `docs/roadmap.md` + `docs/feedback.md` (งานถัดไป = เก็บฟีดแบ็กผู้ใช้ · Windows port เป้าหลัง)
 - **ยังเทสต์บนเครื่องนี้ไม่ได้:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่น (hotkey/pin = Cinnamon-only)
 
@@ -79,7 +81,7 @@
 ## วิธีรัน / Dev
 - รันแอป: `.venv/bin/python -m taskbargroups`
 - เปิด flyout: `... -m taskbargroups --open "<GroupDir>"` · list: `... --list`
-- เทสต์: `.venv/bin/python tests/run.py` → **223 ผ่าน**
+- เทสต์: `.venv/bin/python tests/run.py` → **247 ผ่าน**
   · (ถ้ารัน `python -m unittest discover -s tests` ผลเทสต์เท่ากันแต่ตอนปิด PySide6 6.12 จะ segfault
     ใน `destroyQCoreApplication()` — บั๊กฝั่ง Qt · `tests/run.py` เรียก `os._exit()` เลี่ยงให้)
 - แพ็ก: `bash packaging/build_appimage.sh` → `dist/TaskbarNoob-x86_64.AppImage`
