@@ -70,6 +70,28 @@ class Settings:
         url = self.get("donate_url", DEFAULT_DONATE_URL)
         return url.strip() if isinstance(url, str) else ""
 
+    def get_hotkeys(self) -> dict[str, str]:
+        """map {slot: binding} สำหรับ OS ที่ไม่มีที่เก็บ hotkey ของระบบ (Windows)."""
+        raw = self.get("hotkeys", {})
+        if not isinstance(raw, dict):
+            return {}
+        return {
+            str(slot): str(binding)
+            for slot, binding in raw.items()
+            if binding and str(binding).strip()
+        }
+
+    def set_hotkey(self, slot: str, binding: str) -> None:
+        hotkeys = self.get_hotkeys()
+        hotkeys[str(slot)] = str(binding)
+        self.set("hotkeys", hotkeys)
+
+    def remove_hotkey(self, slot: str) -> None:
+        hotkeys = self.get_hotkeys()
+        if str(slot) in hotkeys:
+            del hotkeys[str(slot)]
+            self.set("hotkeys", hotkeys)
+
     def set_donate_url(self, url: str) -> None:
         if isinstance(url, str):
             self.set("donate_url", url.strip())

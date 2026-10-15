@@ -24,13 +24,6 @@ from PySide6.QtWidgets import (
 )
 
 from taskbargroups.core import icons as core_icons
-from taskbargroups.core.desktop import (
-    applications_dir,
-    desktop_file_name,
-    install_launcher,
-    launcher_id,
-    remove_launcher,
-)
 from taskbargroups.core.hotkeys import (
     HotkeyError,
     cinnamon_to_display,
@@ -39,13 +32,21 @@ from taskbargroups.core.hotkeys import (
     is_cinnamon,
     unregister_cinnamon_hotkey,
 )
+from taskbargroups.core.launchers import (
+    desktop_file_name,
+    install_launcher,
+    launcher_id,
+    remove_launcher,
+)
 
 from taskbargroups.core.i18n import setup, tr
 from taskbargroups.core.panel import (
     PinError,
+    reload_grouped_window_applet,
+)
+from taskbargroups.core.taskbar import (
     pin_to_panel,
     pinned_desktop_ids,
-    reload_grouped_window_applet,
     unpin_from_panel,
 )
 from taskbargroups.core.paths import app_icon_path
@@ -58,7 +59,7 @@ from .dialogs import show_information, show_question, show_warning
 from .flyout import FlyoutController, FlyoutWindow
 from .group_editor import GroupEditor
 from .hotkey_dialog import HotkeyDialog
-from .icons import group_icon
+from .icons import cache_provider_icon, group_icon
 from .settings_dialog import SettingsDialog
 from .theme import app_text_color, apply_theme, resolve_theme
 
@@ -457,8 +458,12 @@ class MainWindow(QMainWindow):
 
         ไอคอนเดิมชี้ไฟล์บนไดรฟ์ (เช่น /mnt/Backup) ที่ mount หลัง panel เริ่มทำงาน
         → ตอน boot ไอคอนหาย. ติดตั้งไอคอนเข้า icon theme (บนดิสก์ราก) แล้วชี้
-        ด้วยชื่อ ให้ panel หาเจอเสมอ. ทำครั้งเดียวต่อ launcher.
+        ด้วยชื่อ ให้ panel หาเจอเสมอ. ทำครั้งเดียวต่อ launcher. (Linux เท่านั้น)
         """
+        if sys.platform != "linux":
+            return
+        from taskbargroups.core.desktop import applications_dir
+
         pinned_ids = pinned_desktop_ids()
         if not pinned_ids:
             return
@@ -507,6 +512,15 @@ class MainWindow(QMainWindow):
             bindings = group_hotkeys([hotkey_slot(name) for name in dir_names])
         except Exception:
             bindings = {}
+        if sys.platform == "win32":
+            # Windows ไม่มีที่เก็บ hotkey ของระบบ — อ่านที่แอปจำไว้ใน settings
+            from taskbargroups.core.settings import Settings
+
+            saved = Settings().get_hotkeys()
+            for name in dir_names:
+                slot = hotkey_slot(name)
+                if slot in saved:
+                    bindings[slot] = saved[slot]
         for dir_name in dir_names:
             try:
                 group = self.store.load_group(dir_name)
@@ -645,6 +659,11 @@ class MainWindow(QMainWindow):
                 )
             except core_icons.IconError:
                 continue
+            if not relative:
+                # ไฟล์ที่ core แคชให้ไม่ได้ (เช่น .exe/.lnk บน Windows) → ใช้ไอคอน OS
+                relative = cache_provider_icon(
+                    self.store, dir_name, item.target, item.name or item.target
+                )
             if relative and relative != item.icon:
                 item.icon = relative
                 changed = True
@@ -674,6 +693,17 @@ class MainWindow(QMainWindow):
                 unregister_cinnamon_hotkey(hotkey_slot(dir_name))
             except HotkeyError:
                 pass
+        elif sys.platform == "win32":
+            from taskbargroups.core.settings import Settings
+
+            from .win32_hotkey import registry
+
+            try:
+                hwnd = int(self.winId())
+            except (TypeError, ValueError):
+                hwnd = 0
+            registry.unregister_slot(hotkey_slot(dir_name), hwnd)
+            Settings().remove_hotkey(hotkey_slot(dir_name))
         self.refresh()
 
     def on_open(self) -> None:
@@ -826,8 +856,40 @@ def run(argv: list[str] | None = None, open_group: str | None = None) -> int:
     if open_group:
         return _run_flyout(app, open_group)
     window = MainWindow()
+    if sys.platform == "win32":
+        _register_saved_win_hotkeys(app, window, settings)
     window.show()
     return app.exec()
+
+
+def _register_saved_win_hotkeys(app, window, settings) -> None:
+    """ลงทะเบียน hotkey ที่จำไว้ใน settings ใหม่ทุกครั้งที่เปิดแอป (Windows)."""
+    from .win32_hotkey import WinHotkeyFilter, registry
+
+    try:
+        if getattr(sys, "frozen", False):
+            exe_args = [sys.executable]
+        else:
+            exe_args = [sys.executable, "-m", "taskbargroups"]
+        hwnd = int(window.winId())
+    except (TypeError, ValueError):
+        return
+    app.installNativeEventFilter(WinHotkeyFilter(registry, exe_args, window))
+    store = ConfigStore()
+    try:
+        dir_names = store.list_groups()
+    except Exception:
+        return
+    saved = settings.get_hotkeys()
+    for dir_name in dir_names:
+        slot = hotkey_slot(dir_name)
+        binding = saved.get(slot)
+        if not binding:
+            continue
+        try:
+            registry.register_slot(slot, dir_name, binding, hwnd)
+        except OSError:
+            continue
 
 
 def _run_flyout(app: QApplication, dir_name: str) -> int:

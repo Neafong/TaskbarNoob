@@ -215,5 +215,35 @@ class SettingsDialogTests(unittest.TestCase):
                     os.environ["TASKBARGROUPS_CONFIG"] = old
 
 
+class HotkeysDictTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.settings = Settings(self._tmp.name)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def test_empty_by_default(self) -> None:
+        self.assertEqual(self.settings.get_hotkeys(), {})
+
+    def test_set_remove_roundtrip(self) -> None:
+        self.settings.set_hotkey("taskbargroups-game", "<Control><Alt>g")
+        self.assertEqual(
+            self.settings.get_hotkeys(), {"taskbargroups-game": "<Control><Alt>g"}
+        )
+        reloaded = Settings(self._tmp.name)
+        self.assertEqual(
+            reloaded.get_hotkeys(), {"taskbargroups-game": "<Control><Alt>g"}
+        )
+        reloaded.remove_hotkey("taskbargroups-game")
+        self.assertEqual(reloaded.get_hotkeys(), {})
+
+    def test_corrupt_value_ignored(self) -> None:
+        (Path(self._tmp.name) / "settings.json").write_text(
+            '{"hotkeys": ["nope"]}', encoding="utf-8"
+        )
+        self.assertEqual(Settings(self._tmp.name).get_hotkeys(), {})
+
+
 if __name__ == "__main__":
     unittest.main()

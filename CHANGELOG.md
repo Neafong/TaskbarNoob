@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Windows/macOS portable (alpha — ยังไม่ได้รันบนเครื่องจริง)**
+  · launcher ข้าม OS (`.lnk` ผ่าน PowerShell / `.command`)
+  · ปัก taskbar/dock (best-effort) · global hotkey Windows (`RegisterHotKey` จำใน settings)
+  · ดึงไอคอน `.exe/.lnk/.app` ผ่าน `QFileIconProvider` · สคริปต์ `packaging/build_windows.ps1`
+  · แผน+เช็กลิสต์เทสต์ที่ออฟฟิศใน `docs/windows-plan.md`
+
 ## [0.2.0] — 2026-10-16
 
 รุ่นปรับปรุงใหญ่: "กระเป๋าใส่ได้ทุกอย่าง" + UI polish · ยังเน้น Linux Mint (Cinnamon)

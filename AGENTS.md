@@ -32,11 +32,10 @@
 ## สถานะปัจจุบัน
 - **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12):** repo `github.com/Neafong/TaskbarNoob` (Public) ·
   Release แนบ `TaskbarNoob-x86_64.AppImage` + `taskbargroups_0.1.0_amd64.deb` · GPL-3.0 · README มี badge + Screenshots
-- **โค้ดล่าสุด:** **v0.2-D + ซ่อมหลัง 0.1 เสร็จ + push แล้ว** (2026-10-15/16) — กล่องไทยล้วน · accent `#1f9ede`
-  · แพ็ก SVG เข้า bundle + หา assets ใต้ `_internal/` (PyInstaller 6) · ไฟล์ +x รันตรง (ไม่ผ่าน `gio open`)
-  · ลากสลับกริด/หน้าหลักเป็น **swap** (ไฮไลท์ตรงช่องลง · stroke ใต้เนื้อหา · spacing/padding ร่อง 1px)
-  · พรีวิวไอคอนกลุ่มตรึง 48px · hover กริดเท่ากันทุกช่อง · **247 เทสต์**
-  · import/export zip (P18) ยังอยู่ · ภาษา TH/EN + asset ตัวอย่าง `packaging/lang/ja.json`
+- **โค้ดล่าสุด:** **v0.2.0 ออกแล้ว + Windows/macOS portable alpha เริ่มแล้ว** (2026-10-16)
+  · dispatch ข้าม OS (`launchers.py`/`taskbar.py` ชื่อเดิม) · `.lnk` ผ่าน PowerShell · `.command` + Dock pin
+  · hotkey Windows (`RegisterHotKey` จำใน settings) · ไอคอน `.exe/.lnk/.app` ผ่าน Qt provider
+  · **279 เทสต์** (mock ล้วน — ยังไม่ได้รันบน Windows/macOS จริง) · ไม่ทำ installer (portable ล้วน)
 - **git:** `main` ตรง `origin/main` · **tag `v0.2.0` ออกแล้ว** (AppImage 50M + `.deb` 0.2.0 42M ใน `dist/`)
   · AppImage ใหม่วาง `~/AppImage/Tool/` แล้ว · เหลือ: กดสร้าง **GitHub Release** บนเว็บ + แนบ 2 ไฟล์
   · ลบ AppImage เก่า 0.1.0 ที่ `/mnt/Backup/TaskbarGroups/dist/` **ยังไม่ได้** (MFT พัง — พักไว้ ดู `docs/WORKLOG.md` ท้าย)
@@ -81,7 +80,7 @@
 ## วิธีรัน / Dev
 - รันแอป: `.venv/bin/python -m taskbargroups`
 - เปิด flyout: `... -m taskbargroups --open "<GroupDir>"` · list: `... --list`
-- เทสต์: `.venv/bin/python tests/run.py` → **247 ผ่าน**
+- เทสต์: `.venv/bin/python tests/run.py` → **279 ผ่าน**
   · (ถ้ารัน `python -m unittest discover -s tests` ผลเทสต์เท่ากันแต่ตอนปิด PySide6 6.12 จะ segfault
     ใน `destroyQCoreApplication()` — บั๊กฝั่ง Qt · `tests/run.py` เรียก `os._exit()` เลี่ยงให้)
 - แพ็ก: `bash packaging/build_appimage.sh` → `dist/TaskbarNoob-x86_64.AppImage`

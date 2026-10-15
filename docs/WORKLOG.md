@@ -907,4 +907,15 @@
 - รวม `[Unreleased]` เข้า `[0.2.0]` (tag นี้ยังไม่เคยออก) · `__version__` เป็น 0.2.0 อยู่แล้ว ไม่ต้อง bump
 - เทสต์ **247 ผ่าน** · build รอบรีลีส: AppImage (50M) + `.deb` 0.2.0 (42M · มี SVG icons)
   · วาง AppImage ที่ `~/AppImage/Tool/` + smoke `--list` ผ่าน
-- commit + push · tag `v0.2.0` + push tag แล้ว · เหลือ: กดสร้าง GitHub Release บนเว็บ + แนบ 2 ไฟล์
+- commit + push   · tag `v0.2.0` + push tag แล้ว · เหลือ: กดสร้าง GitHub Release บนเว็บ + แนบ 2 ไฟล์
+
+## 2026-10-16 — Windows/macOS portable alpha (W0–W2, ยังไม่รันบนเครื่องจริง) `[เสร็จ]`
+- ชั้น dispatch ชื่อเดิม: `core/launchers.py` (install/remove/file_name) + `core/taskbar.py`
+  (pin/unpin/ids) → GUI แก้แค่ import + branch เล็ก ๆ
+- `core/win32.py`: `.lnk` ผ่าน PowerShell · Start Menu/User Pinned · parse/RegisterHotKey (ctypes)
+  · `core/macos.py`: `.command` · Dock pin ผ่าน `defaults` · `core/settings.py` จำ hotkey ใน settings
+  · `gui/win32_hotkey.py` (registry + WM_HOTKEY filter) · `gui/icons.py` provider + cache
+- `packaging/build_windows.ps1` (portable one-dir) · `docs/windows-plan.md` (W0–W5 + เช็กลิสต์ออฟฟิศ)
+  · ไม่ทำ installer ตามที่สั่ง
+- เทสต์ +32 (mock ล้วน รันบน Linux) → **279 ผ่าน** · ตอบคำถามไฟล์เล็ก: โค้ดเรา 60K vs Qt 73M+
+  (optimize โค้ดไม่ลดขนาดไฟล์ — ต้อง diet ที่ packaging ถ้าจะเอาเล็ก)
