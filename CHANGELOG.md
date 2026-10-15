@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **ไอคอนปุ่มหายใน AppImage/.deb** — SVG ทั้งชุดไม่ถูกแพ็ก + หา assets ผิด layout
+  (PyInstaller 6 วางใต้ `_internal/`) → ปุ่มเฟือง/ตาว่างเปล่า (ดูเหมือน 0.1.0)
+- **กด shortcut ที่เป็นไฟล์รันได้แล้วแอปไม่เปิด** — `gio open` ส่งให้ editor/disk-mounter
+  (หรือไม่มี handler สำหรับ ELF) · ไฟล์ที่มี `+x` (AppImage/ELF/สคริปต์) กลับไปรันตรง
+
 ## [0.2.0] — 2026-10-14
 
 รุ่นปรับปรุงใหญ่: "กระเป๋าใส่ได้ทุกอย่าง" + UI polish · ยังเน้น Linux Mint (Cinnamon)

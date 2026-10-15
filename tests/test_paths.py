@@ -60,6 +60,22 @@ class AppIconPathTests(unittest.TestCase):
             ):
                 self.assertEqual(paths.app_icon_path(), bundled)
 
+    def test_bundled_internal_layout_pyinstaller6(self) -> None:
+        # PyInstaller 6 (onedir) วาง data ใต้ _internal/ — ต้องหาเจอเหมือนกัน
+        with tempfile.TemporaryDirectory() as tmp:
+            bundled = (
+                Path(tmp) / "_internal" / "taskbargroups" / "assets" / "taskbargroups.png"
+            )
+            bundled.parent.mkdir(parents=True)
+            bundled.write_bytes(b"png")
+            with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+                paths.sys, "_MEIPASS", tmp, create=True
+            ):
+                self.assertEqual(paths.app_icon_path(), bundled)
+                self.assertEqual(
+                    paths.bundled_assets_dir(), bundled.parent
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

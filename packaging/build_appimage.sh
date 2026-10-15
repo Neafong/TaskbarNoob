@@ -38,6 +38,7 @@ rm -rf "$BUILD/pyinstaller"
   --paths "$ROOT" \
   --collect-submodules taskbargroups \
   --add-data "$ICON:taskbargroups/assets" \
+  --add-data "$ROOT/packaging/assets/icons:taskbargroups/assets/icons" \
   --distpath "$BUILD/pyinstaller/dist" \
   --workpath "$BUILD/pyinstaller/build" \
   --specpath "$BUILD/pyinstaller" \

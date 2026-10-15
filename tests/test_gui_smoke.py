@@ -757,6 +757,40 @@ class GuiSmokeTests(unittest.TestCase):
             window = MainWindow(store=self.store)
         self.assertIn("Ctrl+Alt+G", window.list.item(0).text())
 
+    def test_button_svg_assets_resolve(self) -> None:
+        # กันบั๊กแพ็กเกจ: SVG ปุ่ม (เฟือง/ตา/...) ต้องหาเจอ ไม่ใช่ไอคอนว่าง
+        from PySide6.QtGui import QColor
+
+        from taskbargroups.gui import button_icons
+        from taskbargroups.gui.button_icons import _svg_path, themed_icon
+
+        self.assertTrue(
+            button_icons._ASSETS.is_dir(),
+            f"หาโฟลเดอร์ไอคอนปุ่มไม่เจอ: {button_icons._ASSETS}",
+        )
+        for name in ("gear-six-fill.svg", "eye-fill.svg", "plus-fill.svg"):
+            with self.subTest(name=name):
+                self.assertIsNotNone(_svg_path(name), f"SVG หาย: {name}")
+                icon = themed_icon(name, QColor("#dddddd"))
+                self.assertFalse(icon.isNull(), f"ไอคอนว่าง: {name}")
+
+    def test_button_assets_prefer_meipass_bundle(self) -> None:
+        # โหมด bundle ต้องอ่าน icons จาก sys._MEIPASS (ที่ --add-data วางไว้)
+        # ครอบทั้ง layout ใหม่ (_internal/...) ของ PyInstaller 6 และแบบเก่า
+        import sys
+        from unittest import mock
+
+        import taskbargroups.gui.button_icons as button_icons
+
+        for sub in ("_internal/taskbargroups/assets", "taskbargroups/assets"):
+            with self.subTest(layout=sub):
+                with tempfile.TemporaryDirectory() as tmp:
+                    bundled = Path(tmp) / sub / "icons"
+                    bundled.mkdir(parents=True)
+                    (bundled / "gear-six-fill.svg").write_text("<svg></svg>")
+                    with mock.patch.object(sys, "_MEIPASS", tmp, create=True):
+                        self.assertEqual(button_icons._assets_dir(), bundled)
+
 
 if __name__ == "__main__":
     unittest.main()

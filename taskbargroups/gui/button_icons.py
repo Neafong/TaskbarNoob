@@ -8,7 +8,21 @@ from PySide6.QtGui import QColor, QIcon, QPixmap, QPainter
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtCore import Qt
 
-_ASSETS = Path(__file__).resolve().parents[2] / "packaging" / "assets" / "icons"
+
+def _assets_dir() -> Path:
+    # โหมด bundle (PyInstaller/AppImage/.deb): อ่านจาก --add-data
+    # "packaging/assets/icons -> taskbargroups/assets/icons" (หาทั้ง layout ใหม่/เก่า)
+    from taskbargroups.core.paths import bundled_assets_dir
+
+    bundled = bundled_assets_dir()
+    if bundled is not None:
+        icons = bundled / "icons"
+        if icons.is_dir():
+            return icons
+    return Path(__file__).resolve().parents[2] / "packaging" / "assets" / "icons"
+
+
+_ASSETS = _assets_dir()
 
 
 def _svg_path(name: str) -> Path | None:

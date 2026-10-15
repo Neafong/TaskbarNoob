@@ -50,23 +50,27 @@ def _launch_linux(target: str, args: list[str], cwd: str | None) -> None:
             subprocess.Popen(["gio", "launch", target], cwd=cwd, start_new_session=True)
             return
         path = Path(target)
-        # ไฟล์หรือโฟลเดอร์ → เปิดด้วยโปรแกรม Default
-        if path.exists():
-            if path.is_dir():
-                # เปิดโฟลเดอร์
-                try:
-                    subprocess.Popen(["xdg-open", str(path)], cwd=cwd, start_new_session=True)
-                except OSError:
-                    subprocess.Popen(["gio", "open", str(path)], cwd=cwd, start_new_session=True)
+        # โฟลเดอร์ → เปิดด้วย file manager
+        if path.is_dir():
+            try:
+                subprocess.Popen(["xdg-open", str(path)], cwd=cwd, start_new_session=True)
+            except OSError:
+                subprocess.Popen(["gio", "open", str(path)], cwd=cwd, start_new_session=True)
+            return
+        if path.is_file():
+            # ไฟล์ที่รันได้ (AppImage/ELF/สคริปต์ +x) → รันตรง ๆ
+            # (ห้ามผ่าน `gio open`: default app ของระบบคือ editor/disk-mounter
+            #  หรือไม่มี handler เลย — แอปจะไม่เปิด)
+            if os.access(path, os.X_OK):
+                subprocess.Popen([str(path), *args], cwd=cwd, start_new_session=True)
                 return
-            else:
-                # ไฟล์ธรรมดา → gio open ใช้ default app
-                try:
-                    subprocess.Popen(["gio", "open", str(path)], cwd=cwd, start_new_session=True)
-                except OSError:
-                    subprocess.Popen(["xdg-open", str(path)], cwd=cwd, start_new_session=True)
-                return
-        # executable ปกติ
+            # ไฟล์เอกสารทั่วไป → เปิดด้วยโปรแกรม Default
+            try:
+                subprocess.Popen(["gio", "open", str(path)], cwd=cwd, start_new_session=True)
+            except OSError:
+                subprocess.Popen(["xdg-open", str(path)], cwd=cwd, start_new_session=True)
+            return
+        # ไม่มีไฟล์จริง (เช่น คำสั่งใน PATH: firefox, code) → รันตรง
         subprocess.Popen([target, *args], cwd=cwd, start_new_session=True)
     except OSError as exc:
         raise LaunchError(f"เปิด '{target}' ไม่สำเร็จ: {exc}") from exc

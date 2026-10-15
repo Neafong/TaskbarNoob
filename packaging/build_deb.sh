@@ -40,6 +40,7 @@ if [[ ! -x "$BUNDLE/${APP_ID}" ]]; then
     --paths "$ROOT" \
     --collect-submodules taskbargroups \
     --add-data "$ROOT/packaging/appimage/${APP_ID}.png:taskbargroups/assets" \
+    --add-data "$ROOT/packaging/assets/icons:taskbargroups/assets/icons" \
     --distpath "$BUILD/pyinstaller/dist" \
     --workpath "$BUILD/pyinstaller/build" \
     --specpath "$BUILD/pyinstaller" \

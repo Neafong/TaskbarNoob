@@ -45,12 +45,27 @@ def app_dir() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def bundled_assets_dir() -> Path | None:
+    """โฟลเดอร์ assets ที่ `--add-data` วางไว้ใน bundle.
+
+    PyInstaller 6 (onedir) วาง data ใต้ `_internal/` · layout เก่า/โหมดอื่นวางตรง ๆ —
+    ลองทั้งสองแบบ (แบบเดียวกับที่ใช้หาไอคอนแอป + ไอคอนปุ่ม SVG).
+    """
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        for sub in ("_internal/taskbargroups/assets", "taskbargroups/assets"):
+            candidate = Path(meipass) / sub
+            if candidate.is_dir():
+                return candidate
+    return None
+
+
 def app_icon_path() -> Path | None:
     """หาไฟล์ไอค่อนแอป (PNG) ทั้งโหมด bundle / AppImage / รันจากซอร์ส."""
     candidates = []
-    meipass = getattr(sys, "_MEIPASS", None)
-    if meipass:
-        candidates.append(Path(meipass) / "taskbargroups" / "assets" / APP_ICON_NAME)
+    bundled = bundled_assets_dir()
+    if bundled:
+        candidates.append(bundled / APP_ICON_NAME)
     candidates.append(app_dir() / "packaging" / "appimage" / APP_ICON_NAME)
     candidates.append(app_dir() / APP_ICON_NAME)
     for candidate in candidates:

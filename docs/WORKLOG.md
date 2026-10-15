@@ -820,3 +820,18 @@
 - แก้: push SSD ขึ้น origin ก่อน (`v0.2-D 086c689` · เทสต์ 224 ผ่าน) · สลับ DB
   `project.worktree` → SSD แล้ว (HDD เป็น sandbox สำรอง) · แชทเก่ายังค้าง HDD ต้องเปิด **New Session** ใหม่ถึงจะได้ SSD
 - ต่อจากนี้ dev หลักคือ SSD (ext4) · HDD เก็บเป็น `.bak` ไว้ก่อนลบจริง · เปิด OpenCode ต้อง mount Backup ก่อนเสมอ
+
+## 2026-10-15 — ซ่อมแพ็กเกจไอคอน + กด shortcut ใน flyout แล้วไม่เปิด `[เสร็จ]`
+- **ไอคอนปุ่มหายใน AppImage:** SVG ทั้งชุดไม่ถูก `--add-data` + โค้ดหา assets แบบ layout เก่า
+  แต่ PyInstaller 6 วาง data ใต้ `_internal/` → ปุ่มเฟือง/ตาว่าง (ดูเหมือน 0.1) · ไอคอนแอป (U5) โดนด้วย
+  - `core/paths.py`: helper ใหม่ `bundled_assets_dir()` (ลอง `_internal/...` ก่อนแล้วค่อยแบบเก่า) ·
+    `gui/button_icons.py` ใช้ helper นี้ · สคริปต์ `build_appimage.sh`/`build_deb.sh` เพิ่ม
+    `--add-data packaging/assets/icons:taskbargroups/assets/icons`
+  - เทสต์ +3 (smoke: assets resolve + MEIPASS ทั้ง 2 layout · paths: `_internal` layout)
+- **กด shortcut ใน flyout แล้วแอปไม่เปิด:** v0.2-C ส่งไฟล์ที่มีอยู่จริงทุกชนิดให้ `gio open`
+  แต่ default app ของระบบคือ editor (สคริปต์) / disk-mounter (AppImage) / ไม่มี handler (ELF)
+  - `core/launcher.py`: ไฟล์ที่มี `+x` (AppImage/ELF/สคริปต์) → รันตรง `Popen([target, *args])` แบบ 0.1 ·
+    เอกสารทั่วไปค่อย `gio open` · ไม่มีไฟล์จริง (คำสั่งใน PATH) → รันตรง
+  - เทสต์ `test_launcher.py` +6 (dispatch ครบทุกชนิด + LaunchError) · ตรวจรันจริงสคริปต์ +x ผ่าน
+- เทสต์ **233 ผ่าน** · build AppImage ใหม่ + วาง `~/AppImage/Tool/` แล้ว (md5 ตรง `dist/`)
+- ค้าง: ลบ `/mnt/Backup/TaskbarGroups/dist/` (ไฟล์เก่า 0.1.0) — ติด loop mount ต้อง reboot ก่อน (พักไว้หลัง push)
