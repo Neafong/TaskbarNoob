@@ -281,9 +281,24 @@ class ShortcutGrid(QListWidget):
 
     @property
     def drop_highlight_row(self) -> int:
+        """ช่องที่ไอเทมจะลงจอดจริง (โชว์ตรงนี้ ไม่ใช่จุดแทรกดิบ).
+
+        จุดแทรก t นับในลิสต์ก่อนถอดต้นทาง s ออก — ตำแหน่งลงจอดจริงคือ
+        t ถ้า t <= s ไม่งั้น t-1 (เหมือนที่ `_move_item` ทำ) · กรณีไม่ขยับ
+        (t == s หรือ s+1) จะได้ s = ช่องเดิม · ลากไฟล์จากข้างนอก (ไม่มี s)
+        ใช้พฤติกรรมเดิม.
+        """
         if self._drop_row is None or self.count() == 0:
             return -1
-        return min(self._drop_row, self.count() - 1)
+        target = self._drop_row
+        source = self._drag_source_row
+        if source is None:
+            current = self.currentRow()
+            source = current if current >= 0 else None
+        if source is None:
+            return min(target, self.count() - 1)
+        land = target if target <= source else target - 1
+        return max(0, min(land, self.count() - 1))
 
     def startDrag(self, supported_actions) -> None:
         self._drag_source_row = self.currentRow()

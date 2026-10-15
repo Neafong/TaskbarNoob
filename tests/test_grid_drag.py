@@ -124,6 +124,51 @@ class DropEventTests(unittest.TestCase):
         right = grid._target_row(QPoint(rect.right() + 1, rect.center().y()))
         self.assertEqual(right, 1)
 
+    def test_drop_highlight_shows_landing_row(self) -> None:
+        # ไฮไลท์ต้องโชว์ช่องที่ไอเทมจะลงจอดจริง ไม่ใช่จุดแทรกดิบ
+        # (จุดแทรก t นับก่อนถอดต้นทาง s: ลงจอด = t ถ้า t <= s ไม่งั้น t-1)
+        grid = _make_grid(self.app, 4)
+        cases = [
+            # (source, insertion_target, expected_highlight)
+            (0, 1, 0),  # ขยับนิดเดียว = ไม่สลับ โชว์ช่องเดิม
+            (0, 2, 1),  # เลยกลางช่อง 2 → ลงช่อง 2 (นับจาก 1)
+            (2, 0, 0),  # ลากกลับหัว → ลงช่องแรก
+            (1, 4, 3),  # ลากทิ้งท้าย → ลงช่องสุดท้าย
+            (2, 3, 2),  # ขยับนิดเดียว = ไม่สลับ โชว์ช่องเดิม
+        ]
+        for source, target, expected in cases:
+            with self.subTest(source=source, target=target):
+                grid._drag_source_row = source
+                grid._set_drop_row(target)
+                self.assertEqual(grid.drop_highlight_row, expected)
+        grid._drag_source_row = None
+
+    def test_drop_highlight_matches_move_result(self) -> None:
+        # ไฮไลท์ต้องตรงกับผล _move_item จริง (กันไฮไลท์หลอกอีก)
+        for source, target in [(0, 1), (0, 2), (2, 0), (1, 4), (3, 3)]:
+            with self.subTest(source=source, target=target):
+                grid = _make_grid(self.app, 4)
+                item = grid.item(source)
+                grid._drag_source_row = source
+                grid._set_drop_row(target)
+                landed = grid.drop_highlight_row
+                grid._move_item(source, target)
+                self.assertEqual(grid.row(item), landed)
+                grid.hide()
+                grid.deleteLater()
+
+    def test_drop_highlight_external_keeps_gap_row(self) -> None:
+        # ลากไฟล์จากข้างนอก (ไม่มีต้นทาง) — คงพฤติกรรมเดิม (โชว์แถวจุดแทรก)
+        grid = _make_grid(self.app, 4)
+        grid.clearSelection()
+        grid._drag_source_row = None
+        grid._set_drop_row(2)
+        try:
+            self.assertEqual(grid.drop_highlight_row, 2)
+        finally:
+            grid.hide()
+            grid.deleteLater()
+
     def test_hover_cell_same_size_for_all_items(self) -> None:
         # ไฮไลท์ hover ต้องเท่ากันทุกช่อง — ห้ามยืดหดตามความยาวข้อความ
         from PySide6.QtGui import QColor, QIcon, QPixmap
