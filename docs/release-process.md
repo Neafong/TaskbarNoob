@@ -14,7 +14,7 @@
 
 1. **bump version** — แก้ `taskbargroups/__init__.py` → `__version__ = "x.y.z"`
 2. **อัปเดต `CHANGELOG.md`** — หัวข้อใหม่ใต้ "Unreleased" ตามแนวคิด [Keep a Changelog](https://keepachangelog.com/)
-3. **เทสต์** — `.venv/bin/python tests/run.py` ต้องผ่าน (ปัจจุบัน 223)
+3. **เทสต์** — `.venv/bin/python tests/run.py` ต้องผ่าน (ปัจจุบัน 247)
 4. **build** — `bash packaging/build_appimage.sh` และ `bash packaging/build_deb.sh`
 5. **คัดลอก AppImage ไปที่ใช้งานจริง** — `cp dist/TaskbarNoob-x86_64.AppImage ~/AppImage/Tool/`
    (ที่เดียวที่ใช้รัน/เทสต์ — ดูข้อตกลง "ที่เก็บไฟล์" ใน `../AGENTS.md` · อย่าเทสต์จาก `dist/` ตรง ๆ)

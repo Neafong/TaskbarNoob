@@ -37,9 +37,9 @@
   · ลากสลับกริด/หน้าหลักเป็น **swap** (ไฮไลท์ตรงช่องลง · stroke ใต้เนื้อหา · spacing/padding ร่อง 1px)
   · พรีวิวไอคอนกลุ่มตรึง 48px · hover กริดเท่ากันทุกช่อง · **247 เทสต์**
   · import/export zip (P18) ยังอยู่ · ภาษา TH/EN + asset ตัวอย่าง `packaging/lang/ja.json`
-- **git:** `main` ตรง `origin/main` (push แล้ว e640778) · AppImage ใหม่วาง `~/AppImage/Tool/` แล้ว
-  · **ยังไม่ออก tag v0.2.0 / ยังไม่ repackage `.deb`** · ลบ AppImage เก่า 0.1.0 ที่
-  `/mnt/Backup/TaskbarGroups/dist/` **หลัง reboot** (ติด loop mount — ดู `docs/WORKLOG.md` ท้าย)
+- **git:** `main` ตรง `origin/main` · **tag `v0.2.0` ออกแล้ว** (AppImage 50M + `.deb` 0.2.0 42M ใน `dist/`)
+  · AppImage ใหม่วาง `~/AppImage/Tool/` แล้ว · เหลือ: กดสร้าง **GitHub Release** บนเว็บ + แนบ 2 ไฟล์
+  · ลบ AppImage เก่า 0.1.0 ที่ `/mnt/Backup/TaskbarGroups/dist/` **ยังไม่ได้** (MFT พัง — พักไว้ ดู `docs/WORKLOG.md` ท้าย)
 - **แผนต่อจากนี้:** ดู `docs/roadmap.md` + `docs/feedback.md` (งานถัดไป = เก็บฟีดแบ็กผู้ใช้ · Windows port เป้าหลัง)
 - **ยังเทสต์บนเครื่องนี้ไม่ได้:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่น (hotkey/pin = Cinnamon-only)
 
