@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPushButton,
+    QStyledItemDelegate,
     QVBoxLayout,
     QWidget,
 )
@@ -90,6 +91,31 @@ def _apply_nav_icon(button: QPushButton, kind: str) -> None:
         button.setIcon(icon)
 
 
+class _RowDropHighlightDelegate(QStyledItemDelegate):
+    """วาดไฮไลท์คู่สลับตอนลาก — วาดรองพื้นก่อนเนื้อหา (stroke จะได้ไม่ทับไอคอน)."""
+
+    def __init__(self, rows: "GroupListWidget") -> None:
+        super().__init__(rows)
+        self._rows = rows
+
+    def paint(self, painter, option, index) -> None:
+        if index.row() == self._rows.drop_highlight_row:
+            painter.save()
+            painter.setRenderHint(QPainter.Antialiasing, True)
+            color = option.palette.highlight().color()
+            fill = QColor(color)
+            fill.setAlpha(50)
+            pen = QPen(color)
+            pen.setWidth(2)
+            painter.setBrush(fill)
+            painter.setPen(pen)
+            item = self._rows.item(index.row())
+            if item is not None:
+                painter.drawRoundedRect(self._rows._drop_cell(item), 6, 6)
+            painter.restore()
+        super().paint(painter, option, index)
+
+
 class GroupListWidget(QListWidget):
     """ลิสต์กลุ่ม: ลากสลับลำดับได้ + ปุ่มสถานะ (รูปตา เปิด/ปิด) ท้ายสุดของแต่ละแถว."""
 
@@ -111,6 +137,9 @@ class GroupListWidget(QListWidget):
         self.setMovement(QListView.Snap)
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setMouseTracking(True)
+        # ระยะห่างระหว่างแถว 2px — stroke คู่สลับจะได้มีที่หายใจ ไม่เบียดแถวข้าง ๆ
+        self.setSpacing(2)
+        self.setItemDelegate(_RowDropHighlightDelegate(self))
         self._hover: tuple[QListWidgetItem | None, bool] = (None, False)
         self._press_pin: QListWidgetItem | None = None
         self._row_hover: int = -1
@@ -154,6 +183,10 @@ class GroupListWidget(QListWidget):
             self._drop_row = row
             self.viewport().update()
 
+    def _drop_cell(self, item: QListWidgetItem) -> QRect:
+        """กรอบ stroke คู่สลับ: เกาะขอบแถว (วาดใต้เนื้อหาผ่าน delegate)."""
+        return self.visualItemRect(item).adjusted(1, 1, -1, -1)
+
     def _partner_row(self, pos) -> int | None:
         """แถวใต้เมาส์ (คู่สลับ) — None ถ้าปล่อยที่ว่างท้ายสุด."""
         item = self.itemAt(pos)
@@ -192,6 +225,10 @@ class GroupListWidget(QListWidget):
     def startDrag(self, supported_actions) -> None:
         self._drag_source_row = self.currentRow()
         self._set_drop_row(None)
+        # รีเซ็ต hover ค้าง (วาดอย่างเดียว ไม่แตะ selection — Qt สร้าง drag จาก
+        # selection ถ้าเคลียร์ก่อนลากจะไม่เริ่ม)
+        self._hover = (None, False)
+        self._row_hover = -1
         QApplication.setOverrideCursor(Qt.SizeAllCursor)
         try:
             super().startDrag(supported_actions)
@@ -296,21 +333,6 @@ class GroupListWidget(QListWidget):
                 color.setAlpha(45)  # ไฮไลท์แถวโปร่งแสง (accent)
                 painter.setBrush(color)
                 rect = self.visualItemRect(row_item)
-                painter.drawRoundedRect(rect.adjusted(1, 3, -1, -3), 6, 6)
-                painter.restore()
-        if 0 <= self.drop_highlight_row < self.count():
-            # ไฮไลท์คู่สลับตอนลาก (เข้มกว่า hover ให้รู้ว่าจะลงแถวนี้)
-            drop_item = self.item(self.drop_highlight_row)
-            if drop_item is not None:
-                painter.save()
-                color = self.palette().color(QPalette.ColorRole.Highlight)
-                fill = QColor(color)
-                fill.setAlpha(50)
-                pen = QPen(color)
-                pen.setWidth(2)
-                painter.setBrush(fill)
-                painter.setPen(pen)
-                rect = self.visualItemRect(drop_item)
                 painter.drawRoundedRect(rect.adjusted(1, 3, -1, -3), 6, 6)
                 painter.restore()
         hovered_item = self._hover[0]

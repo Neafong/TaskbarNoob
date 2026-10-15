@@ -481,6 +481,20 @@ class GuiSmokeTests(unittest.TestCase):
             widget.hide()
             widget.deleteLater()
 
+    def test_group_list_drop_cell_hugs_row(self) -> None:
+        # กรอบ stroke ต้องเกาะขอบแถว (ไม่เล็กจนดูตลก) + มี spacing หายใจ
+        widget = self._make_group_list(["g0", "g1", "g2", "g3"])
+        try:
+            self.assertEqual(widget.spacing(), 2)
+            item = widget.item(1)
+            row_rect = widget.visualItemRect(item)
+            cell = widget._drop_cell(item)
+            self.assertEqual(cell.width(), row_rect.width() - 2)
+            self.assertEqual(cell.height(), row_rect.height() - 2)
+        finally:
+            widget.hide()
+            widget.deleteLater()
+
     def test_editor_grid_drops_desktop_icon_source(self) -> None:
         from PySide6.QtCore import QUrl
 

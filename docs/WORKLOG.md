@@ -880,3 +880,11 @@
 - เทสต์ +4 (swap ไป/กลับ/noop/ท้ายสุด · dropEvent สลับจริง + emit + selection ว่าง · ไฮไลท์)
   · อัปเดตเทสต์เก่า `emits_order_changed_on_drop` ให้มีแถวต้นทางเหมือนลากจริง → **246 ผ่าน**
   · ถ่ายรูป offscreen ยืนยัน stroke ขึ้นถูกแถวแล้ว
+
+## 2026-10-15 — stroke หน้าหลักทับไอคอนดูตลก (ย้ายวาดรองพื้น) `[เสร็จ]`
+- สาเหตุ: ไฮไลท์วาดใน `paintEvent` (หลังสุด) เลยทับไอคอน — กริดไม่เป็นเพราะใช้ delegate
+  วาดรองพื้นก่อนแล้วเนื้อหาวาดทับทีหลัง · แถมกรอบเดิมเล็กกว่าแถว (inset 3px บนล่าง)
+- `GroupListWidget`: delegate ใหม่ `_RowDropHighlightDelegate` (fill alpha 50 + ขอบ 2px)
+  · `_drop_cell()` กรอบเกาะขอบแถว (inset แค่ 1px) · `setSpacing(2)` ให้แถวมีที่หายใจ
+  · `startDrag` รีเซ็ต hover ค้าง (ไม่แตะ selection — Qt สร้าง drag จาก selection)
+- เทสต์ +1 (spacing + กรอบเกาะขอบแถว) → **247 ผ่าน** · ถ่ายรูปยืนยันแล้ว
