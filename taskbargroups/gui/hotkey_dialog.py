@@ -4,15 +4,18 @@ from __future__ import annotations
 
 import sys
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFormLayout,
+    QHBoxLayout,
     QKeySequenceEdit,
     QLabel,
     QLineEdit,
     QMessageBox,
+    QSlider,
     QVBoxLayout,
     QWidget,
 )
@@ -20,8 +23,12 @@ from PySide6.QtWidgets import (
 from taskbargroups.core import hotkeys
 from taskbargroups.core.desktop import build_exec
 from taskbargroups.core.i18n import tr
-from taskbargroups.core.models import Group
-from taskbargroups.core.storage import ConfigStore
+from taskbargroups.core.models import (
+    MAX_FOCUS_SCALE,
+    MIN_FOCUS_SCALE,
+    Group,
+)
+from taskbargroups.core.storage import ConfigStore, StorageError
 
 from .dialogs import show_information, show_warning
 
@@ -57,12 +64,12 @@ class HotkeyDialog(QDialog):
         self.store = store
         self.dir_name = dir_name
         self.setWindowTitle(tr("hotkey.title", name=group.name))
-        self.resize(480, 240)
+        self.resize(480, 300)
 
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
-        self.command_edit = QLineEdit(build_exec(dir_name))
+        self.command_edit = QLineEdit(build_exec(dir_name, center=True))
         self.command_edit.setReadOnly(True)
         form.addRow(tr("hotkey.command"), self.command_edit)
 
@@ -79,6 +86,23 @@ class HotkeyDialog(QDialog):
         self.preview = QLabel()
         form.addRow(tr("hotkey.cinnamon_format"), self.preview)
         self.key_edit.keySequenceChanged.connect(self._update_preview)
+
+        self.scale_slider = QSlider(Qt.Horizontal)
+        self.scale_slider.setRange(
+            round(MIN_FOCUS_SCALE * 10), round(MAX_FOCUS_SCALE * 10)
+        )
+        self.scale_slider.setSingleStep(1)
+        self.scale_slider.setPageStep(5)
+        self.scale_slider.setValue(round(group.focus_scale * 10))
+        self.scale_label = QLabel()
+        self.scale_slider.valueChanged.connect(self._update_scale_label)
+        scale_row = QHBoxLayout()
+        scale_row.addWidget(self.scale_slider, 1)
+        scale_row.addWidget(self.scale_label)
+        scale_widget = QWidget()
+        scale_widget.setLayout(scale_row)
+        scale_widget.setToolTip(tr("hotkey.focus_scale_tip"))
+        form.addRow(tr("hotkey.focus_scale"), scale_widget)
 
         layout.addLayout(form)
 
@@ -97,11 +121,25 @@ class HotkeyDialog(QDialog):
         layout.addWidget(buttons)
 
         self._update_preview()
+        self._update_scale_label()
 
     def _update_preview(self) -> None:
         self.preview.setText(
             qt_sequence_to_cinnamon(self.key_edit.keySequence()) or tr("hotkey.empty")
         )
+
+    def _update_scale_label(self) -> None:
+        self.scale_label.setText(f"{self.scale_slider.value() / 10:.1f}x")
+
+    def _save_focus_scale(self) -> None:
+        scale = self.scale_slider.value() / 10
+        if scale == self.group.focus_scale:
+            return
+        self.group.focus_scale = scale
+        try:
+            self.store.save_group(self.group)
+        except StorageError as exc:
+            show_warning(self, tr("err.generic"), str(exc))
 
     def _slot(self) -> str:
         return hotkeys.hotkey_slot(self.dir_name)
@@ -145,6 +183,7 @@ class HotkeyDialog(QDialog):
         if not binding:
             show_warning(self, tr("err.generic"), tr("hotkey.no_binding"))
             return
+        self._save_focus_scale()
         if sys.platform == "win32":
             try:
                 self._install_windows(binding)
@@ -154,7 +193,10 @@ class HotkeyDialog(QDialog):
         elif hotkeys.is_cinnamon():
             try:
                 hotkeys.register_cinnamon_hotkey(
-                    self._slot(), self.group.name, build_exec(self.dir_name), binding
+                    self._slot(),
+                    self.group.name,
+                    build_exec(self.dir_name, center=True),
+                    binding,
                 )
             except hotkeys.HotkeyError as exc:
                 show_warning(self, tr("err.generic"), str(exc))

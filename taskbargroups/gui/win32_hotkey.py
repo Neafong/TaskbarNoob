@@ -99,7 +99,7 @@ class WinHotkeyFilter(QAbstractNativeEventFilter):
             return False, 0
         try:
             subprocess.Popen(
-                [*self._exe_args, "--open", dir_name],
+                [*self._exe_args, "--open", dir_name, "--center"],
                 start_new_session=True,
             )
         except OSError:

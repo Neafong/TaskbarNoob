@@ -21,6 +21,7 @@
 | [`data-model.md`](data-model.md) | สกีมา `group.json` + ฟอร์แมตเก็บกลุ่ม |
 | [`upstream.md`](upstream.md) | ผลวิจัยต้นฉบับ Windows (Taskbar Groups) |
 | [`windows-plan.md`](windows-plan.md) | แผนพอร์ต Windows + macOS แบบ portable (W0–W5) + เช็กลิสต์เทสต์ |
+| [`team.md`](team.md) | รายชื่อทีมโมเดล + แบ่งสายงาน (ใช้คนให้ถูกกะงาน/ส่งต่อตอนลิมิตหมด) |
 | [`phase18-plan.md`](phase18-plan.md) | แผน Phase 18 (import/export zip) — อ้างอิงย้อนหลัง |
 | [`screenshots/`](screenshots/) | รูปหน้าจอสำหรับ README |
 | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) | วิธีร่วมพัฒนา (Issue → PR → CI → เอกสาร) |

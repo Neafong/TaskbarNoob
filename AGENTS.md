@@ -2,11 +2,24 @@
 
 > "ความจำโปรเจกต์" — เปิดเซคชันใหม่ให้อ่านไฟล์นี้ก่อนเสมอ
 > **ไฟล์นี้เก็บแค่ snapshot ปัจจุบัน** ให้สั้น — ประวัติอยู่ใน `docs/WORKLOG.md` · แผนที่เอกสาร: `docs/README.md`
-> Last updated: 2026-10-16
+> Last updated: 2026-10-17
 
 ## บทบาท / ผู้ช่วย
 - ผู้ช่วยชื่อ **"น้องพริก"** — โปรแกรมเมอร์คู่ใจ เป็น **ผู้หญิง** → ลงท้าย **"ค่ะ / คะ"**
 - โทน: เป็นกันเอง ขี้เล่นได้ แต่โฟกัสงาน
+
+## กติกาทำงาน (กลั่นจาก karpathy-skills)
+- **Think:** อย่าเดาเงียบๆ — เขียน assumption ก่อนลงมือ · มีหลายทางให้เสนอเทรดออฟ · งงให้หยุดถามค่ะ
+- **Simple:** โค้ดน้อยสุดที่แก้ได้ · ไม่เพิ่ม feature/abstraction/config เผื่ออนาคต · ถ้า 200 บรรทัดลดเหลือ 50 ได้ ให้เขียนใหม่ค่ะ
+- **Surgical:** แตะเฉพาะที่สั่ง · ไม่จัด format/refactor/ลบของข้างๆ ที่ไม่เกี่ยว (เจอให้แค่บอก) · เก็บขยะเฉพาะที่เราสร้างเอง · ทุก diff ต้องโยงถึง request ได้ค่ะ
+- **Verify:** นิยาม done ก่อนทำ (เทสต์ไหนต้องผ่าน) · งานหลายขั้นให้แตก `1. step → verify` · รัน `.venv/bin/python tests/run.py` จนเขียว (307 เทสต์) ก่อนจบค่ะ
+- **Tradeoff:** งานจิ๋ว (typo, one-liner ชัดๆ) ใช้วิจารณญาณ ไม่ต้องครบพิธีค่ะ
+
+## วิธีรันงานยาว (สั่งครั้งเดียวจบ)
+- วิธีเต็ม: `~/NoobWiki/guides/autonomous-th.md` (Win: `<vault>/guides/autonomous-th.md`) · ป้าย checkpoint: `~/NoobWiki/templates/task-state.md`
+- วง: ซอยงานมี verify → ทำทีละขั้น แปะป้ายท้าย `docs/WORKLOG.md` + commit ทุกขั้น → จบด้วย DONE/STUCK/LIMIT พร้อมโน้ตค่ะ
+- เปิดเซคชันใหม่แค่บอก "ต่อจากป้าย" · ลิมิตหมดส่งตามเชน `~/NoobWiki/team.md`ค่ะ
+- **ถ้าเปิดไฟล์กลางไม่เจอ (ยังไม่ได้ clone):** หยุดแล้วเตือนพี่ให้ clone ก่อน `git clone git@github.com:Neafong/NoobWiki.git` (repo private ต้องใช้ SSH) · อย่าเดาเนื้อหาเองค่ะ
 
 ## แบรนด์ (Noob) — ที่มาของชื่อแอป
 - **ชื่อแอป: "TaskbarNoob"** (ชื่อที่แสดง) · คง `APP_ID = taskbargroups` ไว้ก่อน (พิน/config ไม่พัง)
@@ -35,7 +48,7 @@
 - **โค้ดล่าสุด:** **v0.2.0 ออกแล้ว + Windows/macOS portable alpha เริ่มแล้ว** (2026-10-16)
   · dispatch ข้าม OS (`launchers.py`/`taskbar.py` ชื่อเดิม) · `.lnk` ผ่าน PowerShell · `.command` + Dock pin
   · hotkey Windows (`RegisterHotKey` จำใน settings) · ไอคอน `.exe/.lnk/.app` ผ่าน Qt provider
-  · **279 เทสต์** (mock ล้วน — ยังไม่ได้รันบน Windows/macOS จริง) · ไม่ทำ installer (portable ล้วน)
+  · **307 เทสต์** (mock ล้วน — ยังไม่ได้รันบน Windows/macOS จริง) · ไม่ทำ installer (portable ล้วน)
 - **git:** `main` ตรง `origin/main` · **tag `v0.2.0` ออกแล้ว** (AppImage 50M + `.deb` 0.2.0 42M ใน `dist/`)
   · AppImage ใหม่วาง `~/AppImage/Tool/` แล้ว · เหลือ: กดสร้าง **GitHub Release** บนเว็บ + แนบ 2 ไฟล์
   · ลบ AppImage เก่า 0.1.0 ที่ `/mnt/Backup/TaskbarGroups/dist/` **ยังไม่ได้** (MFT พัง — พักไว้ ดู `docs/WORKLOG.md` ท้าย)
@@ -57,6 +70,13 @@
 - **F1/F3 (ปักหมุด panel):** Grouped Window List applet config + `ReloadXlet` · **ต้องมี `Path=` ใน .desktop** ไม่งั้นคลิกเปิดไม่ขึ้น
 - **F16/F17 (ไอคอนจาก AppImage):** แตก squashfs ผ่าน `--appimage-extract` → `.DirIcon`/`Icon=`
 - **F19:** อย่าตั้ง `self.window=None` ใน `_on_closed` ระหว่าง closeEvent (GC ทำลาย popup กลางเหตุการณ์ → heap corruption) — ต้อง `deleteLater()`
+- **flyout ตำแหน่ง "ตามเมาส์" อย่าแก้ด้วยการจับเร็วขึ้น:** คอขวดคือ AppImage cold start (~0.38 วิ) + โหลด Qt (~0.15 วิ)
+  → อ่าน `QCursor.pos()` ตอน show สายไปแล้ว · **แก้ที่ราก: ตรึงตำแหน่ง** — โหมดปกติ `panel_anchor_position()`
+  วางชิดขอบ panel (หา panel จากช่องว่าง `geometry` vs `availableGeometry`) + X ตามที่จับได้ · โหมดโฟกัส (hotkey) `--center` → `focus_position()` กลางจอ + ไอคอนใหญ่ตาม `Group.focus_scale` (**1.0–3.0** ค่าเริ่มต้น 2.0 · ตั้งใน `HotkeyDialog` slider) + `FOCUS_MIN_ICON`
+  · `_run_flyout` จับ `QCursor.pos()` **ก่อน** `try_delegate` แล้วส่งผ่าน protocol JSON `{group,x,y,center}` (รับข้อความเปล่าแบบเก่าได้ด้วย)
+- **ชื่อใต้ไอคอน = ต่อกลุ่ม + ค่าเริ่มต้นจากแอป:** `Group.show_labels` เป็น `bool | None` (**None = สืบทอด**)
+  · ค่าระดับแอป `settings.json` key `flyout_labels` = ค่าเริ่มต้น (default ปิด) · flyout resolve `group.show_labels if not None else app_default`
+  · checkbox ในแถบไอคอนกลุ่มของ `GroupEditor` (โชว์ค่าที่มีผลจริง, บันทึกเป็น bool ชัดเจน) · ปิด=ปุ่มจัตุรัส · เปิด=กว้างตาม `QFontMetrics` (`LABEL_MAX_WIDTH=168`)
 - **B1 (ลากในกริดไอค่อนหาย):** Qt `clearOrRemove()` หลัง MoveAction ลบแถวที่ถูกเลือก → **แก้: `self.clearSelection()` ใน `dropEvent`**
 - **F22:** ไฮไลท์ช่องกริดทำ custom (Qt IconMode ไม่มี drop indicator — มี FIXME ในซอร์ส Qt)
 - **i18n:** `core/i18n.py` dict TH/EN built-in + overlay `config/lang/<code>.json` · `settings.json` key `language`
@@ -80,7 +100,7 @@
 ## วิธีรัน / Dev
 - รันแอป: `.venv/bin/python -m taskbargroups`
 - เปิด flyout: `... -m taskbargroups --open "<GroupDir>"` · list: `... --list`
-- เทสต์: `.venv/bin/python tests/run.py` → **279 ผ่าน**
+- เทสต์: `.venv/bin/python tests/run.py` → **307 ผ่าน**
   · (ถ้ารัน `python -m unittest discover -s tests` ผลเทสต์เท่ากันแต่ตอนปิด PySide6 6.12 จะ segfault
     ใน `destroyQCoreApplication()` — บั๊กฝั่ง Qt · `tests/run.py` เรียก `os._exit()` เลี่ยงให้)
 - แพ็ก: `bash packaging/build_appimage.sh` → `dist/TaskbarNoob-x86_64.AppImage`

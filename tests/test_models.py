@@ -58,6 +58,28 @@ class GroupTests(unittest.TestCase):
         group = Group(name="G", icon_size=64)
         self.assertEqual(Group.from_dict(group.to_dict()).icon_size, 64)
 
+    def test_show_labels_defaults_to_none(self) -> None:
+        self.assertIsNone(Group(name="G").show_labels)
+
+    def test_show_labels_round_trip_and_garbage(self) -> None:
+        for value in (True, False, None):
+            group = Group(name="G", show_labels=value)
+            self.assertEqual(Group.from_dict(group.to_dict()).show_labels, value)
+        self.assertIsNone(Group.from_dict({"show_labels": "yes"}).show_labels)
+
+    def test_focus_scale_default_and_round_trip(self) -> None:
+        from taskbargroups.core.models import DEFAULT_FOCUS_SCALE
+
+        self.assertEqual(Group(name="G").focus_scale, DEFAULT_FOCUS_SCALE)
+        group = Group(name="G", focus_scale=3.0)
+        self.assertEqual(Group.from_dict(group.to_dict()).focus_scale, 3.0)
+        self.assertEqual(Group.from_dict({"focus_scale": "nope"}).focus_scale, DEFAULT_FOCUS_SCALE)
+
+    def test_validate_bad_focus_scale(self) -> None:
+        errors = Group(name="G", focus_scale=9.9).validate()
+        self.assertTrue(any("focus_scale" in err for err in errors))
+        self.assertEqual(Group(name="G", focus_scale=1.5).validate(), [])
+
     def test_validate_bad_icon_size(self) -> None:
         errors = Group(name="G", icon_size=999).validate()
         self.assertTrue(any("ขนาดไอคอน" in err for err in errors))

@@ -131,6 +131,25 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertEqual(dialog.icon_source(), "/tmp/new.png")
         self.assertEqual(dialog.result_shortcut().icon, "icons/a.png")
 
+    def test_hotkey_dialog_saves_focus_scale(self) -> None:
+        from taskbargroups.gui.hotkey_dialog import HotkeyDialog
+
+        group = Group(name="G", items=[Shortcut(name="a", target="/bin/true")])
+        self.store.save_group(group)
+        dialog = HotkeyDialog(group, self.store, "G")
+        from taskbargroups.core.models import DEFAULT_FOCUS_SCALE, MIN_FOCUS_SCALE
+
+        expected_default = int(round(DEFAULT_FOCUS_SCALE * 10))
+        expected_min = int(round(MIN_FOCUS_SCALE * 10))
+        self.assertEqual(dialog.scale_slider.value(), expected_default)
+        self.assertEqual(dialog.scale_label.text(), f"{DEFAULT_FOCUS_SCALE:.1f}x")
+        dialog.scale_slider.setValue(expected_min)
+        self.assertEqual(dialog.scale_label.text(), f"{MIN_FOCUS_SCALE:.1f}x")
+        dialog._save_focus_scale()
+        self.assertEqual(self.store.load_group("G").focus_scale, MIN_FOCUS_SCALE)
+        dialog.deleteLater()
+        self.app.processEvents()
+
     def test_editor_pending_icons_tracks_live_items(self) -> None:
         from taskbargroups.gui.group_editor import GroupEditor
 

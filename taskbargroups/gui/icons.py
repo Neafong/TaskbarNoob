@@ -30,10 +30,14 @@ def _from_file(path: Path) -> QIcon | None:
 
 
 def _provider_icon(target: str) -> QIcon | None:
-    """ไอคอนจาก OS ผ่าน QFileIconProvider (Windows .exe/.lnk · macOS .app)."""
+    """ไอคอนจาก OS ผ่าน QFileIconProvider."""
     path = Path((target or "").strip())
-    if path.suffix.lower() not in _PROVIDER_SUFFIXES or not path.is_file():
-        return None
+    if sys.platform in ("win32", "darwin"):
+        if path.suffix.lower() not in _PROVIDER_SUFFIXES or not path.is_file():
+            return None
+    else:
+        if not path.exists():
+            return None
     icon = _provider.icon(QFileInfo(str(path)))
     return icon if not icon.isNull() else None
 
@@ -49,10 +53,9 @@ def shortcut_icon(shortcut: Shortcut, store: ConfigStore, dir_name: str) -> QIco
         icon = _from_file(Path(target))
         if icon is not None and not icon.isNull():
             return icon
-        if sys.platform in ("win32", "darwin"):
-            icon = _provider_icon(target)
-            if icon is not None:
-                return icon
+        icon = _provider_icon(target)
+        if icon is not None:
+            return icon
     return QIcon.fromTheme(_FALLBACK)
 
 

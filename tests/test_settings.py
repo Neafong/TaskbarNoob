@@ -55,6 +55,20 @@ class SettingsTests(unittest.TestCase):
         self.settings.set_donate_url("https://example.com/x")
         self.assertEqual(Settings(self._tmp.name).get_donate_url(), "https://example.com/x")
 
+    def test_flyout_labels_off_by_default(self) -> None:
+        self.assertFalse(self.settings.get_flyout_labels())
+
+    def test_set_flyout_labels_persists(self) -> None:
+        self.settings.set_flyout_labels(True)
+        self.assertTrue(self.settings.get_flyout_labels())
+        self.assertTrue(Settings(self._tmp.name).get_flyout_labels())
+
+    def test_flyout_labels_bad_value_falls_back(self) -> None:
+        (Path(self._tmp.name) / "settings.json").write_text(
+            '{"flyout_labels": "yes"}', encoding="utf-8"
+        )
+        self.assertFalse(Settings(self._tmp.name).get_flyout_labels())
+
 
 @unittest.skipUnless(HAVE_QT, "PySide6 not installed")
 class ThemeTests(unittest.TestCase):

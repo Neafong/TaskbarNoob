@@ -9,6 +9,7 @@ from taskbargroups.core.launcher import (
     LaunchError,
     _resolve_cwd,
     _split_arguments,
+    child_env,
     launch,
 )
 from taskbargroups.core.models import Shortcut
@@ -69,7 +70,7 @@ class LaunchLinuxDispatchTests(unittest.TestCase):
         with mock.patch("taskbargroups.core.launcher.subprocess.Popen") as popen:
             launch(Shortcut(name="a", target=target, arguments="--x"))
         popen.assert_called_once_with(
-            [target, "--x"], cwd=None, start_new_session=True
+            [target, "--x"], cwd=None, env=mock.ANY, start_new_session=True
         )
 
     def test_plus_x_media_file_is_not_executed(self) -> None:
@@ -80,7 +81,7 @@ class LaunchLinuxDispatchTests(unittest.TestCase):
         with mock.patch("taskbargroups.core.launcher.subprocess.Popen") as popen:
             launch(Shortcut(name="s", target=str(path)))
         popen.assert_called_once_with(
-            ["gio", "open", str(path)], cwd=None, start_new_session=True
+            ["gio", "open", str(path)], cwd=None, env=mock.ANY, start_new_session=True
         )
 
     def test_elf_magic_runs_directly(self) -> None:
@@ -94,7 +95,7 @@ class LaunchLinuxDispatchTests(unittest.TestCase):
                 ) as popen:
                     launch(Shortcut(name="g", target=str(path)))
                 popen.assert_called_once_with(
-                    [str(path)], cwd=None, start_new_session=True
+                    [str(path)], cwd=None, env=mock.ANY, start_new_session=True
                 )
 
     def test_document_file_uses_gio_open(self) -> None:
@@ -102,14 +103,14 @@ class LaunchLinuxDispatchTests(unittest.TestCase):
         with mock.patch("taskbargroups.core.launcher.subprocess.Popen") as popen:
             launch(Shortcut(name="d", target=target))
         popen.assert_called_once_with(
-            ["gio", "open", target], cwd=None, start_new_session=True
+            ["gio", "open", target], cwd=None, env=mock.ANY, start_new_session=True
         )
 
-    def test_directory_uses_xdg_open(self) -> None:
+    def test_directory_uses_gio_open(self) -> None:
         with mock.patch("taskbargroups.core.launcher.subprocess.Popen") as popen:
             launch(Shortcut(name="d", target=self._tmp.name))
         popen.assert_called_once_with(
-            ["xdg-open", self._tmp.name], cwd=None, start_new_session=True
+            ["gio", "open", self._tmp.name], cwd=None, env=mock.ANY, start_new_session=True
         )
 
     def test_desktop_file_uses_gio_launch(self) -> None:
@@ -118,6 +119,7 @@ class LaunchLinuxDispatchTests(unittest.TestCase):
         popen.assert_called_once_with(
             ["gio", "launch", "/tmp/whatever.desktop"],
             cwd=None,
+            env=mock.ANY,
             start_new_session=True,
         )
 
@@ -125,8 +127,19 @@ class LaunchLinuxDispatchTests(unittest.TestCase):
         with mock.patch("taskbargroups.core.launcher.subprocess.Popen") as popen:
             launch(Shortcut(name="f", target="firefox"))
         popen.assert_called_once_with(
-            ["firefox"], cwd=None, start_new_session=True
+            ["firefox"], cwd=None, env=mock.ANY, start_new_session=True
         )
+
+    def test_child_env_strips_bundled_lib_paths(self) -> None:
+        with mock.patch.dict(
+            "os.environ",
+            {"LD_LIBRARY_PATH": "/tmp/bundle", "LD_PRELOAD": "/tmp/x.so", "KEEP": "1"},
+            clear=False,
+        ):
+            env = child_env()
+        self.assertNotIn("LD_LIBRARY_PATH", env)
+        self.assertNotIn("LD_PRELOAD", env)
+        self.assertEqual(env.get("KEEP"), "1")
 
     def test_failed_exec_raises_launch_error(self) -> None:
         target = self._make_file("broken.AppImage", executable=True)

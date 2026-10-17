@@ -42,6 +42,9 @@ def main(argv: list[str] | None = None) -> int:
         prog="taskbargroups", description="รวบรวม shortcut เป็นกลุ่ม เปิดใช้ง่ายจาก panel"
     )
     parser.add_argument("--open", dest="open_group", metavar="GROUP", help="เปิด flyout ของกลุ่ม")
+    parser.add_argument(
+        "--center", action="store_true", help="เปิด flyout กลางจอ (โหมดโฟกัสจาก hotkey)"
+    )
     parser.add_argument("--list", action="store_true", help="แสดงชื่อกลุ่มทั้งหมด")
     parsed, _unknown = parser.parse_known_args(args_list)
 
@@ -58,7 +61,11 @@ def main(argv: list[str] | None = None) -> int:
         print("ต้องติดตั้ง PySide6 ก่อน:", exc, file=sys.stderr)
         print("  python -m pip install PySide6", file=sys.stderr)
         return 1
-    return run([sys.argv[0], *args_list], open_group=parsed.open_group)
+    return run(
+        [sys.argv[0], *args_list],
+        open_group=parsed.open_group,
+        center=parsed.center,
+    )
 
 
 if __name__ == "__main__":

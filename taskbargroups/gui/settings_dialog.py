@@ -9,6 +9,7 @@ from PySide6.QtCore import QUrl, Qt
 from PySide6.QtGui import QDesktopServices, QPalette
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QDialog,
     QFileDialog,
@@ -71,6 +72,12 @@ class SettingsDialog(QDialog):
         self.language_combo.setCurrentIndex(max(0, lang_index))
         self.language_combo.currentIndexChanged.connect(self._on_language_changed)
         self._form.addRow(tr("settings.language"), self.language_combo)
+
+        self.labels_check = QCheckBox(tr("settings.flyout_labels"))
+        self.labels_check.setToolTip(tr("settings.flyout_labels_tip"))
+        self.labels_check.setChecked(self._settings.get_flyout_labels())
+        self.labels_check.toggled.connect(self._on_labels_toggled)
+        self._form.addRow(self.labels_check)
 
         lang_buttons = QHBoxLayout()
         self.export_button = QPushButton(tr("settings.export_lang"))
@@ -147,6 +154,9 @@ class SettingsDialog(QDialog):
         if hasattr(main, "refresh_icons"):
             main.refresh_icons()
 
+    def _on_labels_toggled(self, checked: bool) -> None:
+        self._settings.set_flyout_labels(checked)
+
     def _on_language_changed(self, index: int) -> None:
         code = self.language_combo.itemData(index)
         if not code:
@@ -162,6 +172,8 @@ class SettingsDialog(QDialog):
         for i, value in enumerate(_THEME_VALUES):
             self.theme_combo.setItemText(i, tr(f"settings.theme_{value}"))
         self.theme_hint.setText(tr("settings.theme_hint"))
+        self.labels_check.setText(tr("settings.flyout_labels"))
+        self.labels_check.setToolTip(tr("settings.flyout_labels_tip"))
         for widget, key in (
             (self.theme_combo, "settings.theme"),
             (self.language_combo, "settings.language"),

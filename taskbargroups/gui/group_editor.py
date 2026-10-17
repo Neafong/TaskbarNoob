@@ -11,6 +11,7 @@ from PySide6.QtGui import QColor, QIcon, QPainter, QPalette, QPen, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
+    QCheckBox,
     QColorDialog,
     QComboBox,
     QDialog,
@@ -44,6 +45,7 @@ from taskbargroups.core.models import (
     Shortcut,
     is_hex_color,
 )
+from taskbargroups.core.settings import Settings
 from taskbargroups.core.storage import ConfigStore
 from .button_icons import themed_icon
 from .dialogs import show_information, show_warning
@@ -53,7 +55,7 @@ _FALLBACK_GRID_ICON = "application-x-executable"
 _file_icon_provider = QFileIconProvider()
 
 # ขนาดพรีวิวไอคอนกลุ่ม (คงที่ — ไม่ตามสไลเดอร์ขนาดไอคอน)
-_GROUP_ICON_PREVIEW = 48
+_GROUP_ICON_PREVIEW = 32
 
 
 def _normalize_hex(value: str) -> str:
@@ -721,10 +723,14 @@ class GroupEditor(QDialog):
         system_button = QPushButton(tr("editor.choose_system"))
         system_button.setToolTip(tr("editor.choose_system_tip"))
         system_button.clicked.connect(self._pick_system_icon)
+        self.labels_check = QCheckBox(tr("editor.show_labels"))
+        self.labels_check.setToolTip(tr("editor.show_labels_tip"))
+        self.labels_check.setChecked(self._resolve_show_labels())
         icon_row.addWidget(self.icon_preview)
         icon_row.addWidget(icon_button)
         icon_row.addWidget(system_button)
         icon_row.addStretch(1)
+        icon_row.addWidget(self.labels_check)
         icon_widget = QWidget()
         icon_widget.setLayout(icon_row)
         form.addRow(tr("editor.group_icon"), icon_widget)
@@ -787,6 +793,12 @@ class GroupEditor(QDialog):
         container = QWidget()
         container.setLayout(row)
         return container
+
+    def _resolve_show_labels(self) -> bool:
+        """ค่าเริ่มต้นของ checkbox: ค่าที่กลุ่มตั้งเอง หรือค่าเริ่มต้นของแอป."""
+        if self._group.show_labels is not None:
+            return self._group.show_labels
+        return Settings().get_flyout_labels()
 
     def _preview_icon(self) -> QIcon:
         if self._icon_source:
@@ -894,7 +906,7 @@ class GroupEditor(QDialog):
                 icon = QIcon(str(embedded))
                 if not icon.isNull():
                     return icon
-        if item.target and Path(item.target).is_file():
+        if item.target and Path(item.target).exists():
             provider = QFileIconProvider()
             return provider.icon(QFileInfo(item.target))
         theme = core_icons.find_theme_icon(Path(item.target).stem) if item.target else None
@@ -992,6 +1004,8 @@ class GroupEditor(QDialog):
             opacity=self.opacity_slider.value(),
             icon_size=self.icon_size_slider.value(),
             allow_open_all=self._group.allow_open_all,
+            show_labels=self.labels_check.isChecked(),
+            focus_scale=self._group.focus_scale,
             items=list(self._group.items),
         )
 

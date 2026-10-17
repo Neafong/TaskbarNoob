@@ -11,6 +11,7 @@ SETTINGS_FILE = "settings.json"
 DEFAULT_THEME = "auto"
 DEFAULT_LANGUAGE = "th"
 DEFAULT_DONATE_URL = "https://ko-fi.com/neafong"
+DEFAULT_FLYOUT_LABELS = False
 
 VALID_THEMES = ("auto", "light", "dark")
 
@@ -69,6 +70,15 @@ class Settings:
     def get_donate_url(self) -> str:
         url = self.get("donate_url", DEFAULT_DONATE_URL)
         return url.strip() if isinstance(url, str) else ""
+
+    def get_flyout_labels(self) -> bool:
+        value = self.get("flyout_labels", DEFAULT_FLYOUT_LABELS)
+        if isinstance(value, bool):
+            return value
+        return DEFAULT_FLYOUT_LABELS
+
+    def set_flyout_labels(self, enabled: bool) -> None:
+        self.set("flyout_labels", bool(enabled))
 
     def get_hotkeys(self) -> dict[str, str]:
         """map {slot: binding} สำหรับ OS ที่ไม่มีที่เก็บ hotkey ของระบบ (Windows)."""

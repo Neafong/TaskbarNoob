@@ -927,3 +927,58 @@
 - **คลิกขวา reveal ไม่เคยทำงาน:** `flyout.py` ลืม import `Path` → NameError ทุกครั้ง
   (v0.2-C เขียนเสร็จแต่ไม่มีเทสต์เรียกเลยรอดมา) · เติม `explorer /select` (Win) + `open -R` (Mac)
 - เทสต์ +3 (mp3 +x → gio · ELF/shebang → รันตรง · reveal 3 OS) → **282 ผ่าน**
+
+## 2026-10-17 — ไอคอน default เป็นเฟือง + เปิดโฟลเดอร์จาก flyout ไม่ได้ (AppImage) `[เสร็จ]`
+- **ไอคอนใน flyout เป็นเฟืองหมด:** `gui/icons.py` เรียก `QFileIconProvider` เฉพาะ Windows/macOS
+  → Linux ตกไป `fromTheme("application-x-executable")` เสมอ · แก้: ให้ทุก OS ใช้ provider
+  กับ target ที่มีอยู่จริง (ได้ mime icon ตามธีมระบบ: video/audio/text/folder)
+- **ไอคอนโฟลเดอร์ใน Grid เป็นเฟือง:** `group_editor._icon_for()` เช็ค `Path(target).is_file()`
+  → โฟลเดอร์ (is_dir) ตกไป fallback เฟือง · แก้เป็น `.exists()` ให้ provider คืนไอคอนโฟลเดอร์
+- **ไอคอนกลุ่ม default บน Taskbar เป็นเฟือง:** `core/desktop.py` ตั้ง `Icon=applications-utilities`
+  (ประแจ/เฟือง) ไม่ตรงกับ GUI ที่โชว์โฟลเดอร์ · แก้: `GROUP_FALLBACK_ICON = "folder"`
+- **โฟลเดอร์เปิดจาก flyout ไม่ได้ (เงียบ ไม่มี error):** AppImage/PyInstaller ยัด `LD_LIBRARY_PATH`
+  ชี้ lib 185 ตัวใน `_internal` → `xdg-open` → `nemo` รับ env ไปโหลด Qt/glib ตัวเอง = พังเงียบ
+  (mp3/mp4/txt รอดเพราะ `gio open` วิ่งผ่าน session bus → dbus spawn env สะอาด)
+  · แก้: `core/launcher.py` เพิ่ม `child_env()` ตัด `LD_LIBRARY_PATH`/`LD_PRELOAD`/`PYTHONPATH`/
+  `QT_PLUGIN_PATH`/`APPDIR`/`APPIMAGE` ฯลฯ ส่งให้โปรเซสลูกทุกตัว + โฟลเดอร์เปลี่ยนไปใช้ `gio open` ก่อน
+  · `gui/flyout.py` `_reveal` ก็ใช้ env สะอาดด้วย
+- **คลิกขวาโฟลเดอร์ไม่มีอะไรขึ้น:** `flyout._show_context_menu()` มี `if ... path.is_dir(): return`
+  ตัดโฟลเดอร์ทิ้ง · แก้: เหลือเช็ค `path.exists()` เท่านั้น
+- เทสต์: ปรับ 6 เคส (Popen รับ `env=` · โฟลเดอร์→gio · ไอคอน default→folder) + เพิ่มเทสต์ `child_env`
+  → **283 ผ่าน** · build AppImage ใหม่ + วาง `~/AppImage/Tool/` · ผู้ใช้ยืนยันไอคอน + เปิดโฟลเดอร์ใช้ได้
+
+## 2026-10-17 — flyout UX/UI: ตำแหน่ง + โหมดโฟกัส + toggle ชื่อใต้ไอคอน `[เสร็จ]`
+ปัญหา: flyout โผล่ "ตามเมาส์" เพราะ cold start AppImage ~0.38 วิ + Qt ~0.15 วิ → อ่าน `QCursor.pos()`
+  ตอน show เมาส์ขยับไปแล้ว (จับเร็วขึ้นก็ไม่หาย เพราะคอขวดคือ mount) → เปลี่ยนเป็น **ตรึงตำแหน่ง**
+- **โหมดปกติ (คลิก panel):** `panel_anchor_position()` หา panel จากช่องว่างจอเต็ม vs `availableGeometry`
+  (bottom/top/left/right) แล้ววางชิดขอบ panel + X ตามตำแหน่งไอคอนที่จับได้ · ไม่เจอ panel → fallback `flyout_position`
+- **โหมดโฟกัส (hotkey):** flag `--center` → `focus_position()` โผล่กลางจอ + `focus=True` ขยายไอคอน
+  (`FOCUS_ICON_SCALE=1.5`, `FOCUS_MIN_ICON=48`) ให้ดูเป็นฟีเจอร์พิเศษ
+  · เดิน flag ครบ: `__main__.py` → `main_window.run(center=)`/`_run_flyout` (จับ `QCursor.pos()` ต้นสุด)
+  → `FlyoutController` (protocol เป็น JSON `{group,x,y,center}` + backward ข้อความเปล่า) · `desktop.build_exec(center=)`
+  · `hotkey_dialog` ใช้ `build_exec(dir_name, center=True)` · `win32_hotkey` เพิ่ม `--center`
+- **จับตำแหน่งให้เร็วที่สุด:** `_run_flyout` อ่าน `QCursor.pos()` ก่อน `try_delegate` แล้วส่งไปให้เจ้าของ flyout ตรึง
+- **toggle ข้อความใต้ไอคอน (ระดับแอป):** `settings.json` key `flyout_labels` **default ปิด**
+  (`Settings.get/set_flyout_labels`) · UI ที่ `SettingsDialog` (QCheckBox) · i18n TH/EN + เพิ่มคีย์ใน `packaging/lang/ja.json`
+  · ปิด = ปุ่มจัตุรัสไอคอนล้วน · เปิด = ปุ่มกว้างตาม `QFontMetrics` ชื่อยาวสุด (เลิก hard-code ตัด 18 ตัว + `LABEL_MAX_WIDTH=168`)
+- เทสต์ +13 (panel anchor 4 เคส · focus center · ปุ่มจัตุรัส/ชื่อ · focus scale · focus mode ผ่าน delegate · build_exec center
+  · flyout_labels default/roundtrip/bad-value) → **296 ผ่าน** · build AppImage ใหม่ + วาง `~/AppImage/Tool/`
+- **ปรับตามฟีดแบ็กเทสเตอร์รอบแรก:**
+  - **ชื่อใต้ไอคอนย้ายไประดับกลุ่ม** (เดิมระดับแอปอย่างเดียว) — เทสเตอร์ชี้ว่ากลุ่มมีเดีย (วิดีโอ/เพลง/เอกสาร)
+    ต้องเห็นชื่อ แต่กลุ่มแอปไม่ต้อง · เพิ่ม `Group.show_labels: bool | None` (None = สืบทอดค่าแอป)
+    · combo ใน `GroupEditor` 3 ตัวเลือก (ตามค่าแอป/แสดงชื่อ/ไม่แสดงชื่อ) · flyout resolve เอง
+    · ค่าระดับแอปใน `settings.json` เปลี่ยนความหมายเป็น "ค่าเริ่มต้น" ให้กลุ่มที่ไม่ได้ตั้ง
+  - **โหมดโฟกัสขยาย 3x** (เดิม 1.5x) ให้เด่นชัดตามที่เทสเตอร์ต้องการ · `FOCUS_ICON_SCALE = 3.0`
+  - เทสต์ +6 (model show_labels roundtrip/garbage · group override · combo inherit/override/prefill) → **302 ผ่าน**
+    · build AppImage ใหม่ + วาง `~/AppImage/Tool/`
+
+## 2026-10-17 — ปรับตามฟีดแบ็ก: checkbox รายกลุ่ม + focus zoom ต่อกลุ่ม 1–3x `[เสร็จ]`
+- **ชื่อใต้ไอคอน:** เปลี่ยนจาก combo 3 ตัว → **checkbox** ในแถวเดียวกับไอคอนกลุ่ม (ลดพรีวิวจาก 48→32)
+  · `Group.show_labels` ยังคง `bool | None` (None = สืบทอดค่าแอป) · checkbox แสดงค่าที่มีผลจริง
+    (None → ค่าแอป) · บันทึกเป็น explicit bool เสมอ (ง่ายและไม่สร้าง magic)
+- **Focus zoom ต่อกลุ่ม:** `Group.focus_scale: float = 2.0` (range **1.0–3.0** · ปรับได้ละเอียด 0.1) + validation
+  · `HotkeyDialog` เพิ่ม slider 1.0–3.0x (step 0.1) + label บันทึกลงกลุ่มตอนติดตั้ง hotkey
+  · flyout ใช้ `group.focus_scale` ในโหมดโฟกัส (เอา constant ออก) · ค่าเริ่มต้น 2.0x = สมดุล (ไอคอนเยอะ/น้อย)
+- i18n: ปรับ key `editor.show_labels` + เพิ่ม tip · เพิ่ม `hotkey.focus_scale`/tip (TH/EN/ja)
+- เทสต์ +5 (models focus_scale/default/validate · flyout ใช้ group.focus_scale · hotkey dialog saves scale
+  · group_editor labels checkbox + env isolation) → **307 ผ่าน** · build AppImage ใหม่ + วาง `~/AppImage/Tool/`

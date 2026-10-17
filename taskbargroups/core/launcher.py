@@ -15,6 +15,29 @@ class LaunchError(Exception):
     """โยนเมื่อเปิด shortcut ไม่สำเร็จ."""
 
 
+# env ที่ AppImage/PyInstaller ยัดเข้ามา — ห้ามส่งต่อให้โปรเซสลูก
+# ไม่งั้นโปรแกรมระบบ (nemo ผ่าน xdg-open) จะไปโหลด Qt/glib ที่พกมาแล้วพังเงียบๆ
+_STRIP_ENV = (
+    "LD_LIBRARY_PATH",
+    "LD_PRELOAD",
+    "PYTHONHOME",
+    "PYTHONPATH",
+    "QT_PLUGIN_PATH",
+    "APPDIR",
+    "APPIMAGE",
+    "ARGV0",
+    "OWD",
+)
+
+
+def child_env() -> dict[str, str]:
+    """สภาพแวดล้อมสะอาดสำหรับโปรเซสลูกที่เปิดโปรแกรมภายนอก."""
+    env = dict(os.environ)
+    for key in _STRIP_ENV:
+        env.pop(key, None)
+    return env
+
+
 def _split_arguments(arguments: str) -> list[str]:
     if not arguments or not arguments.strip():
         return []
@@ -60,34 +83,48 @@ def launch(shortcut: Shortcut) -> None:
 
 
 def _launch_linux(target: str, args: list[str], cwd: str | None) -> None:
+    env = child_env()
     try:
         # .desktop file
         if target.endswith(".desktop"):
-            subprocess.Popen(["gio", "launch", target], cwd=cwd, start_new_session=True)
+            subprocess.Popen(
+                ["gio", "launch", target], cwd=cwd, env=env, start_new_session=True
+            )
             return
         path = Path(target)
-        # โฟลเดอร์ → เปิดด้วย file manager
+        # โฟลเดอร์ → เปิดด้วย file manager (gio ผ่าน session bus ปลอดภัยกว่า
+        #  ไม่รับ env ที่พังจาก AppImage · xdg-open เป็น fallback)
         if path.is_dir():
             try:
-                subprocess.Popen(["xdg-open", str(path)], cwd=cwd, start_new_session=True)
+                subprocess.Popen(
+                    ["gio", "open", str(path)], cwd=cwd, env=env, start_new_session=True
+                )
             except OSError:
-                subprocess.Popen(["gio", "open", str(path)], cwd=cwd, start_new_session=True)
+                subprocess.Popen(
+                    ["xdg-open", str(path)], cwd=cwd, env=env, start_new_session=True
+                )
             return
         if path.is_file():
             # ไฟล์ที่รันได้จริง (ดู magic ไม่ดูแค่ +x — บน NTFS/exFAT ทุกไฟล์ +x
             #  หมดแม้แต่ mp3) → รันตรง ๆ · ไฟล์อื่น (เอกสาร/มีเดีย) → gio open
             #  (ห้ามสลับกัน: gio open บนไฟล์รันได้จะเปิดผิด — editor/disk-mounter)
             if _looks_runnable(path):
-                subprocess.Popen([str(path), *args], cwd=cwd, start_new_session=True)
+                subprocess.Popen(
+                    [str(path), *args], cwd=cwd, env=env, start_new_session=True
+                )
                 return
             # ไฟล์เอกสารทั่วไป → เปิดด้วยโปรแกรม Default
             try:
-                subprocess.Popen(["gio", "open", str(path)], cwd=cwd, start_new_session=True)
+                subprocess.Popen(
+                    ["gio", "open", str(path)], cwd=cwd, env=env, start_new_session=True
+                )
             except OSError:
-                subprocess.Popen(["xdg-open", str(path)], cwd=cwd, start_new_session=True)
+                subprocess.Popen(
+                    ["xdg-open", str(path)], cwd=cwd, env=env, start_new_session=True
+                )
             return
         # ไม่มีไฟล์จริง (เช่น คำสั่งใน PATH: firefox, code) → รันตรง
-        subprocess.Popen([target, *args], cwd=cwd, start_new_session=True)
+        subprocess.Popen([target, *args], cwd=cwd, env=env, start_new_session=True)
     except OSError as exc:
         raise LaunchError(f"เปิด '{target}' ไม่สำเร็จ: {exc}") from exc
 

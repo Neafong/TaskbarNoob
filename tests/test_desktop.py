@@ -42,6 +42,16 @@ class DesktopTests(unittest.TestCase):
                 build_exec("Tools"), '"/opt/App.AppImage" --open "Tools"'
             )
 
+    def test_build_exec_center_flag(self) -> None:
+        with mock.patch.dict(os.environ, {"APPIMAGE": "/opt/App.AppImage"}):
+            self.assertEqual(
+                build_exec("Tools", center=True),
+                '"/opt/App.AppImage" --open "Tools" --center',
+            )
+        self.assertTrue(
+            build_exec("Tools", python="/usr/bin/python3", center=True).endswith(" --center")
+        )
+
     def test_entry_contains_required_fields(self) -> None:
         group = Group(name="Tools")
         self.store.save_group(group)
@@ -114,7 +124,7 @@ class DesktopTests(unittest.TestCase):
         group = Group(name="Tools")
         self.store.save_group(group)
         entry = build_desktop_entry(group, self.store, "Tools")
-        self.assertIn("Icon=applications-utilities", entry)
+        self.assertIn("Icon=folder", entry)
 
     def test_remove_launcher_icon_missing_is_false(self) -> None:
         self.assertFalse(remove_launcher_icon("Tools", icons_root=self.icons))

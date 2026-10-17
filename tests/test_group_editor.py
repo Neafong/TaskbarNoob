@@ -1,4 +1,5 @@
 import os
+import tempfile
 import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -34,8 +35,18 @@ class GroupEditorUiTests(unittest.TestCase):
         from taskbargroups.gui.group_editor import GroupEditor
 
         setup("th")
+        self._tmp = tempfile.TemporaryDirectory()
+        self._old_cfg = os.environ.get("TASKBARGROUPS_CONFIG")
+        os.environ["TASKBARGROUPS_CONFIG"] = self._tmp.name
         self.editor = GroupEditor(None, None)
         self.editor.name_edit.setText("Test")
+
+    def tearDown(self) -> None:
+        if self._old_cfg is None:
+            os.environ.pop("TASKBARGROUPS_CONFIG", None)
+        else:
+            os.environ["TASKBARGROUPS_CONFIG"] = self._old_cfg
+        self._tmp.cleanup()
 
     def test_editor_builds(self) -> None:
         self.assertEqual(self.editor.name_edit.text(), "Test")
@@ -66,6 +77,29 @@ class GroupEditorUiTests(unittest.TestCase):
     def test_slider_resizes_grid_at_init(self) -> None:
         self.editor.icon_size_slider.setValue(64)
         self.assertEqual(self.editor.items_list.iconSize().width(), 64)
+
+    def test_labels_checkbox_default_off(self) -> None:
+        # ค่าเริ่มต้นของแอป = ปิด → checkbox ไม่ติ๊ก
+        self.assertFalse(self.editor.labels_check.isChecked())
+        self.assertIs(self.editor.result_group().show_labels, False)
+
+    def test_labels_checkbox_override(self) -> None:
+        self.editor.labels_check.setChecked(True)
+        self.assertIs(self.editor.result_group().show_labels, True)
+
+    def test_labels_checkbox_prefills_group_value(self) -> None:
+        from taskbargroups.gui.group_editor import GroupEditor
+
+        editor = GroupEditor(None, None, group=Group(name="G", show_labels=True))
+        self.assertTrue(editor.labels_check.isChecked())
+
+    def test_labels_checkbox_prefills_app_default(self) -> None:
+        from taskbargroups.core.settings import Settings
+        from taskbargroups.gui.group_editor import GroupEditor
+
+        Settings(self._tmp.name).set_flyout_labels(True)
+        editor = GroupEditor(None, None)
+        self.assertTrue(editor.labels_check.isChecked())
 
 
 @unittest.skipUnless(HAVE_QT, "PySide6 not installed")

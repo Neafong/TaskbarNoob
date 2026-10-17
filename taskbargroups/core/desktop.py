@@ -14,6 +14,7 @@ from .storage import ConfigStore, safe_dir_name
 
 APP_ID = "taskbargroups"
 FALLBACK_ICON = "applications-utilities"
+GROUP_FALLBACK_ICON = "folder"
 
 
 def data_home() -> Path:
@@ -78,20 +79,22 @@ def remove_launcher_icon(dir_name: str, icons_root: Path | None = None) -> bool:
     return removed
 
 
-def build_exec(dir_name: str, python: str | None = None) -> str:
+def build_exec(dir_name: str, python: str | None = None, center: bool = False) -> str:
     """สร้างบรรทัด Exec ที่ใช้เปิด flyout ของกลุ่ม.
 
     รองรับ 3 โหมด: รันจาก source (`python -m taskbargroups`), รันจาก AppImage
     (`$APPIMAGE --open ...`) และ frozen exe (binary ตรงๆ)
+    `center=True` = โหมดโฟกัส (hotkey): โผล่กลางจอ + ไอคอนใหญ่
     """
+    suffix = " --center" if center else ""
     if python:
-        return f'"{python}" -m {APP_ID} --open "{dir_name}"'
+        return f'"{python}" -m {APP_ID} --open "{dir_name}"{suffix}'
     appimage = os.environ.get("APPIMAGE")
     if appimage:
-        return f'"{appimage}" --open "{dir_name}"'
+        return f'"{appimage}" --open "{dir_name}"{suffix}'
     if getattr(sys, "frozen", False):
-        return f'"{sys.executable}" --open "{dir_name}"'
-    return f'"{sys.executable}" -m {APP_ID} --open "{dir_name}"'
+        return f'"{sys.executable}" --open "{dir_name}"{suffix}'
+    return f'"{sys.executable}" -m {APP_ID} --open "{dir_name}"{suffix}'
 
 
 def build_desktop_entry(
@@ -105,7 +108,10 @@ def build_desktop_entry(
         icon = icon_name
     else:
         icon_file = store.resolve_relative(dir_name, group.icon)
-        icon = str(icon_file) if icon_file is not None else FALLBACK_ICON
+        if icon_file is not None:
+            icon = str(icon_file)
+        else:
+            icon = GROUP_FALLBACK_ICON
     lines = [
         "[Desktop Entry]",
         "Type=Application",
@@ -141,6 +147,7 @@ def install_launcher(
             icon_name = install_launcher_icon(dir_name, source, icons_root)
         except OSError:
             icon_name = None
+    # ถ้าไม่มี custom icon จะใช้ชื่อธีม "folder" ไม่ต้องติดตั้งไฟล์ไอคอนเพิ่มเติม
 
     path = directory / desktop_file_name(dir_name)
     path.write_text(

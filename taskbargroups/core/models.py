@@ -17,6 +17,9 @@ MIN_ICON_SIZE = 16
 MAX_ICON_SIZE = 128
 DEFAULT_ICON_SIZE = 32
 DEFAULT_OPACITY = 10
+MIN_FOCUS_SCALE = 1.0
+MAX_FOCUS_SCALE = 3.0
+DEFAULT_FOCUS_SCALE = 2.0
 
 _HEX_LENGTHS = {4, 7}
 _HEX_DIGITS = set("0123456789abcdefABCDEF")
@@ -35,6 +38,19 @@ class ColorMode(str, Enum):
             return cls(str(value).lower())
         except ValueError:
             return cls.DARK
+
+
+def _opt_bool(value: Any) -> bool | None:
+    """อ่านค่าสามสถานะ: True / False / None (ไม่ระบุ = ใช้ค่าเริ่มต้น)."""
+    return value if isinstance(value, bool) else None
+
+
+def _opt_float(value: Any, default: float) -> float:
+    """อ่านค่า float แบบทน garbage (คืน default ถ้าแปลงไม่ได้)."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def is_hex_color(value: str | None) -> bool:
@@ -93,6 +109,10 @@ class Group:
     opacity: int = DEFAULT_OPACITY
     icon_size: int = DEFAULT_ICON_SIZE
     allow_open_all: bool = False
+    # None = ใช้ค่าเริ่มต้นระดับแอป · True/False = ตั้งเฉพาะกลุ่มนี้
+    show_labels: bool | None = None
+    # ตัวคูณขนาดไอคอนตอนเปิดด้วย hotkey (โหมดโฟกัส)
+    focus_scale: float = DEFAULT_FOCUS_SCALE
     items: list[Shortcut] = field(default_factory=list)
     schema_version: int = SCHEMA_VERSION
 
@@ -109,6 +129,8 @@ class Group:
             "opacity": self.opacity,
             "icon_size": self.icon_size,
             "allow_open_all": self.allow_open_all,
+            "show_labels": self.show_labels,
+            "focus_scale": self.focus_scale,
             "items": [item.to_dict() for item in self.items],
         }
 
@@ -129,6 +151,8 @@ class Group:
             opacity=int(data.get("opacity", DEFAULT_OPACITY)),
             icon_size=int(data.get("icon_size", DEFAULT_ICON_SIZE)),
             allow_open_all=bool(data.get("allow_open_all", False)),
+            show_labels=_opt_bool(data.get("show_labels")),
+            focus_scale=_opt_float(data.get("focus_scale"), DEFAULT_FOCUS_SCALE),
             items=[Shortcut.from_dict(item) for item in raw_items if isinstance(item, dict)],
             schema_version=int(data.get("schema_version", SCHEMA_VERSION)),
         )
@@ -146,6 +170,10 @@ class Group:
         if not (MIN_ICON_SIZE <= self.icon_size <= MAX_ICON_SIZE):
             errors.append(
                 f"ขนาดไอคอนต้องอยู่ระหว่าง {MIN_ICON_SIZE} ถึง {MAX_ICON_SIZE}"
+            )
+        if not (MIN_FOCUS_SCALE <= self.focus_scale <= MAX_FOCUS_SCALE):
+            errors.append(
+                f"focus_scale ต้องอยู่ระหว่าง {MIN_FOCUS_SCALE} ถึง {MAX_FOCUS_SCALE}"
             )
         if self.color_mode is ColorMode.CUSTOM and not is_hex_color(self.custom_color):
             errors.append("custom color ต้องเป็นค่ารูปแบบ hex เช่น #RRGGBB")

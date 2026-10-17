@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 
 from PySide6.QtCore import QPointF, QRect, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QIcon, QPainter, QPainterPath, QPalette, QPen
+from PySide6.QtGui import QColor, QCursor, QIcon, QPainter, QPainterPath, QPalette, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -715,7 +715,10 @@ class MainWindow(QMainWindow):
         except StorageError as exc:
             show_warning(self, tr("err.generic"), str(exc))
             return
-        self._flyout = FlyoutWindow(group, self.store, dir_name)
+        show_labels = Settings().get_flyout_labels()
+        self._flyout = FlyoutWindow(
+            group, self.store, dir_name, default_show_labels=show_labels
+        )
         self._flyout.show_at_cursor()
 
     def _on_context_menu(self, pos) -> None:
@@ -842,7 +845,11 @@ class MainWindow(QMainWindow):
         self.refresh()
 
 
-def run(argv: list[str] | None = None, open_group: str | None = None) -> int:
+def run(
+    argv: list[str] | None = None,
+    open_group: str | None = None,
+    center: bool = False,
+) -> int:
     app = QApplication.instance() or QApplication(sys.argv if argv is None else argv)
     app.setApplicationName("TaskbarNoob")
     app.setApplicationDisplayName("TaskbarNoob")
@@ -854,7 +861,7 @@ def run(argv: list[str] | None = None, open_group: str | None = None) -> int:
     setup(settings.get_language())
     apply_theme(app, resolve_theme(settings.get_theme(), app))
     if open_group:
-        return _run_flyout(app, open_group)
+        return _run_flyout(app, open_group, center)
     window = MainWindow()
     if sys.platform == "win32":
         _register_saved_win_hotkeys(app, window, settings)
@@ -892,12 +899,14 @@ def _register_saved_win_hotkeys(app, window, settings) -> None:
             continue
 
 
-def _run_flyout(app: QApplication, dir_name: str) -> int:
+def _run_flyout(app: QApplication, dir_name: str, center: bool = False) -> int:
+    # จับตำแหน่งเมาส์ให้เร็วที่สุด (ก่อน handoff) แล้วส่งไปให้เจ้าของ flyout ตรึงไว้
+    point = QCursor.pos()
     store = ConfigStore()
     controller = FlyoutController(app, store)
-    if controller.try_delegate(dir_name):
+    if controller.try_delegate(dir_name, point, center):
         return 0
-    controller.start_primary(dir_name)
+    controller.start_primary(dir_name, point, center)
     code = app.exec()
     controller.shutdown()
     return code

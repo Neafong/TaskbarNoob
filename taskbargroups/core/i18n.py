@@ -102,6 +102,8 @@ TH = {
     "editor.bg_color": "สีพื้นหลัง",
     "editor.opacity": "ความโปร่งใส",
     "editor.icon_size": "ขนาดไอคอน",
+    "editor.show_labels": "แสดงชื่อใต้ไอคอน",
+    "editor.show_labels_tip": "โชว์ชื่อไฟล์/แอปใต้ไอคอนใน flyout (มีผลกับกลุ่มนี้)",
     "editor.pick_icon": "เลือกไอคอน...",
     "editor.pick_icon_tip": "เลือกไฟล์รูปภาพเป็นไอคอนกลุ่ม",
     "editor.choose_system": "เลือกจากระบบ...",
@@ -123,6 +125,10 @@ TH = {
         "หมายเหตุ: ธีมนี้ไม่เปลี่ยนไอคอน/ปุ่มบน Taskbar"
     ),
     "settings.language": "ภาษา / Language",
+    "settings.flyout_labels": "ค่าเริ่มต้น: แสดงชื่อใต้ไอคอนใน flyout",
+    "settings.flyout_labels_tip": (
+        "ใช้กับกลุ่มที่ไม่ได้ตั้งค่าไว้เอง · ปรับรายกลุ่มได้ในหน้าแก้ไขกลุ่ม"
+    ),
     "settings.config_dir": "ที่เก็บ config",
     "settings.open_config_dir": "เปิดโฟลเดอร์ config ในตัวจัดการไฟล์",
     "settings.install_launcher": "ติดตั้ง launcher",
@@ -180,6 +186,11 @@ TH = {
     "hotkey.command": "คำสั่ง",
     "hotkey.keys": "คีย์ลัด",
     "hotkey.cinnamon_format": "รูปแบบ Cinnamon",
+    "hotkey.focus_scale": "ขนาดไอคอนโหมดโฟกัส",
+    "hotkey.focus_scale_tip": (
+        "ตัวคูณขนาดไอคอนตอนกด hotkey (โหมดโฟกัสกลางจอ) · "
+        "กลุ่มที่มีไอคอนเยอะอาจต้องลดลงเพื่อให้พอดีจอ"
+    ),
     "hotkey.empty": "(ว่าง)",
     "hotkey.note": (
         "ฟีเจอร์นี้ใช้ gsettings ของ Cinnamon เท่านั้น "
@@ -288,6 +299,8 @@ EN = {
     "editor.bg_color": "Background color",
     "editor.opacity": "Opacity",
     "editor.icon_size": "Icon size",
+    "editor.show_labels": "Show names under icons",
+    "editor.show_labels_tip": "Show file/app names under flyout icons (this group only)",
     "editor.pick_icon": "Choose icon...",
     "editor.pick_icon_tip": "Pick an image file as the group icon",
     "editor.choose_system": "From system...",
@@ -308,6 +321,10 @@ EN = {
         "Note: this does not change icons on the Taskbar."
     ),
     "settings.language": "Language",
+    "settings.flyout_labels": "Default: show names under flyout icons",
+    "settings.flyout_labels_tip": (
+        "Applies to groups that don't set their own value · set per group in the editor"
+    ),
     "settings.config_dir": "Config folder",
     "settings.open_config_dir": "Open the config folder in the file manager",
     "settings.install_launcher": "Install launcher",
@@ -363,6 +380,11 @@ EN = {
     "hotkey.command": "Command",
     "hotkey.keys": "Shortcut",
     "hotkey.cinnamon_format": "Cinnamon format",
+    "hotkey.focus_scale": "Focus-mode icon size",
+    "hotkey.focus_scale_tip": (
+        "Icon size multiplier when opened by hotkey (centered focus mode) · "
+        "groups with many icons may need a lower value to fit"
+    ),
     "hotkey.empty": "(empty)",
     "hotkey.note": (
         "This feature uses Cinnamon gsettings only. "
