@@ -982,3 +982,15 @@
 - i18n: ปรับ key `editor.show_labels` + เพิ่ม tip · เพิ่ม `hotkey.focus_scale`/tip (TH/EN/ja)
 - เทสต์ +5 (models focus_scale/default/validate · flyout ใช้ group.focus_scale · hotkey dialog saves scale
   · group_editor labels checkbox + env isolation) → **307 ผ่าน** · build AppImage ใหม่ + วาง `~/AppImage/Tool/`
+
+## 2026-10-17 — รวมเป็น v0.2.0 ตัวเดียว (re-tag) + ประกาศ macOS ตรงไปตรงมา `[เสร็จ]`
+- **บริบท:** Release v0.2.0 ยังเป็น **draft ไม่ publish** · tag `v0.2.0` เดิมชี้ `e245283` (ก่อน alpha)
+  แต่ deb ที่ build ไว้เป็นโค้ดหลัง alpha → tag/CHANGELOG/ไฟล์แนบ **ไม่ตรงกัน**
+- **ตัดสินใจ (พี่):** ยังไม่มีใครเห็น 0.2 → **ย้าย tag มาที่ HEAD** ให้ 0.2 = ทุกอย่างรวมกัน
+- **macOS:** *ไม่ตัดโค้ด* (กันเขียนใหม่) — คงไว้เป็น "มีโค้ดแต่ยังไม่ทดสอบ" · ประกาศชัดใน README/CHANGELOG
+  · หัวไฟล์ `core/macos.py` ติด `UNTESTED on real hardware` · เปิดทางให้คนอื่น fork ไป build/ทดสอบเอง
+- **ทำ:**
+  - `README.md`: ตารางแพลตฟอร์ม (Linux ✅ / Windows alpha 🟡 / macOS ⚪) + หมายเหตุ macOS · badge Windows alpha · test 221→307 · roadmap
+  - `CHANGELOG.md`: ยุบ `[Unreleased]` → `[0.2.0] (2026-10-17)` · เพิ่มงานวันนี้ (ไอคอน/โฟลเดอร์/flyout/โฟกัส/labels) · macOS = ยังไม่ทดสอบ
+  - `AGENTS.md`: snapshot (แพลตฟอร์ม + git/tag + next actions) · `docs/release-process.md`: test 247→307
+  - ย้าย tag `v0.2.0` → HEAD + force-push · rebuild deb + AppImage

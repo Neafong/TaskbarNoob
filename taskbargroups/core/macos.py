@@ -4,6 +4,9 @@
 - ปัก Dock = เขียน `com.apple.dock persistent-apps` ผ่าน `defaults` + `killall Dock`
 - global hotkey: ยังไม่รองรับ (ต้องขอ Accessibility + EventHotKey — โยนข้อความบอก)
 - ทุกฟังก์ชันรับ `runner`/`home` ได้ เพื่อเทสต์บน Linux
+
+⚠️ UNTESTED on real hardware — โค้ดชุดนี้ยังไม่เคยรันบนเครื่อง Mac จริง (ทีมไม่มีเครื่อง)
+   เขียนไว้เป็น best-effort ให้ผู้ที่ต้องการ fork แล้ว build/ทดสอบเองได้ · ยังไม่รับประกัน
 """
 
 from __future__ import annotations

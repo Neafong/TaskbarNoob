@@ -32,7 +32,7 @@
 ## เป้าหมายโปรเจกต์
 แอปคล้าย [Taskbar Groups](https://github.com/tjackenpacken/taskbar-groups):
 จัดกลุ่ม shortcut แล้วกดครั้งเดียวเปิดกลุ่มนั้นได้
-- **เป้าหลัก:** Linux Mint (Cinnamon) · **เป้ารอง:** Windows (เฟสหลังๆ)
+- **เป้าหลัก:** Linux Mint (Cinnamon) · **เป้ารอง:** Windows (alpha) · **macOS:** มีโค้ดแต่ยังไม่ทดสอบ
 - **Portable:** config อยู่ในโฟลเดอร์แอป (`<app>/config/`)
 
 ## Stack ที่ล็อกแล้ว
@@ -45,14 +45,16 @@
 ## สถานะปัจจุบัน
 - **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12):** repo `github.com/Neafong/TaskbarNoob` (Public) ·
   Release แนบ `TaskbarNoob-x86_64.AppImage` + `taskbargroups_0.1.0_amd64.deb` · GPL-3.0 · README มี badge + Screenshots
-- **โค้ดล่าสุด:** **v0.2.0 ออกแล้ว + Windows/macOS portable alpha เริ่มแล้ว** (2026-10-16)
+- **โค้ดล่าสุด:** **v0.2.0** = "กระเป๋าใส่ได้ทุกอย่าง" + UI polish + พอร์ตข้าม OS (alpha) (2026-10-17)
   · dispatch ข้าม OS (`launchers.py`/`taskbar.py` ชื่อเดิม) · `.lnk` ผ่าน PowerShell · `.command` + Dock pin
   · hotkey Windows (`RegisterHotKey` จำใน settings) · ไอคอน `.exe/.lnk/.app` ผ่าน Qt provider
-  · **307 เทสต์** (mock ล้วน — ยังไม่ได้รันบน Windows/macOS จริง) · ไม่ทำ installer (portable ล้วน)
-- **git:** `main` ตรง `origin/main` · **tag `v0.2.0` ออกแล้ว** (AppImage 50M + `.deb` 0.2.0 42M ใน `dist/`)
-  · AppImage ใหม่วาง `~/AppImage/Tool/` แล้ว · เหลือ: กดสร้าง **GitHub Release** บนเว็บ + แนบ 2 ไฟล์
+  · **307 เทสต์** (mock ล้วน — ยังไม่ได้รันบน Windows จริง) · ไม่ทำ installer (portable ล้วน)
+- **แพลตฟอร์ม:** Linux Mint (Cinnamon) = หลัก/ทดสอบแล้ว · **Windows = alpha** (กำลังทดสอบเครื่องจริง)
+  · **macOS = มีโค้ด (`core/macos.py`) แต่ยังไม่ทดสอบ** — ไม่เปิด build · ประกาศชัดใน README/CHANGELOG (ทีมไม่มีเครื่อง Mac)
+- **git:** tag `v0.2.0` ย้ายมาที่ HEAD (จาก commit เก่า `e245283` ตอนยังเป็น draft) · **ยังไม่ publish Release**
+  · เหลือ: rebuild deb + AppImage → แนบใน draft Release → เทสต์ Windows → **publish**
   · ลบ AppImage เก่า 0.1.0 ที่ `/mnt/Backup/TaskbarGroups/dist/` **ยังไม่ได้** (MFT พัง — พักไว้ ดู `docs/WORKLOG.md` ท้าย)
-- **แผนต่อจากนี้:** ดู `docs/roadmap.md` + `docs/feedback.md` (งานถัดไป = เก็บฟีดแบ็กผู้ใช้ · Windows port เป้าหลัง)
+- **แผนต่อจากนี้:** เทสต์ Windows จริง แล้ว publish v0.2.0 · ดู `docs/roadmap.md` + `docs/feedback.md`
 - **ยังเทสต์บนเครื่องนี้ไม่ได้:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่น (hotkey/pin = Cinnamon-only)
 
 ## หมายเหตุเทคนิคสำคัญ (แก้โค้ดตรงส่วนนี้ ต้องอ่านก่อน!)
@@ -125,15 +127,15 @@ packaging/  entrypoint.py · make_icon.py · render_icon.py (SVG→PNG) · build
 tests/  test_* (models · storage · launcher · gui_smoke · desktop · hotkeys · icons · paths
         flyout · grid_drag · settings · group_editor · i18n · archive)
 docs/   README.md (แผนที่เอกสาร) · roadmap.md (แผนเฟส/งานถัดไป) · WORKLOG.md (ประวัติ) · feedback.md
-        data-model.md · upstream.md · phase18-plan.md · screenshots/
+        data-model.md · upstream.md · phase18-plan.md · team.md (ทีมโมเดล/แบ่งสายงาน) · screenshots/
 config/ (gitignored) — ข้อมูลกลุ่มจริงแบบ portable
 ```
 
 ## อนูเบ-ต่อไป (Next Actions)
-1. **เฟสตามแผนครบ → v0.1.0 ขึ้น GitHub แล้ว** — งานต่อไป = **ลงมือ v0.2** (คลังไอเดียพร้อมแล้ว: `docs/feedback.md` รอบ #18–#21 + `docs/roadmap.md` ข้อ 3–5)
-   · แบ่งเป็นเฟสย่อยทีหลัง · เริ่มเซคชันใหม่แล้วอ่าน snapshot นี้ + `docs/README.md` + ไฟล์แผนก่อนลงมือ
+1. **v0.2.0 ครบแล้ว — เหลือ publish:** tag `v0.2.0` = HEAD · เหลือ rebuild deb + AppImage → แนบใน draft Release
+   → **เทสต์ Windows จริง** → publish · เริ่มเซคชันใหม่แล้วอ่าน snapshot นี้ + `docs/README.md` + ไฟล์แผนก่อนลงมือ
 2. **จัดระเบียบเอกสาร (ระบบการเขียนแผน):** ✅ เฟส A–E + G เสร็จ (`docs/README.md` · `roadmap.md` · `release-process.md` · `CHANGELOG.md` · `.github/**` · `CONTRIBUTING.md`) — เหลือ **F `docs/windows-plan.md`** (เลื่อนไว้ทำตอนเริ่ม Windows จริง)
-3. **Windows port** = เป้าหลัง (W0–W5 · `docs/windows-plan.md`)
+3. **Windows port** — alpha เสร็จ (โค้ดพร้อม · hotkey/pin/launcher/ไอคอน) · เหลือ **เทสต์บนเครื่องจริง** (เช็กลิสต์ใน `docs/windows-plan.md`)
 4. เริ่มงานชุดใหญ่ใน **เซคชั่นใหม่** เสมอ (ประหยัด token) — อ่าน AGENTS.md + `docs/README.md` + ไฟล์แผนก่อนลงมือ
 5. อย่าลืม: อัปเดต `docs/WORKLOG.md` เมื่อจบงาน + `docs/feedback.md` เมื่อปิดฟีดแบ็ก
 
@@ -143,4 +145,5 @@ config/ (gitignored) — ข้อมูลกลุ่มจริงแบบ 
 - `docs/WORKLOG.md` — ประวัติงานต่อเฟส (อ่านเมื่ออยากรู้ย้อนหลัง)
 - `docs/feedback.md` — ฟีดแบ็กผู้ใช้ + งานค้าง
 - `docs/data-model.md` — สกีมา + ฟอร์แมตเก็บกลุ่ม
+- `docs/team.md` — รายชื่อทีมโมเดล + แบ่งสายงาน
 - `docs/upstream.md` — ผลวิจัยต้นฉบับ Windows + ฟีเจอร์ค้างใน PR

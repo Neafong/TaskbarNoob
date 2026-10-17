@@ -4,12 +4,13 @@
 [![Downloads](https://img.shields.io/github/downloads/Neafong/TaskbarNoob/total?style=flat-square&color=brightgreen)](https://github.com/Neafong/TaskbarNoob/releases)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg?style=flat-square)](LICENSE)
 [![Platform: Linux Mint (Cinnamon)](https://img.shields.io/badge/platform-Linux%20Mint%20(Cinnamon)-green.svg?style=flat-square)](#)
+[![Platform: Windows alpha](https://img.shields.io/badge/platform-Windows%20(alpha)-yellow.svg?style=flat-square)](#)
 [![tests](https://github.com/Neafong/TaskbarNoob/actions/workflows/tests.yml/badge.svg)](https://github.com/Neafong/TaskbarNoob/actions)
 
 > **รวบรวมทางลัด เรื่อง shortcut เราช่วยจัด** · *Gather your shortcuts, we do the rest.*
 
 จัดกลุ่ม shortcut ของคุณให้เป็นระเบียบ แล้วกดครั้งเดียวเปิดทั้งกลุ่มได้เลย
-ทำสำหรับ **Linux Mint (Cinnamon)** เป็นหลัก (Windows = เฟสต่อ ๆ ไป)
+ทำสำหรับ **Linux Mint (Cinnamon)** เป็นหลัก · **Windows** = portable alpha · **macOS** = มีโค้ดแต่ยังไม่ทดสอบ
 
 ชื่อ "Noob" ของเราไม่ได้หมายถึงแย่ — แต่หมายถึง **น้ำไม่เต็มแก้ว** ถ่อมตน ไม่มีอีโก้
 เรียนรู้และเก่งขึ้นได้เรื่อย ๆ · แจกฟรี ทำด้วยใจ ❤️
@@ -37,6 +38,18 @@
 - 📦 สำรอง/กู้คืน config ทั้งชุดเป็นไฟล์ `.zip`
 
 > ฟีเจอร์ hotkey และการปักหมุด panel รองรับ **Cinnamon เท่านั้น**
+
+## แพลตฟอร์มที่รองรับ / Supported platforms
+
+| ระบบ | สถานะ |
+| :--- | :--- |
+| **Linux Mint (Cinnamon)** | ✅ รองรับหลัก — ทดสอบแล้ว |
+| **Windows** | 🟡 portable **alpha** — โค้ดพร้อม กำลังทดสอบบนเครื่องจริง |
+| **macOS** | ⚪ **ยังไม่รับประกัน** — มีโค้ดรองรับ (`core/macos.py`) แต่ยังไม่ทดสอบ |
+
+> **หมายเหตุ macOS:** เรามีโค้ดรองรับ macOS เขียนไว้แล้ว (launcher `.command` + ปัก Dock แบบ best-effort)
+> แต่ยังไม่เคยรันบนเครื่องจริง (ทีมไม่มีเครื่อง Mac) จึง **ไม่เปิดให้ดาวน์โหลด build สำหรับ macOS**
+> หากใครสะดวก fork ไป build/ทดสอบเอง ยินดีรับ PR ค่ะ
 
 ## ดาวน์โหลด & ติดตั้ง / Download & Install
 
@@ -79,7 +92,7 @@ bash packaging/build_deb.sh        # -> dist/taskbargroups_<ver>_amd64.deb
 ## ทดสอบ / Tests
 
 ```bash
-.venv/bin/python tests/run.py      # 221 tests
+.venv/bin/python tests/run.py      # 307 tests
 ```
 
 ## การเพิ่มภาษา / Adding a language
@@ -108,7 +121,8 @@ docs/       เอกสารออกแบบ + worklog
 ## Roadmap
 
 - [x] **Linux Mint (Cinnamon)** — จัดกลุ่ม shortcut · ปักหมุด panel · hotkey · ไทย/อังกฤษ · สำรอง/กู้คืน config
-- [ ] **Windows** — พอร์ตฝั่ง Windows (เป้ารอง ตามแผน)
+- [~] **Windows** — portable alpha (โค้ดพร้อม · กำลังทดสอบบนเครื่องจริง)
+- [~] **macOS** — มีโค้ดรองรับ แต่ยังไม่ทดสอบ (รอเครื่อง Mac)
 - [ ] ฟีเจอร์เพิ่มเติมตามฟีดแบ็กผู้ใช้
 
 ## License

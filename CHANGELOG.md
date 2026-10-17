@@ -4,31 +4,23 @@
 [Semantic Versioning](https://semver.org/lang/th/).
 ข้อมูลการออกรุ่น: ขั้นตอนใน [`docs/release-process.md`](docs/release-process.md)
 
-## [Unreleased]
+## [0.2.0] — 2026-10-17
 
-### Fixed
-
-- **ไฟล์มีเดีย (+x) บนไดรฟ์ NTFS/exFAT เปิดไม่ขึ้น** — ดูแค่ executable-bit ไม่ได้
-  (ไดรฟ์พวกนี้ทุกไฟล์ +x หมด) → ดู magic แทน (ELF/shebang/MZ ถึงรันตรง นอกนั้น `gio open`)
-- **คลิกขวา reveal ไม่เคยทำงานเลย** — `flyout.py` ลืม `from pathlib import Path`
-  (NameError ทุกครั้งที่คลิกขวา) · เติมสาขา Windows (`explorer /select`) + macOS (`open -R`) ด้วย
-
-### Added
-
-- **Windows/macOS portable (alpha — ยังไม่ได้รันบนเครื่องจริง)**
-  · launcher ข้าม OS (`.lnk` ผ่าน PowerShell / `.command`)
-  · ปัก taskbar/dock (best-effort) · global hotkey Windows (`RegisterHotKey` จำใน settings)
-  · ดึงไอคอน `.exe/.lnk/.app` ผ่าน `QFileIconProvider` · สคริปต์ `packaging/build_windows.ps1`
-  · แผน+เช็กลิสต์เทสต์ที่ออฟฟิศใน `docs/windows-plan.md`
-
-## [0.2.0] — 2026-10-16
-
-รุ่นปรับปรุงใหญ่: "กระเป๋าใส่ได้ทุกอย่าง" + UI polish · ยังเน้น Linux Mint (Cinnamon)
+รุ่นปรับปรุงใหญ่: "กระเป๋าใส่ได้ทุกอย่าง" + UI polish + พอร์ตข้าม OS (alpha)
+· **Linux Mint (Cinnamon)** = รองรับหลัก (ทดสอบแล้ว)
+· **Windows** = portable alpha (โค้ดพร้อม · กำลังทดสอบบนเครื่องจริง)
+· **macOS** = มีโค้ดรองรับแต่ยังไม่ทดสอบ (ทีมไม่มีเครื่อง Mac)
 
 ### Added
 
 - **กระเป๋าใส่ได้ทุกอย่าง** — launcher แบบ type-aware เปิด target ได้หลายชนิด (แอป · โฟลเดอร์ · ไฟล์ · URL)
-- **flyout คลิกขวาเปิดที่อยู่** — เปิดตำแหน่งโฟลเดอร์ที่มีไฟล์นั้น
+- **flyout คลิกขวาเปิดที่อยู่** — เปิดตำแหน่งโฟลเดอร์ที่มีไฟล์นั้น (ทุก OS)
+- **พอร์ตข้าม OS (alpha)** — **Windows**: launcher `.lnk` ผ่าน PowerShell · ปัก taskbar
+  · global hotkey (`RegisterHotKey` จำใน settings) · ไอคอน `.exe/.lnk` ผ่าน Qt
+  · สคริปต์ `packaging/build_windows.ps1` · แผน/เช็กลิสต์เทสต์ `docs/windows-plan.md`
+  · **macOS** (ยังไม่ทดสอบ): launcher `.command` + ปัก Dock (best-effort)
+- **ชื่อใต้ไอคอน** — เปิด/ปิดได้ต่อกลุ่ม (ค่าเริ่มต้นระดับแอป · ปิดไว้ตั้งต้น) · เปิดแล้วปุ่มกว้างตามชื่อ
+- **โหมดโฟกัส (เปิดด้วย hotkey)** — flyout กลางจอ ไอคอนใหญ่ขึ้น · ขยายได้ 1.0–3.0x ต่อกลุ่ม (ค่าเริ่มต้น 2.0x)
 
 ### Changed
 
@@ -39,16 +31,25 @@
 - **i18n** — ไทยล้วน/อังกฤษล้วน · popup ไม่มีไอคอนปุ่ม + คำแปลครบ (`ตกลง`/`ยกเลิก`/`ปิด`)
 - **ลากสลับเป็นสลับที่กัน (swap)** — ทั้งกริด shortcut และลำดับกลุ่มหน้าหลัก
   (ตรงกับที่ไฮไลท์โชว์ · ปล่อยที่ว่าง = ย้ายไปท้ายสุด)
+- **ตำแหน่ง flyout ตรึงแน่นอน** — โหมดปกติวางชิดขอบ panel ตามที่จับตอนเปิด (เลิกไล่ตามเมาส์ที่มาช้า)
 
 ### Fixed
 
+- **ไอคอนไฟล์กลายเป็นเฟือง** — ใช้ Qt icon provider ดึงไอคอนจริงจากระบบ (ทุก OS)
+- **โฟลเดอร์ไม่แสดงไอคอน + คลิกขวาไม่ได้** — เดิมเช็ค `is_file()` → โฟลเดอร์ไม่มีไอคอน/ไม่มีเมนู
+- **เปิดโฟลเดอร์/ไฟล์จาก AppImage ไม่ได้** — ตัด `LD_LIBRARY_PATH`/Qt/GTK ออกจาก env ของโปรเซสลูก
+  (xdg-open/nemo โหลด lib ผิด) + เปิดโฟลเดอร์ผ่าน `gio open`
+- **ไฟล์มีเดีย (+x) บนไดรฟ์ NTFS/exFAT เปิดไม่ขึ้น** — ดูแค่ executable-bit ไม่ได้
+  (ไดรฟ์พวกนี้ทุกไฟล์ +x หมด) → ดู magic แทน (ELF/shebang/MZ ถึงรันตรง นอกนั้น `gio open`)
+- **คลิกขวา reveal ไม่เคยทำงานเลย** — `flyout.py` ลืม `from pathlib import Path`
+  (NameError ทุกครั้งที่คลิกขวา) · เติมสาขา Windows (`explorer /select`) + macOS (`open -R`) ด้วย
 - **ไอคอนไม่รีเฟรชตอนสลับธีม** (ต้องคลิก 2 รอบ) — อ่านสีจาก app palette ตรง ๆ ตอน tint
 - ชื่อ/คำแปลผสมไทย-อังกฤษในกล่องข้อความ (`โฟลเดอร์ทำงาน` · `อาร์กิวเมนต์` · `รายการทางลัด`)
 - **ไอคอนปุ่มหายใน AppImage/.deb** — SVG ทั้งชุดไม่ถูกแพ็ก + หา assets ผิด layout
   (PyInstaller 6 วางใต้ `_internal/`) → ปุ่มเฟือง/ตาว่างเปล่า (ดูเหมือน 0.1.0)
 - **กด shortcut ที่เป็นไฟล์รันได้แล้วแอปไม่เปิด** — `gio open` ส่งให้ editor/disk-mounter
   (หรือไม่มี handler สำหรับ ELF) · ไฟล์ที่มี `+x` (AppImage/ELF/สคริปต์) กลับไปรันตรง
-- **พรีวิวไอคอนกลุ่มขยายตามสไลเดอร์** — ตรึง 48px คงที่ (สไลเดอร์คุมแค่ไอคอนในกริด)
+- **พรีวิวไอคอนกลุ่มขยายตามสไลเดอร์** — ตรึงขนาดคงที่ (สไลเดอร์คุมแค่ไอคอนในกริด)
 - **ไฮไลท์ hover ในกริดยืดหดตามข้อความ** — ใช้กรอบคงที่ขนาด gridSize ชิดขอบให้เลื่อนหนี (ไม่ตัด)
 - **ไฮไลท์ตอนลากสลับหลอก** — โชว์จุดแทรกดิบ (ลงอีกช่องตอนปล่อย) · ตอนนี้โชว์ช่องลงจอดจริง
 - **stroke กระโดดไปช่องสุดท้ายทั้งที่ลากไม่ถึง** — ช่องว่างระหว่างเซลล์ตีเป็นที่ว่างท้ายสุด
@@ -102,6 +103,5 @@
 
 - ขั้นตอน bump → build → tag → Release ดู [`docs/release-process.md`](docs/release-process.md)
 
-[Unreleased]: https://github.com/Neafong/TaskbarNoob/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/Neafong/TaskbarNoob/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Neafong/TaskbarNoob/releases/tag/v0.1.0
