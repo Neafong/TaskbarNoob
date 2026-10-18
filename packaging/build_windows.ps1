@@ -6,6 +6,7 @@ $ErrorActionPreference = "Stop"
 $ROOT = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $PY = Join-Path $ROOT ".venv-win\Scripts\python.exe"
 $APP_ID = "taskbargroups"
+$EXE_NAME = "TaskbarNoob"   # ชื่อแอปที่ผู้ใช้เห็น (APP_ID คงไว้เพื่อ .lnk/.desktop เดิมไม่พัง)
 $BUILD = Join-Path $ROOT "build\win"
 $DIST = Join-Path $ROOT "dist"
 $OUTDIR = Join-Path $DIST "TaskbarNoob"
@@ -20,7 +21,7 @@ if (!(Test-Path $PY)) {
 Write-Host "[1/2] PyInstaller build (portable, one-dir)..."
 & $PY -m PyInstaller `
     --noconfirm --clean `
-    --name $APP_ID `
+    --name $EXE_NAME `
     --paths $ROOT `
     --collect-submodules taskbargroups `
     --add-data "$ICON;taskbargroups/assets" `
@@ -34,7 +35,7 @@ Write-Host "[1/2] PyInstaller build (portable, one-dir)..."
 Write-Host "[2/2] จัดโฟลเดอร์ portable..."
 if (Test-Path $OUTDIR) { Remove-Item -Recurse -Force $OUTDIR }
 New-Item -ItemType Directory -Force $OUTDIR | Out-Null
-Copy-Item -Recurse -Force (Join-Path $BUILD "dist\$APP_ID\*") $OUTDIR
+Copy-Item -Recurse -Force (Join-Path $BUILD "dist\$EXE_NAME\*") $OUTDIR
 Copy-Item -Force $ICON (Join-Path $OUTDIR "$APP_ID.png")
 @"
 TaskbarNoob Portable (Windows)

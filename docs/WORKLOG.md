@@ -994,3 +994,36 @@
   - `CHANGELOG.md`: ยุบ `[Unreleased]` → `[0.2.0] (2026-10-17)` · เพิ่มงานวันนี้ (ไอคอน/โฟลเดอร์/flyout/โฟกัส/labels) · macOS = ยังไม่ทดสอบ
   - `AGENTS.md`: snapshot (แพลตฟอร์ม + git/tag + next actions) · `docs/release-process.md`: test 247→307
   - ย้าย tag `v0.2.0` → HEAD + force-push · rebuild deb + AppImage
+
+## 2026-10-18 — Windows session แรกที่เครื่องจริง (Win11) `[บันทึกผล · ยังไม่ publish]`
+- **บริบท:** เปิดโปรเจกต์ใหม่บนเครื่อง Windows 11 (เครื่องหลักที่ออฟฟิศ) เพื่อทำ W2
+  ตาม `docs/windows-plan.md` — **ฝั่ง Mint ไม่ได้แตะเลย** เพราะทำมาเกือบครบแล้ว
+- **เตรียมเครื่อง (ไม่ต้องติดตั้ง Python ใหม่):** เครื่องนี้ไม่มี Python แบบ system-wide
+  (`C:\Users\Noob\AppData\Local\Microsoft\WindowsApps\python.exe` = Store stub 0ไบต์)
+  · ใช้ตัวที่มากับ StabilityMatrix แทน:
+  `C:\StabilityMatrix\Data\Assets\Python\cpython-3.12.10-windows-x86_64-none\python.exe`
+  · **เปิดแอป:** เปิดแล้วเดินได้ปกติ (ไม่ต้องลง VC++ redist)
+- **`.venv-win` (สำคัญ):** `build_windows.ps1` สร้าง venv ด้วย `py -3.11` → **รันไม่ได้**
+  เพราะไม่มี `py` launcher · แต่สคริปต์ข้ามบรรทัดนั้นถ้า `.venv-win` มีอยู่แล้ว
+  → **ทางแก้:** สร้าง `.venv-win` เองด้วย python ข้างบน บิลด์ต่อได้เลย ไม่ต้องแก้สคริปต์
+  (`.venv-win/` เพิ่มใน `.gitignore` แล้ว)
+- **เทสต์รันครั้งแรกบน Windows:** 307 เทสต์ → **fail 26** (failures 23 + errors 3)
+  · สาเหตุ: **ชุดเทสต์ไม่มี OS guard เลย** — กรองแค่ `skipUnless(HAVE_QT)`
+  · ที่ fail ส่วนใหญ่เป็นเทสต์ฝั่ง Linux ที่รันบน Windows เช่น `gio open`, `+x`,
+    `Popen(start_new_session=True)`, `test_register_outside_windows_raises`
+  · **ยังไม่ได้สรุปว่ามีบั๊ก Windows จริงกี่ตัว** — ต้องแยก "เทสต์ควร skip บน Win" ออกจาก "โค้ดพังจริง" ก่อน
+  · **ค้าง:** เขียน skip guard ให้เทสต์ Linux-only ก่อน publish (ไม่งั้น CI/เทสต์บน Win ไม่เคยเขียว)
+- **บั๊ก Windows ที่เจอ (เจอครั้งแรกบนเครื่องจริง):**
+  1. **`--list` ใช้ไม่ได้จาก exe** — บิลด์ด้วย `--windowed` → ไม่มี console → พิมพ์ stdout ไม่ออก
+     (checklist ใน `docs/windows-plan.md` เขียนว่า `.\TaskbarNoob.exe --list` ต้องเห็นรายชื่อกลุ่ม)
+     · ทดสอบ CLI จากซอร์สแทน: `.venv\Scripts\python.exe -m taskbargroups --list` → exit 0 ปกติ
+  2. **ชื่อ exe ไม่ตรงแบรนด์** — ได้ `taskbargroups.exe` แต่ชื่อแอปคือ TaskbarNoob
+     · **แก้แล้ว:** `build_windows.ps1` เพิ่ม `$EXE_NAME = "TaskbarNoob"` ใช้กับ `--name` + path ตอนก๊อป
+     · `APP_ID = "taskbargroups"` **คงไว้** (ปักหมุด/.lnk/.desktop เดิมต้องไม่พัง · โมดูลยังเป็น `-m taskbargroups`)
+     · โค้ดทุกจุดใช้ `sys.executable` → ไม่มี hardcode ชื่อ exe → เปลี่ยนชื่อได้เลย
+     · ผล: `dist\TaskbarNoob\TaskbarNoob.exe` + เปิดรันได้จริงบน Win11
+- **ที่ใช้งานจริง:** `D:\Portable Software\Tool\TaskbarNoob\` (portable · config อยู่ข้าง exe)
+  · อย่าสับสนกับ `D:\Portable Software\Tool\TaskbarGroups\` = **ตัวต้นฉบับ .NET/WPF** ไม่ใช่ของเรา
+- **ยังทำไม่ได้ (รอคนทำต่อ):** เทสต์เช็กลิสต์ข้อ 3–8 ใน `docs/windows-plan.md`
+  (สร้างกลุ่ม / ลาก .exe เข้ากริด / ปักหมุด .lnk / hotkey / เปิดจาก flyout) — ยังไม่ได้ทำ
+  · ยังไม่ publish v0.2.0
