@@ -24,14 +24,34 @@ class WindowsError(OSError):
     """โยนเมื่อคำสั่ง Windows ไม่สำเร็จ (เป็น OSError เพื่อให้ GUI จับแบบเดิมได้)."""
 
 
-def _run(command: Sequence[str]) -> str:
+def _run(command: Sequence[str] | str) -> str:
+    """รันคำสั่ง Windows. รับ string เดี่ยวได้ (ต้องการตอน quoting สำคัญ เช่น explorer /select)."""
     try:
-        result = subprocess.run(list(command), capture_output=True, text=True)
+        if isinstance(command, str):
+            result = subprocess.run(command, capture_output=True, text=True)
+        else:
+            result = subprocess.run(list(command), capture_output=True, text=True)
     except OSError as exc:
         raise WindowsError(str(exc)) from exc
     if result.returncode != 0:
-        raise WindowsError(result.stderr.strip() or f"คำสั่งล้มเหลว: {' '.join(command)}")
+        raise WindowsError(result.stderr.strip() or f"คำสั่งล้มเหลว: {command}")
     return result.stdout
+
+
+def _run_lenient(command: Sequence[str] | str) -> str:
+    """เหมือน `_run` แต่ไม่สนใจ exit code — สำหรับ `explorer.exe`
+
+    `explorer.exe` คืน 1 เสมอแม้ทำงานสำเร็จ (มันส่งคำขอให้ process เดิมแล้วจบ)
+    ถ้าเช็ค exit code จะเด้ง error ทั้งที่เปิดหน้าต่างสำเร็จ
+    """
+    try:
+        if isinstance(command, str):
+            subprocess.run(command, capture_output=True, text=True)
+        else:
+            subprocess.run(list(command), capture_output=True, text=True)
+    except OSError as exc:
+        raise WindowsError(str(exc)) from exc
+    return ""
 
 
 def _home(home: Path | str | None = None) -> Path:
@@ -47,28 +67,54 @@ def _appdata(env: dict | None = None, home: Path | str | None = None) -> Path:
 
 
 def lnk_name(dir_name: str) -> str:
-    """ชื่อไฟล์ .lnk ต่อกลุ่ม (slug เดียวกับ .desktop ฝั่ง Linux)."""
+    """ชื่อไฟล์ .lnk ต่อกลุ่ม = ชื่อกลุ่ม (Windows เอาชื่อไฟล์ไปแสดงบน taskbar/Start).
+
+    ต้นฉบับ (Taskbar Groups) ใช้ชื่อกลุ่มตรงๆ เพื่อให้ปุ่มบน taskbar อ่านรู้เรื่อง
+    ถ้าใช้ `taskbargroups-game.lnk` ปุ่มจะโชว์ชื่อยาวแบบนั้น
+    """
     from .storage import safe_dir_name
 
-    slug = safe_dir_name(dir_name).lower().replace(" ", "-")
-    return f"{APP_ID}-{slug}.lnk"
+    return f"{safe_dir_name(dir_name)}.lnk"
 
 
 def launcher_id(dir_name: str) -> str:
     return lnk_name(dir_name)[: -len(".lnk")]
 
 
+def aumid(dir_name: str) -> str:
+    """AppUserModelID เฉพาะกลุ่ม.
+
+    Windows รวมปุ่มบน taskbar ตาม AUMID — ถ้าทุกกลุ่มใช้ AUMID เดียวกับตัวแอป
+    ปุ่มจะซ้อนกันเหลือปุ่มเดียว (ต้นฉบับเขียนว่า *"tricks Windows to think they are
+    from different applications even though they are from the same .exe"*)
+    """
+    from .storage import safe_dir_name
+
+    slug = safe_dir_name(dir_name).lower().replace(" ", "-")
+    return f"{APP_ID}.group.{slug}"
+
+
+def shortcuts_dir(config_dir: Path | str | None = None) -> Path:
+    """โฟลเดอร์เก็บ `.lnk` ของกลุ่ม — อยู่ใน config ของแอป (portable เหมือนฝั่ง Linux)."""
+    if config_dir is not None:
+        root = Path(config_dir)
+    else:
+        from .paths import default_config_dir
+
+        root = default_config_dir()
+    return root / "shortcuts"
+
+
 def start_menu_dir(
     env: dict | None = None, home: Path | str | None = None
 ) -> Path:
-    """โฟลเดอร์ Start Menu ไว้เก็บ .lnk ของกลุ่ม."""
+    """โฟลเดอร์ Start Menu ของผู้ใช้ — ใช้ตรวจว่า Windows เห็น .lnk ของเราเป็นแอปไหม."""
     return (
         _appdata(env, home)
         / "Microsoft"
         / "Windows"
         / "Start Menu"
         / "Programs"
-        / "TaskbarNoob"
     )
 
 
@@ -88,6 +134,38 @@ def taskbar_pinned_dir(
 
 def _ps_quote(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
+
+
+def build_png_to_ico_ps_script(png: str | os.PathLike[str], ico: str | os.PathLike[str]) -> str:
+    """สคริปต์ PowerShell แปลง .png → .ico (System.Drawing มีใน Windows ทุกเครื่อง)."""
+    return (
+        "Add-Type -AssemblyName System.Drawing; "
+        f"$src = [System.Drawing.Image]::FromFile({_ps_quote(str(png))}); "
+        "try { "
+        "$bmp = New-Object System.Drawing.Bitmap($src, 256, 256); "
+        "$hicon = $bmp.GetHicon(); "
+        "$icon = [System.Drawing.Icon]::FromHandle($hicon); "
+        f"$fs = [System.IO.File]::Create({_ps_quote(str(ico))}); "
+        "try { $icon.Save($fs) } finally { $fs.Close() }; "
+        "$bmp.Dispose() "
+        "} finally { $src.Dispose() }"
+    )
+
+
+def png_to_ico(
+    png: str | os.PathLike[str],
+    runner: Runner = _run,
+) -> Path | None:
+    """แปลง .png → .ico (คืน path .ico หรือ None ถ้าแปลงไม่ได้)."""
+    src = Path(png)
+    if not src.is_file() or src.suffix.lower() != ".png":
+        return None
+    ico = src.with_suffix(".ico")
+    try:
+        runner(lnk_command(build_png_to_ico_ps_script(src, ico)))
+    except WindowsError:
+        return None
+    return ico if ico.is_file() else None
 
 
 def build_lnk_ps_script(
@@ -129,32 +207,107 @@ def create_lnk(
     arguments: str = "",
     workdir: str | os.PathLike[str] = "",
     icon_location: str | os.PathLike[str] = "",
-    runner: Runner = _run,
+    aumid_value: str = "",
+    description: str = "",
 ) -> Path:
-    """สร้าง .lnk ของกลุ่ม คืน path (สร้างโฟลเดอร์แม่ให้ด้วย)."""
+    """สร้าง `.lnk` ผ่าน COM `IShellLinkW` (ตั้ง AUMID ได้ — PowerShell ตั้งไม่ได้)."""
     dest = Path(link)
     try:
         dest.parent.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
         raise WindowsError(str(exc)) from exc
-    runner(
-        lnk_command(
-            build_lnk_ps_script(link, target, arguments, workdir, icon_location)
+    try:
+        from . import win32_com
+
+        win32_com.write_lnk(
+            dest,
+            str(target),
+            arguments=arguments,
+            workdir=str(workdir),
+            icon_location=str(icon_location),
+            description=description,
+            aumid=aumid_value,
         )
-    )
+    except OSError:
+        raise
+    except Exception as exc:  # COM ใช้ไม่ได้นอก Windows / ล้มเหลวแปลก ๆ
+        raise WindowsError(f"สร้าง shortcut ไม่สำเร็จ: {exc}") from exc
     return dest
 
 
-def read_lnk_target(
-    link: str | os.PathLike[str], runner: Runner = _run
-) -> str | None:
+def read_lnk_target(link: str | os.PathLike[str]) -> str | None:
     """อ่าน TargetPath จาก .lnk (None ถ้าอ่านไม่ได้)."""
     try:
-        out = runner(lnk_command(build_read_lnk_ps_script(link)))
-    except WindowsError:
+        from . import win32_com
+
+        return win32_com.read_target(Path(link))
+    except Exception:
         return None
-    text = out.strip()
-    return text or None
+
+
+def read_lnk_aumid(link: str | os.PathLike[str]) -> str | None:
+    """อ่าน AppUserModelID จาก .lnk (ใช้บอกว่าไฟล์ใน User Pinned เป็นของเราหรือไม่)."""
+    try:
+        from . import win32_com
+
+        return win32_com.read_aumid(Path(link))
+    except Exception:
+        return None
+
+
+def read_lnk_arguments(link: str | os.PathLike[str]) -> str | None:
+    """อ่าน Arguments ของ .lnk (เช่น `--open "Game"`)."""
+    try:
+        from . import win32_com
+
+        return win32_com.read_arguments(Path(link))
+    except Exception:
+        return None
+
+
+def repoint_pinned(old_dir_name: str, new_lnk: Path) -> bool:
+    """หลังเปลี่ยนชื่อกลุ่ม — ให้ `.lnk` ที่ปักอยู่บน taskbar ชี้กลุ่มใหม่
+
+    Windows ก๊อปไฟล์ไปไว้ใน `User Pinned` ตอนผู้ใช้ลากวาง ตัวนั้นจะยังชี้
+    `--open "<ชื่อเก่า>"` เสมอ → กดแล้วเปิดกลุ่มที่ไม่มีแล้ว (flyout ว่างเปล่า)
+    เราแก้ได้แค่ *เขียนทับไฟล์* (สร้าง pin ใหม่ไม่ได้ แต่แก้ของเดิมได้)
+    """
+    old_value = aumid(old_dir_name)
+    directory = taskbar_pinned_dir()
+    try:
+        candidates = list(directory.glob("*.lnk"))
+    except OSError:
+        return False
+    for path in candidates:
+        if not path.is_file():
+            continue
+        try:
+            if (read_lnk_aumid(path) or "") != old_value:
+                continue
+            # เขียนทับไฟล์ที่ Windows เป็นคนสร้าง (ชื่อไฟล์คงเดิม — Windows จัดการเอง)
+            import shutil
+
+            shutil.copy2(new_lnk, path)
+            return True
+        except OSError:
+            continue
+    return False
+
+
+def set_process_aumid(dir_name: str) -> None:
+    """ตั้ง AUMID ของโปรเซสให้ตรงกับ `.lnk` ของกลุ่ม (ตอนเปิด flyout).
+
+    Windows เอาปุ่มบน taskbar มาแสดงรวมกับหน้าต่างที่กำลังรัน —
+    ถ้าตรงกัน ปุ่มที่ปักไว้จะกลายเป็นปุ่มของกลุ่มนั้นทันที
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(aumid(dir_name))
+    except (OSError, AttributeError):
+        pass
 
 
 def pinned_lnk_path(
@@ -173,21 +326,36 @@ def is_pinned(
     return pinned_lnk_path(dir_name, env, home).is_file()
 
 
+def reveal_in_explorer(
+    path: str | os.PathLike[str],
+    runner: Runner | None = None,
+) -> None:
+    """เปิด Explorer โดยเลือกไฟล์ไว้ (ให้ผู้ใช้ลากไปวางบน taskbar ได้เลย).
+
+    ต้องส่งเป็น string เดี่ยว ไม่ใช่ list — เพราะ `explorer /select,"path with spaces"`
+    ต้องการ quote ติดกับพาธ ถ้าเป็น list Python จะ escape quote ให้แล้ว Explorer อ่านไม่ออก
+    (path ที่มีช่องว่างเช่น ...\\My Tools\\... จะพัดไปเปิดโฟลเดอร์ Documents แทน)
+    """
+    target = os.path.normpath(str(path))
+    try:
+        (runner or _run_lenient)(f'explorer /select,"{target}"')
+    except OSError as exc:
+        raise WindowsError(str(exc)) from exc
+
+
 def pin_to_taskbar(
     source_lnk: str | os.PathLike[str],
     env: dict | None = None,
     home: Path | str | None = None,
+    runner: Runner = _run_lenient,
 ) -> Path:
-    """ปัก .lnk ลง taskbar (คัดลอกเข้า User Pinned). คืน path ปลายทาง."""
-    import shutil
+    """Windows 11 ปิดการปัก taskbar จากโปรแกรม — เปิด Explorer ให้ผู้ใช้คลิกขวาเอง.
 
-    dest = taskbar_pinned_dir(env, home) / Path(source_lnk).name
-    try:
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source_lnk, dest)
-    except OSError as exc:
-        raise WindowsError(str(exc)) from exc
-    return dest
+    คืน path ของ .lnk ที่เปิดให้ (ผู้ใช้คลิกขวา → Pin to taskbar ต่อเอง)
+    """
+    source = Path(source_lnk)
+    reveal_in_explorer(source, runner=runner)
+    return source
 
 
 def unpin_from_taskbar(

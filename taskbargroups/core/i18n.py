@@ -28,6 +28,24 @@ TH = {
     "ctx.open": "เปิดกลุ่ม",
     "ctx.edit": "แก้ไข",
     "ctx.pin": "ปักหมุดบนทาสก์บาร์",
+    "ctx.open_launcher_dir": "เปิดโฟลเดอร์ launcher",
+    "main.win_pinned_tip": (
+        "<b>ปักอยู่บน taskbar แล้ว</b><br><br>"
+        "คลิกที่ไอคอนโฟลเดอร์เพื่อเปิดโฟลเดอร์อีกครั้ง"
+    ),
+    "main.win_pin_label_stale": (
+        "<br><br><b><font color=\"#E5484D\">⚠ ข้อจำกัด</font></b><br>"
+        "ชื่อบน taskbar เปลี่ยนไม่ได้หลังลากวางแล้ว "
+        "เพราะ Windows อัปเดตตอนลากวางเท่านั้น<br>"
+        "หากอยากให้ตรงกับชื่อกลุ่ม ให้ถอนออกจาก taskbar แล้วลากมาใหม่"
+    ),
+"main.win_not_pinned_tip": (
+        "<b>ยังไม่ได้ปักบน taskbar</b><br><br>"
+        "คลิกที่ไอคอนโฟลเดอร์ แล้วลากไฟล์ <b>{file}</b> ไปวางบน taskbar"
+        "<br>(ทำครั้งเดียวพอ หลังจากนั้นไอค่อนจะอยู่บน taskbar ถาวร)<br><br>"
+        "<b><font color=\"#E5484D\">💡 คำแนะนำ:</font></b> ตั้งชื่อกลุ่มให้ถูกก่อนลากวาง "
+        "จะได้ชื่อตรงบน taskbar โดยไม่ต้องลากใหม่"
+    ),
     "ctx.unpin": "ถอนหมุดจากทาสก์บาร์",
     "ctx.set_hotkey": "ตั้งปุ่มลัด (Hotkey)",
     "ctx.duplicate": "ทำสำเนากลุ่ม",
@@ -231,6 +249,24 @@ EN = {
     "ctx.open": "Open group",
     "ctx.edit": "Edit",
     "ctx.pin": "Pin to taskbar",
+    "ctx.open_launcher_dir": "Open launcher folder",
+    "main.win_pinned_tip": (
+        "<b>Already on the taskbar</b><br><br>"
+        "Click the folder icon to open the folder again"
+    ),
+    "main.win_pin_label_stale": (
+        "<br><br><b><font color=\"#E5484D\">⚠ Limitation</font></b><br>"
+        "The taskbar label cannot change after you drag the file, "
+        "because Windows only updates it at that moment.<br>"
+        "To match the group name, unpin it and drag it again."
+    ),
+    "main.win_not_pinned_tip": (
+        "<b>Not on the taskbar yet</b><br><br>"
+        "Click the folder icon, then drag <b>{file}</b> onto the taskbar"
+        "<br>(only needed once — the icon stays there afterwards)<br><br>"
+        "<b><font color=\"#E5484D\">💡 Tip:</font></b> name the group before "
+        "dragging so the taskbar label matches it from the start."
+    ),
     "ctx.unpin": "Unpin from taskbar",
     "ctx.set_hotkey": "Set hotkey",
     "ctx.duplicate": "Duplicate group",

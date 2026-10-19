@@ -18,20 +18,47 @@ from .panel import PinError, Runner, _run
 from .panel import is_cinnamon
 
 
+def _win_pinned_aumids() -> set[str]:
+    """AUMID ของ `.lnk` ใน User Pinned ที่เป็นของเรา.
+
+    Windows เป็นคนเขียนไฟล์พวกนี้ตอนผู้ใช้ลากวาง และ**เปลี่ยนชื่อให้เองได้**
+    (เช่นชนกับ `.lnk` ของแอปอื่น → `Game.lnk` กลายเป็น `Game (2).lnk`)
+    จึงระบุตัวตนจาก AUMID อย่างเดียว อย่าเชื่อชื่อไฟล์
+    """
+    try:
+        directory = _win32.taskbar_pinned_dir()
+    except OSError:
+        return set()
+    found: set[str] = set()
+    try:
+        for path in directory.glob("*.lnk"):
+            if not path.is_file():
+                continue
+            value = _win32.read_lnk_aumid(path) or ""
+            if value.startswith(f"{_win32.APP_ID}.group."):
+                found.add(value)
+    except OSError:
+        return set()
+    return found
+
+
 def pinned_desktop_ids(
     config_dir: Path | None = None, runner: Runner = _run
 ) -> set[str]:
     """id launcher ทั้งหมดที่ปักอยู่ (ชื่อไฟล์ .desktop/.lnk/.command)."""
     if sys.platform == "win32":
-        directory = _win32.taskbar_pinned_dir()
+        pinned = _win_pinned_aumids()
+        if not pinned:
+            return set()
+        from .storage import ConfigStore
+
         try:
-            return {
-                path.name
-                for path in directory.glob(f"{_win32.APP_ID}-*.lnk")
-                if path.is_file()
-            }
+            names = ConfigStore(config_dir).list_groups()
         except OSError:
             return set()
+        return {
+            _win32.lnk_name(name) for name in names if _win32.aumid(name) in pinned
+        }
     if sys.platform == "darwin":
         ids: set[str] = set()
         try:
@@ -56,7 +83,7 @@ def is_pinned(
 
 
 def _find_source_lnk(desktop_id: str) -> Path | None:
-    for directory in (_win32.start_menu_dir(),):
+    for directory in (_win32.shortcuts_dir(),):
         candidate = directory / desktop_id
         if candidate.is_file():
             return candidate
@@ -75,10 +102,10 @@ def pin_to_panel(
         if source is None:
             raise PinError(f"หาไฟล์ {desktop_id} ใน Start Menu ไม่เจอ (ติดตั้ง launcher ก่อน)")
         try:
-            _win32.pin_to_taskbar(source)
+            _win32.pin_to_taskbar(source, runner=runner)
         except _win32.WindowsError as exc:
             raise PinError(str(exc)) from exc
-        return "taskbar-pinned"
+        return "taskbar-manual"
     if sys.platform == "darwin":
         try:
             path = _macos.launchers_dir() / desktop_id
@@ -121,10 +148,33 @@ def unpin_from_panel(
     return _linux_unpin(desktop_id, runner, config_dir, refresh)
 
 
+def stale_pin_label(
+    dir_name: str, env: dict | None = None, home: Path | None = None
+) -> bool:
+    """True เมื่อปุ่มบน taskbar ยังโชว์ชื่อเก่าหลังผู้ใช้เปลี่ยนชื่อกลุ่ม
+
+    Windows เอา**ชื่อไฟล์** ไปเป็นป้ายบน taskbarตอนผู้ใช้ลากวาง
+    และ**ลบไฟล์ทิ้งทันที** ถ้าเรา rename ให้ → ป้ายจึงแก้ไม่ได้
+    (เนื้อในไฟล์แก้ได้ เรา repoint ให้อยู่แล้ว → กดแล้วเปิดกลุ่มถูกต้อง)
+    ทางแก้คือถอนแล้วลากวางใหม่
+    """
+    if sys.platform != "win32":
+        return False
+    try:
+        directory = _win32.taskbar_pinned_dir(env, home)
+        value = _win32.aumid(dir_name)
+        for path in directory.glob("*.lnk"):
+            if path.is_file() and (_win32.read_lnk_aumid(path) or "") == value:
+                return path.name != _win32.lnk_name(dir_name)
+    except OSError:
+        return False
+    return False
+
+
 def available_actions() -> Sequence[str]:
     """วิธีปักที่ใช้ได้บน OS นี้ (ไว้โชว์ใน UI)."""
     if sys.platform == "win32":
-        return ("taskbar-pinned",)
+        return ("taskbar-manual",)
     if sys.platform == "darwin":
         return ("dock-pinned",)
     return ("grouped-window-list", "panel-launchers")

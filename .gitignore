@@ -14,3 +14,6 @@ lib/
 *.AppImage
 *.deb
 *.zip
+
+# ไอคอน exe สร้างจาก packaging/assets/Logo TG.svg (เรนเดอร์ตอน build)
+packaging/win/

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import os
 import sys
 
-from PySide6.QtCore import QPointF, QRect, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QPointF, QRect, QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QCursor, QIcon, QPainter, QPainterPath, QPalette, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -358,23 +359,53 @@ class GroupListWidget(QListWidget):
 
     def _status_color(self, pinned: bool) -> QColor:
         """สีไอค่อนสถานะ (ตา) แบบธีม-aware: พื้นสว่าง→เทาเข้ม · พื้นมืด→ขาว
-        (ไม่ใช้ Highlight เพื่อไม่ให้กลืนกับแถวที่ถูกเลือก · อ่านตอน paint ซึ่ง palette สดเสมอ)."""
+        (ไม่ใช้ Highlight เพื่อไม่ให้กลืนกับแถวที่ถูกเลือก · อ่านตอน paint ซึ่ง palette สดเสมอ).
+
+        ฝั่ง Windows ใช้โฟลเดอร์แทนตา → ต้องสื่อสถานะด้วยสีให้เห็นชัดตอนเปิดแอป
+        (ไม่งั้นผู้ใช้ต้องเอาเมาส์ไป hover ก่อนถึงจะรู้ว่าอันไหนลากแล้ว)
+        · ปักแล้ว = สีส้มอุ่นเหมือนโฟลเดอร์ทั่วไป · ยังไม่ปัก = เทาจาง
+        """
         base = self.palette().color(QPalette.ColorRole.Base)
-        color = QColor(255, 255, 255) if base.lightness() < 128 else QColor(82, 82, 92)
+        dark = base.lightness() < 128
+        if sys.platform == "win32":
+            # ส้มอุ่น (เหมือนโฟลเดอร์ทั่วไป) = ปักแล้ว · เทาจาง = ยังไม่ปัก
+            return QColor(240, 168, 58) if pinned else QColor(128, 128, 128, 120)
+        color = QColor(255, 255, 255) if dark else QColor(82, 82, 92)
         if not pinned:
             color.setAlpha(150)
         return color
 
     def _paint_pin_shape(self, painter: QPainter, rect: QRect, pinned: bool) -> None:
-        """วาดไอค่อนสถานะ: ตาเปิด (ปัก/โชว์) · ตามิด (ซ่อน) — SVG ของเรา tint ตามธีม."""
+        """วาดไอคอนสถานะของปุ่ม — ต่างกันตาม OS.
+
+        - Linux: ตาเปิด (ปักแล้ว) / ตามิด (ยังไม่ปัก) — กดได้จริงเพราะปัก/ถอนได้
+        - Windows: โฟลเดอร์ — ปุ่มนี้ไม่ได้ปักแต่เปิดโฟลเดอร์ให้ผู้ใช้ลากวาง
+        """
         color = self._status_color(pinned)
-        name = "eye-fill.svg" if pinned else "eye-slash-fill.svg"
+        if sys.platform == "win32":
+            # โฟลเดอร์เสมอ (ไม่มีสถานะสองทาง) — สีจาง = ยังไม่ได้ลากวาง
+            name = "folder-fill.svg"
+        else:
+            name = "eye-fill.svg" if pinned else "eye-slash-fill.svg"
         side = max(16, min(rect.width(), rect.height()) - 6)
         pixmap = tinted_icon_pixmap(name, side, color)
         if pixmap is not None and not pixmap.isNull():
             target = QRect(0, 0, side, side)
             target.moveCenter(rect.center())
             painter.drawPixmap(target, pixmap)
+            return
+        if sys.platform == "win32":
+            painter.save()
+            painter.setRenderHint(QPainter.Antialiasing, True)
+            size = min(rect.width(), rect.height()) * 0.8
+            folder = QRectF(0, 0, size, size * 0.78)
+            folder.moveCenter(rect.center())
+            path = QPainterPath()
+            path.addRoundedRect(folder, 3, 3)
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(color)
+            painter.drawPath(path)
+            painter.restore()
             return
         # fallback: วาดเส้นเอง (กรณีหา asset ไม่เจอ เช่น ใน bundle)
         painter.save()
@@ -406,6 +437,24 @@ class GroupListWidget(QListWidget):
             path.quadTo(cx, cy + eye_h * 0.95, right, cy - eye_h * 0.35)
             painter.drawPath(path)
         painter.restore()
+
+
+def _pin_tooltip(group, pinned: bool, dir_name: str = "") -> str:
+    """ข้อความช่วยเหลือของปุ่มสถานะ (ต่างกันตาม OS).
+
+    - Linux: ปัก/ถอนได้จริง → บอกสถานะตรงๆสั้นๆ
+    - Windows: ปุ่มเปิดโฟลเดอร์ให้ลากวาง → ต้องบอกขั้นตอนให้ครบ
+    """
+    if sys.platform == "win32":
+        if pinned:
+            text = tr("main.win_pinned_tip")
+            from taskbargroups.core.taskbar import stale_pin_label
+
+            if dir_name and stale_pin_label(dir_name):
+                text += tr("main.win_pin_label_stale")
+            return text
+        return tr("main.win_not_pinned_tip", file=desktop_file_name(dir_name or ""))
+    return tr("main.pinned_tip") if pinned else tr("main.not_pinned_tip")
 
 
 class MainWindow(QMainWindow):
@@ -481,7 +530,7 @@ class MainWindow(QMainWindow):
                 continue
             try:
                 group = self.store.load_group(dir_name)
-                install_launcher(group, self.store, dir_name)
+                self._install_launcher(group, dir_name)
                 changed = True
             except (StorageError, OSError):
                 continue
@@ -526,20 +575,22 @@ class MainWindow(QMainWindow):
                 group = self.store.load_group(dir_name)
             except StorageError:
                 continue
-            label = f"{group.name}  ({len(group.items)})"
-            binding = bindings.get(hotkey_slot(dir_name))
-            if binding:
-                label += tr("main.hotkey_inline", keys=cinnamon_to_display(binding))
-            item = QListWidgetItem(label)
-            item.setData(Qt.UserRole, dir_name)
-            is_pinned = desktop_file_name(dir_name) in pinned_ids
-            item.setData(PINNED_ROLE, is_pinned)
-            item.setToolTip(
-                f"{group.name} — "
-                + (tr("main.pinned_tip") if is_pinned else tr("main.not_pinned_tip"))
-            )
-            item.setIcon(group_icon(group, self.store, dir_name))
-            self.list.addItem(item)
+            # กลุ่มเดียวที่วาดไม่ขึ้นห้ามทำให้ทั้งรายการหาย
+            # (เคยเจออาการเพิ่มกลุ่มแล้วไม่โชว์ เพราะข้อต่อไปพังแล้วลูปหยุด)
+            try:
+                label = f"{group.name}  ({len(group.items)})"
+                binding = bindings.get(hotkey_slot(dir_name))
+                if binding:
+                    label += tr("main.hotkey_inline", keys=cinnamon_to_display(binding))
+                item = QListWidgetItem(label)
+                item.setData(Qt.UserRole, dir_name)
+                is_pinned = desktop_file_name(dir_name) in pinned_ids
+                item.setData(PINNED_ROLE, is_pinned)
+                item.setToolTip(f"{group.name} — " + _pin_tooltip(group, is_pinned, dir_name))
+                item.setIcon(group_icon(group, self.store, dir_name))
+                self.list.addItem(item)
+            except Exception:
+                continue
 
     def _on_rows_moved(self, *_args) -> None:
         order = [self.list.item(i).data(Qt.UserRole) for i in range(self.list.count())]
@@ -579,11 +630,27 @@ class MainWindow(QMainWindow):
         original_name = group.name
         group.name = self._unique_group_name(group.name, old_dir)
         new_dir = safe_dir_name(group.name)
-        renamed = bool(old_dir and old_dir != new_dir)
+        # เทียบด้วย normcase — บน Windows/macOS โฟลเดอร์ไม่สนตัวพิมพ์
+        # ถ้าเทียบตรงๆ `Test` กับ `test` คือที่เดียวกัน แต่โค้ดจะคิดว่า "เปลี่ยนชื่อ"
+        # แล้วไปชนกับตัวเอง → เด้ง "ชื่อซ้ำ" ทั้งที่ผู้ใช้ไม่ได้แตะชื่อเลย
+        renamed = bool(old_dir and os.path.normcase(old_dir) != os.path.normcase(new_dir))
         old_desktop_id = desktop_file_name(old_dir) if renamed else ""
         was_pinned = renamed and old_desktop_id in pinned_desktop_ids()
         pending = dialog.pending_icons()
         try:
+            # เปลี่ยนชื่อ = ย้ายโฟลเดอร์ ไม่ใช่สร้างใหม่แล้วลบทิ้ง
+            # (ถ้าลบ `555/` ทิ้ง ไอค่อนที่แคชไว้ของ shortcut จะหายตามไปด้วย)
+            if (
+                renamed
+                and self.store.group_dir(old_dir).is_dir()
+                and not self.store.group_dir(new_dir).is_dir()
+            ):
+                try:
+                    self.store.group_dir(old_dir).rename(
+                        self.store.group_dir(new_dir)
+                    )
+                except OSError:
+                    pass
             self.store.save_group(group)
             if dialog.icon_source():
                 group.icon = self.store.import_group_icon(new_dir, dialog.icon_source())
@@ -600,13 +667,72 @@ class MainWindow(QMainWindow):
                 tr("main.name_taken_title"),
                 tr("main.name_taken_body", name=original_name, new_name=group.name),
             )
-        if renamed:
-            self._cleanup_launcher(old_dir, old_desktop_id)
-            if was_pinned:
-                self._install_and_pin(group, new_dir)
-        else:
-            self._refresh_pinned_icon(group, new_dir)
-        self.refresh()
+        try:
+            if renamed:
+                self._cleanup_launcher(old_dir, old_desktop_id)
+                if was_pinned:
+                    self._install_and_pin(group, new_dir)
+                    self._repoint_pinned(old_dir, new_dir)
+            else:
+                self._refresh_pinned_icon(group, new_dir)
+            self._ensure_launcher(group, new_dir)
+        except Exception:
+            # งานเสริม (ล้าง launcher / ทำ .lnk) พังไม่ได้ปล่อยให้กลุ่มที่เพิ่ง
+            # บันทึกแล้วหายจากรายการ — กันไว้ก่อน แล้วค่อยรีเฟรช
+            pass
+        finally:
+            # เสมอต้องรีเฟรช ไม่งั้นผู้ใช้บันทึกกลุ่มแล้วไม่เห็นในรายการ
+            self.refresh()
+
+    def _repoint_pinned(self, old_dir: str, new_dir: str) -> None:
+        """หลังเปลี่ยนชื่อ — ให้ปุ่มบน taskbar ที่ผู้ใช้ลากวางไว้ชี้กลุ่มใหม่
+
+        ไฟล์ใน `User Pinned` เป็นสำเนาที่ Windows ก๊อปไว้ตอนลากวาง มันยังชี้
+        `--open "<ชื่อเก่า>"` → กดแล้วเปิดกลุ่มที่ไม่มีแล้ว (flyout ว่างเปล่า)
+        เราสร้าง pin ใหม่ไม่ได้ แต่เขียนทับไฟล์ของเดิมได้
+        """
+        if sys.platform != "win32":
+            return
+        from taskbargroups.core.win32 import repoint_pinned, shortcuts_dir
+
+        new_lnk = shortcuts_dir() / desktop_file_name(new_dir)
+        if not new_lnk.is_file():
+            return
+        try:
+            repoint_pinned(old_dir, new_lnk)
+        except OSError:
+            pass
+
+    def _install_launcher(self, group, dir_name: str):
+        """สร้าง launcher พร้อมไอคอนสำรองจากระบบ (Windows เท่านั้น)."""
+        from .icons import default_group_icon_file
+
+        default_icon = (
+            default_group_icon_file(self.store) if sys.platform == "win32" else None
+        )
+        return install_launcher(
+            group, self.store, dir_name, default_icon=default_icon
+        )
+
+    def _ensure_launcher(self, group, dir_name: str) -> None:
+        """สร้าง/รีเฟรช `.lnk` อัตโนมัติหลังบันทึกกลุ่ม (Windows เท่านั้น).
+
+        ฝั่ง Linux ปักลง panel ได้จริงจึงยังคงพฤติกรรมเดิม (ค่อยกดปุ่มปักเอง)
+        ส่วน Windows ปุ่มปักคือ "เปิดโฟลเดอร์ให้ลาก" — ถ้ายังไม่มีไฟล์ให้ลาก
+        ผู้ใช้จะงง จึงต้องมีไฟล์อยู่เสมอหลังสร้างกลุ่ม
+        """
+        if sys.platform != "win32":
+            return
+        from taskbargroups.core.win32 import shortcuts_dir
+
+        path = shortcuts_dir() / desktop_file_name(dir_name)
+        pinned = desktop_file_name(dir_name) in pinned_desktop_ids()
+        if path.is_file() and not pinned:
+            return  # มีอยู่แล้ว ไม่ปัก — ไม่ต้องเขียนใหม่
+        try:
+            self._install_launcher(group, dir_name)
+        except OSError:
+            pass  # เงียบไว้ ผู้ใช้ยังกดปุ่มเปิดโฟลเดอร์เพื่อสร้างเองได้
 
     def _cleanup_launcher(self, dir_name: str, desktop_id: str) -> None:
         """ลบ launcher/ไอคอนของกลุ่ม + ถอนหมุดออกจาก panel ถ้าปักอยู่."""
@@ -626,7 +752,7 @@ class MainWindow(QMainWindow):
     def _install_and_pin(self, group, dir_name: str) -> None:
         """ติดตั้ง launcher ใหม่แล้วปักลง panel (ไม่ขึ้นข้อความ — ใช้ตอน rename)."""
         try:
-            install_launcher(group, self.store, dir_name)
+            self._install_launcher(group, dir_name)
         except OSError:
             return
         try:
@@ -641,7 +767,7 @@ class MainWindow(QMainWindow):
         if desktop_file_name(dir_name) not in pinned_desktop_ids():
             return
         try:
-            install_launcher(group, self.store, dir_name)
+            self._install_launcher(group, dir_name)
         except OSError:
             return
         reload_grouped_window_applet()
@@ -735,7 +861,11 @@ class MainWindow(QMainWindow):
         menu.addAction(tr("ctx.open"), self.on_open)
         menu.addAction(tr("ctx.edit"), self.on_edit)
         menu.addSeparator()
-        menu.addAction(tr("ctx.unpin") if pinned else tr("ctx.pin"), self.on_pin)
+        if sys.platform == "win32":
+            # Windows ปักเองไม่ได้ (Win11 ปิด API) → เมนูนี้พาผู้ใช้ไปลากวางแทน
+            menu.addAction(tr("ctx.open_launcher_dir"), self.on_pin)
+        else:
+            menu.addAction(tr("ctx.unpin") if pinned else tr("ctx.pin"), self.on_pin)
         menu.addAction(tr("ctx.set_hotkey"), self.on_set_hotkey)
         menu.addSeparator()
         menu.addAction(tr("ctx.duplicate"), self.on_duplicate)
@@ -749,10 +879,17 @@ class MainWindow(QMainWindow):
         try:
             group = self.store.load_group(dir_name)
             new_name = tr("ctx.copy_suffix", name=group.name)
-            self.store.duplicate_group(dir_name, new_name)
+            new_dir = self.store.duplicate_group(dir_name, new_name)
         except StorageError as exc:
             show_warning(self, tr("err.generic"), str(exc))
             return
+        # สำเนาต้องมี .lnk ของตัวเองด้วย (Windows) — ชื่อไฟล์ผูกกับชื่อกลุ่ม
+        try:
+            copy_group = self.store.load_group(new_dir)
+        except StorageError:
+            copy_group = None
+        if copy_group is not None:
+            self._ensure_launcher(copy_group, new_dir)
         self.refresh()
 
     def _open_setup_menu(self) -> None:
@@ -769,7 +906,12 @@ class MainWindow(QMainWindow):
         AboutDialog(self).exec()
 
     def on_pin(self, dir_name: str | None = None) -> None:
-        """คลิกไอคอนเข็มหมุด: ปักหมุดถ้ายังไม่ปัก / ถอนหมุดถ้าปักอยู่แล้ว."""
+        """ปุ่มสถานะของกลุ่ม — ความหมายต่างกันตาม OS.
+
+        - Linux: toggle ปัก/ถอนหมุดจริง
+        - Windows: เปิดโฟลเดอร์ที่มี `.lnk` ให้ผู้ใช้ลากไปวางบน taskbar
+          (Win11 ปิด API ปักอัตโนมัติ — ทำแทนไม่ได้)
+        """
         dir_name = dir_name or self._current_dir_name()
         if dir_name is None:
             return
@@ -779,14 +921,38 @@ class MainWindow(QMainWindow):
         except StorageError as exc:
             show_warning(self, tr("err.generic"), str(exc))
             return
+        if sys.platform == "win32":
+            self._reveal_launcher_dir(group, dir_name)
+            return
         if desktop_id in pinned_desktop_ids():
             self._unpin(dir_name, desktop_id)
         else:
             self._pin(group, dir_name, desktop_id)
 
-    def _pin(self, group, dir_name: str, desktop_id: str) -> None:
+    def _reveal_launcher_dir(self, group, dir_name: str) -> None:
+        """สร้าง `.lnk` ถ้ายังไม่มี แล้วเปิด Explorer เลือกไฟล์นั้นให้ผู้ใช้ลากวาง."""
+        from taskbargroups.core import win32 as _win32
+
+        desktop_id = desktop_file_name(dir_name)
         try:
-            path = install_launcher(group, self.store, dir_name)
+            path = self._install_launcher(group, dir_name)
+            _win32.reveal_in_explorer(path)
+        except OSError as exc:
+            show_warning(self, tr("err.generic"), str(exc))
+            return
+        self.refresh()
+        show_information(
+            self,
+            tr("main.pin_title"),
+            tr("main.launcher_installed", path=path)
+            + "\n\n"
+            + tr("main.win_not_pinned_tip", file=desktop_id),
+        )
+
+    def _pin(self, group, dir_name: str, desktop_id: str) -> None:
+        """ปักหมุดจริง — ฝั่ง Linux/macOS เท่านั้น (Windows ไปที่ `_reveal_launcher_dir`)."""
+        try:
+            path = self._install_launcher(group, dir_name)
         except OSError as exc:
             show_warning(self, tr("err.generic"), str(exc))
             return
@@ -822,7 +988,7 @@ class MainWindow(QMainWindow):
             return
         try:
             group = self.store.load_group(dir_name)
-            path = install_launcher(group, self.store, dir_name)
+            path = self._install_launcher(group, dir_name)
         except (StorageError, OSError) as exc:
             show_warning(self, tr("err.generic"), str(exc))
             return
@@ -861,6 +1027,12 @@ def run(
     setup(settings.get_language())
     apply_theme(app, resolve_theme(settings.get_theme(), app))
     if open_group:
+        if sys.platform == "win32":
+            # ตั้ง AUMID ให้ตรงกับ .lnk ของกลุ่ม → ปุ่มที่ปักไว้บน taskbar
+            # กลายเป็นปุ่มของกลุ่มนี้ทันที (แทนที่จะเป็นอีกปุ่มแยก/ซ้อนกัน)
+            from ..core.win32 import set_process_aumid
+
+            set_process_aumid(open_group)
         return _run_flyout(app, open_group, center)
     window = MainWindow()
     if sys.platform == "win32":

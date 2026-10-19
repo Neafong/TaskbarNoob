@@ -54,23 +54,41 @@ def install_launcher(
     target_dir: Path | str | None = None,
     python: str | None = None,
     icons_root: Path | str | None = None,
+    default_icon: Path | str | None = None,
 ) -> Path:
     """สร้าง launcher เปิดกลุ่ม คืน path (signature เดิม — GUI ไม่ต้องแก้)."""
     if sys.platform == "win32":
         exe, _args, workdir = _open_target(python)
-        directory = Path(target_dir) if target_dir is not None else _win32.start_menu_dir()
-        icon = store.resolve_relative(dir_name, group.icon)
-        icon_location = (
-            str(icon)
-            if icon is not None and icon.suffix.lower() == ".ico"
-            else ""
+        directory = (
+            Path(target_dir) if target_dir is not None else _win32.shortcuts_dir()
         )
+        icon = store.resolve_relative(dir_name, group.icon)
+        icon_location = ""
+        if icon is not None and icon.is_file():
+            if icon.suffix.lower() == ".ico":
+                icon_location = str(icon)
+            elif icon.suffix.lower() == ".png":
+                ico = _win32.png_to_ico(icon)
+                icon_location = str(ico) if ico is not None else ""
+        if not icon_location and default_icon is not None:
+            # กลุ่มไม่ได้ตั้งไอคอน → ใช้ไอคอนโฟลเดอร์ของระบบ (ที่ฝั่ง Linux
+            # ใช้ธีมของระบบเหมือนกัน) ไม่งั้น .lnk ได้ไอค่อน shortcut ทั่วไปของ Windows
+            fallback = Path(default_icon)
+            if fallback.is_file():
+                ico = (
+                    fallback
+                    if fallback.suffix.lower() == ".ico"
+                    else _win32.png_to_ico(fallback)
+                )
+                icon_location = str(ico) if ico is not None else ""
         return _win32.create_lnk(
             directory / _win32.lnk_name(dir_name),
             exe,
             arguments=f'--open "{dir_name}"',
             workdir=workdir,
             icon_location=icon_location,
+            aumid_value=_win32.aumid(dir_name),
+            description=group.name or dir_name,
         )
     if sys.platform == "darwin":
         exe, _args, _workdir = _open_target(python)
@@ -93,7 +111,7 @@ def remove_launcher(
     """ลบ launcher เปิดกลุ่ม คืน True ถ้าเคยมี."""
     if sys.platform == "win32":
         directory = (
-            Path(target_dir) if target_dir is not None else _win32.start_menu_dir()
+            Path(target_dir) if target_dir is not None else _win32.shortcuts_dir()
         )
         path = directory / _win32.lnk_name(dir_name)
         if not path.is_file():

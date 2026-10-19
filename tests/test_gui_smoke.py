@@ -1,6 +1,8 @@
 import os
+import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -366,20 +368,34 @@ class GuiSmokeTests(unittest.TestCase):
         from taskbargroups.gui.main_window import GroupListWidget
 
         widget = GroupListWidget()
-        dark = widget.palette()
-        dark.setColor(QPalette.ColorRole.Base, QColor(0, 0, 0))
-        widget.setPalette(dark)
-        pinned_dark = widget._status_color(pinned=True)
-        self.assertGreater(pinned_dark.lightness(), 200)
-        self.assertEqual(pinned_dark.alpha(), 255)
-        unpinned_dark = widget._status_color(pinned=False)
-        self.assertEqual(unpinned_dark.alpha(), 150)
+        with mock.patch.object(sys, "platform", "linux"):
+            dark = widget.palette()
+            dark.setColor(QPalette.ColorRole.Base, QColor(0, 0, 0))
+            widget.setPalette(dark)
+            pinned_dark = widget._status_color(pinned=True)
+            self.assertGreater(pinned_dark.lightness(), 200)
+            self.assertEqual(pinned_dark.alpha(), 255)
+            unpinned_dark = widget._status_color(pinned=False)
+            self.assertEqual(unpinned_dark.alpha(), 150)
 
-        light = widget.palette()
-        light.setColor(QPalette.ColorRole.Base, QColor(255, 255, 255))
-        widget.setPalette(light)
-        pinned_light = widget._status_color(pinned=True)
-        self.assertLess(pinned_light.lightness(), 128)
+            light = widget.palette()
+            light.setColor(QPalette.ColorRole.Base, QColor(255, 255, 255))
+            widget.setPalette(light)
+            pinned_light = widget._status_color(pinned=True)
+            self.assertLess(pinned_light.lightness(), 128)
+
+    def test_windows_status_color_distinguishes_states(self) -> None:
+        """ฝั่ง Windows ต้องแยกสีให้เห็นชัดตอนเปิดแอป (ไม่ต้อง hover)"""
+        from taskbargroups.gui.main_window import GroupListWidget
+
+        widget = GroupListWidget()
+        with mock.patch.object(sys, "platform", "win32"):
+            on = widget._status_color(pinned=True)
+            off = widget._status_color(pinned=False)
+        self.assertGreater(on.lightness(), off.lightness())  # ปักแล้วสว่างกว่า
+        self.assertGreater(on.red(), on.blue())  # อุ่น (ส้ม) ไม่ใช่เทา
+        self.assertEqual(off.red(), off.green())
+        self.assertEqual(off.green(), off.blue())  # ยังไม่ปัก = เทาสะอาด
 
     def test_status_icon_paints_both_states(self) -> None:
         from PySide6.QtCore import QRect
@@ -929,6 +945,135 @@ class GuiSmokeTests(unittest.TestCase):
                     (bundled / "gear-six-fill.svg").write_text("<svg></svg>")
                     with mock.patch.object(sys, "_MEIPASS", tmp, create=True):
                         self.assertEqual(button_icons._assets_dir(), bundled)
+
+
+class WindowsPinTooltipTests(unittest.TestCase):
+    """Tooltip ปุ่มสถานะบน Windows ต้องบอกชื่อไฟล์ที่ต้องลาก (Linux ใช้ข้อความเดิม)."""
+
+    def _tip(self, platform: str, pinned: bool, dir_name: str = "Game") -> str:
+        from taskbargroups.core.models import Group
+        from taskbargroups.gui.main_window import _pin_tooltip
+
+        group = Group(name="Game", items=[])
+        with mock.patch.object(sys, "platform", platform):
+            return _pin_tooltip(group, pinned, dir_name)
+
+    def test_windows_not_pinned_names_the_file(self) -> None:
+        tip = self._tip("win32", False)
+        self.assertIn("Game.lnk", tip)  # บอกชื่อไฟล์ที่ต้องลาก
+        self.assertNotEqual(tip, "Game")  # ไม่ใช่ข้อความ toggle
+
+    def test_windows_tips_use_rich_text(self) -> None:
+        """tooltip ต้องเป็น HTML ไม่งั้น Qt จะโชว์ <b> เป็นตัวอักษรเปล่าๆ"""
+        for pinned in (True, False):
+            tip = self._tip("win32", pinned)
+            self.assertIn("<b>", tip)
+            self.assertIn("<br>", tip)
+            self.assertNotIn("\n", tip)  # ใช้ <br> ไม่ใช่ newline
+
+    def test_windows_tips_have_colour_heading(self) -> None:
+        """หัวข้อคำแนะนำ/ข้อจำกัดต้องเป็นหนาสีแดง (อ่านออกทั้งธีมสว่างและมืด)"""
+        from taskbargroups.core import taskbar as taskbar_mod
+        from taskbargroups.core.models import Group
+        from taskbargroups.gui.main_window import _pin_tooltip
+
+        self.assertIn('<font color="#E5484D">', self._tip("win32", False))
+
+        with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
+            taskbar_mod, "stale_pin_label", return_value=True
+        ):
+            stale = _pin_tooltip(Group(name="Game", items=[]), True, "Game")
+        self.assertIn('<font color="#E5484D">', stale)
+        self.assertIn("<b>", stale)
+
+        # ปักแล้วปกติ (ชื่อตรง) = ไม่ต้องมีหัวข้อเตือน
+        self.assertNotIn("#E5484D", self._tip("win32", True))
+
+    def test_windows_tips_drop_emoji(self) -> None:
+        """อีโมจิต้องอยู่ในบรรทัดหัวข้อเท่านั้น ไม่ลอยคนละบรรทัด (อ่านทันที)"""
+        from taskbargroups.core import taskbar as taskbar_mod
+        from taskbargroups.core.models import Group
+        from taskbargroups.gui.main_window import _pin_tooltip
+
+        with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
+            taskbar_mod, "stale_pin_label", return_value=True
+        ):
+            tips = [
+                self._tip("win32", False),
+                _pin_tooltip(Group(name="Game", items=[]), True, "Game"),
+            ]
+        for tip in tips:
+            self.assertLessEqual(tip.count("⚠") + tip.count("💡"), 1)
+            start = tip.index("#E5484D")
+            head = tip[start : start + 60]  # อีโมจิต้องติดกับหัวข้อสีแดง
+            self.assertTrue("⚠" in head or "💡" in head)
+
+    def test_warning_colour_readable_on_both_themes(self) -> None:
+        """#E5484D ต้องอ่านออกทั้งพื้นสว่างและพื้นมืด (WCAG AA ขนาดตัวหนา)"""
+        def channel(value: int) -> float:
+            x = value / 255
+            return x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4
+
+        r, g, b = (int("#E5484D"[i : i + 2], 16) for i in (1, 3, 5))
+        lum = 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+        def ratio(background: tuple[int, int, int]) -> float:
+            bg = (
+                0.2126 * channel(background[0])
+                + 0.7152 * channel(background[1])
+                + 0.0722 * channel(background[2])
+            )
+            hi, lo = max(lum, bg), min(lum, bg)
+            return (hi + 0.05) / (lo + 0.05)
+
+        self.assertGreaterEqual(ratio((255, 255, 255)), 3.0)  # พื้นสว่าง
+        self.assertGreaterEqual(ratio((43, 43, 43)), 3.0)  # พื้นมืด
+
+    def test_windows_pinned_says_already_on_taskbar(self) -> None:
+        self.assertNotEqual(self._tip("win32", True), self._tip("win32", False))
+
+    def test_linux_keeps_toggle_text(self) -> None:
+        before, after = self._tip("linux", False), self._tip("linux", True)
+        self.assertNotEqual(before, after)
+        self.assertNotIn("Game.lnk", before + after)
+
+
+class DefaultGroupIconTests(unittest.TestCase):
+    """ไอคอนสำรองของกลุ่มต้องเป็นไฟล์จริง (`.lnk` รับได้แค่พาธ)."""
+
+    def test_falls_back_to_cached_system_icon(self) -> None:
+        from taskbargroups.core.models import Group
+        from taskbargroups.core.storage import ConfigStore
+        from taskbargroups.gui import icons as gui_icons
+
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ConfigStore(tmp)
+            icon = gui_icons.group_icon(Group(name="G", items=[]), store, "G")
+            self.assertFalse(icon.isNull(), "ไอคอนสำรองห้ามว่าง")
+
+    def test_cache_file_is_reused(self) -> None:
+        from taskbargroups.core.storage import ConfigStore
+        from taskbargroups.gui.icons import default_group_icon_file
+
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ConfigStore(tmp)
+            first = default_group_icon_file(store)
+            if first is None or not first.is_file():
+                self.skipTest("ระบบไม่คืนไอคอนโฟลเดอร์")
+            stamp = first.stat().st_mtime_ns
+            second = default_group_icon_file(store)
+            self.assertEqual(first, second)
+            self.assertEqual(stamp, second.stat().st_mtime_ns)  # ไม่เขียนซ้ำ
+
+
+class FolderIconAssetTests(unittest.TestCase):
+    def test_folder_svg_shipped(self) -> None:
+        """Windows ใช้โฟลเดอร์แทนตา — asset ต้องอยู่ในชุด (มิฉะนั้น fallback ทำงาน)."""
+        from taskbargroups.gui import button_icons
+
+        path = button_icons._assets_dir() / "folder-fill.svg"
+        self.assertTrue(path.is_file(), f"ไม่พบ {path}")
+        self.assertIn("viewBox", path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

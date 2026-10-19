@@ -45,15 +45,14 @@
 ## สถานะปัจจุบัน
 - **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12):** repo `github.com/Neafong/TaskbarNoob` (Public) ·
   Release แนบ `TaskbarNoob-x86_64.AppImage` + `taskbargroups_0.1.0_amd64.deb` · GPL-3.0 · README มี badge + Screenshots
-- **โค้ดล่าสุด:** **v0.2.0** = "กระเป๋าใส่ได้ทุกอย่าง" + UI polish + พอร์ตข้าม OS (alpha) (2026-10-17)
-  · dispatch ข้าม OS (`launchers.py`/`taskbar.py` ชื่อเดิม) · `.lnk` ผ่าน PowerShell · `.command` + Dock pin
-  · hotkey Windows (`RegisterHotKey` จำใน settings) · ไอคอน `.exe/.lnk/.app` ผ่าน Qt provider
-  · **307 เทสต์** (mock ล้วน — ยังไม่ได้รันบน Windows จริง) · ไม่ทำ installer (portable ล้วน)
-- **แพลตฟอร์ม:** Linux Mint (Cinnamon) = หลัก/ทดสอบแล้ว · **Windows = alpha** (กำลังทดสอบเครื่องจริง)
-  · **macOS = มีโค้ด (`core/macos.py`) แต่ยังไม่ทดสอบ** — ไม่เปิด build · ประกาศชัดใน README/CHANGELOG (ทีมไม่มีเครื่อง Mac)
-- **git:** tag `v0.2.0` ย้ายมาที่ HEAD (จาก commit เก่า `e245283` ตอนยังเป็น draft) · **ยังไม่ publish Release**
-  · เหลือ: rebuild deb + AppImage → แนบใน draft Release → เทสต์ Windows → **publish**
-  · ลบ AppImage เก่า 0.1.0 ที่ `/mnt/Backup/TaskbarGroups/dist/` **ยังไม่ได้** (MFT พัง — พักไว้ ดู `docs/WORKLOG.md` ท้าย)
+- **โค้ดล่าสุด:** **v0.2.0** (2026-10-19 · Windows session 2 เสร็จ)
+  · Windows: AUMID + `.lnk` ชื่อตามกลุ่ม + COM `IShellLinkW` · ปุ่มโฟลเดอร์ + tooltip rich text
+  · **Win11 ไม่ให้ปัก taskbar อัตโนมัติ** (พิสูจน์แล้ว 4 วิธี · ต้นฉบับก็ทำไม่ได้) → ใช้**ลาก `.lnk` วางเอง**
+  · **349 เทสต์** · ไอคอน exe = โลโก้ TG
+- **git:** tag `v0.2.0` ย้ายมาที่ HEAD · **ยังไม่ publish**
+  · เหลือ: ทดสอบ Windows ให้ครบ (hotkey) → zip → แนบใน draft Release → **publish**
+- 🔖 **งานค้างทั้งหมด + ข้อควรระวัง** → หัวข้อ "📌 handoff" ท้าย [`docs/WORKLOG.md`](docs/WORKLOG.md)
+  · **อ่านก่อนเปิดเซคชั่นใหม่** · งานรอบ Windows **ไม่ต้อง port ไป Mint** (gate ด้วย `sys.platform` แล้ว)
 - **แผนต่อจากนี้:** เทสต์ Windows จริง แล้ว publish v0.2.0 · ดู `docs/roadmap.md` + `docs/feedback.md`
 - **ยังเทสต์บนเครื่องนี้ไม่ได้:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่น (hotkey/pin = Cinnamon-only)
 
@@ -83,6 +82,31 @@
 - **F22:** ไฮไลท์ช่องกริดทำ custom (Qt IconMode ไม่มี drop indicator — มี FIXME ในซอร์ส Qt)
 - **i18n:** `core/i18n.py` dict TH/EN built-in + overlay `config/lang/<code>.json` · `settings.json` key `language`
   · asset ภาษา: `packaging/lang/` (ตัวอย่าง `ja.json`) · ชื่อแสดงอ่านจาก key `_lang_name` (fallback = code)
+  · **เพิ่ม key ใหม่ต้องแก้ `ja.json` ด้วย** ไม่งั้นเทสต์ `test_ja_asset_full_translation` fail
+- **Windows: ปัก taskbar อัตโนมัติ = เป็นไปไม่ได้** (Win10 21H2 → Win11 ปิดหมด · เอกสาร MS:
+  *"programmatic pinning by an application is not permitted"*) · ทดสอบแล้วหมด:
+  `copy2` ไม่มีผล · Shell COM verb ถูกถอด · `IPinnedList3::Modify` (วิธีที่ Chromium/Firefox
+  ใช้) คืน `S_OK` แต่ไม่มีผลจริง → **ทางเดียวคือผู้ใช้ลาก `.lnk` ไปวางเอง**
+  · เมนู "Pin to taskbar" ไม่ขึ้นบนเครื่องที่ไม่มี `LayoutModification.xml` (Win11 ถือว่า taskbar ถูกล็อก
+    → ปักเองไม่ได้แม้แต่แอปอื่น) · **ต้นฉบับ Taskbar Groups ก็ทำไม่ได้** (สั่ง user คลิกขวาเอง)
+- **Windows: AUMID สำคัญ (ต้องมีทุกกลุ่ม)** — Windows รวมปุ่ม taskbar ตาม AppUserModelID
+  ถ้าทุกกลุ่มใช้ AUMID เดียวกับตัวแอป ปุ่มจะ**ซ้อนกันเหลือปุ่มเดียว** (ต้นฉบับเขียนว่า
+  *"tricks Windows to think they are from different applications"*)
+  · ตั้งใน `.lnk` = ต้องใช้ COM `IShellLinkW` + `IPropertyStore` (ctypes, `core/win32_com.py`)
+    → **PowerShell `WScript.Shell` ตั้ง AUMID ไม่ได้** (ของเดิมใช้ PowerShell = ต้องเปลี่ยนมา COM)
+  · ตอนเปิด flyout ต้องเรียก `SetCurrentProcessExplicitAppUserModelID` ให้ตรงกับ `.lnk`
+  · gotcha: `CoCreateInstance` ต้องเรียก `CoInitializeEx` **ก่อน** ไม่งั้นได้ `0x800401F0`
+  · ระบุ "user ลากวางแล้วหรือยัง" = อ่าน AUMID จากไฟล์ใน `User Pinned\TaskBar`
+    (ไฟล์นั้น Windows เป็นคนเขียนตอนผู้ใช้ลากวาง · **Windows เปลี่ยนชื่อไฟล์ให้เองได้**
+    เช่นชนกับ `.lnk` ของแอปอื่น → `Game.lnk` กลายเป็น `Game (2).lnk`)
+    → **ห้ามใช้ชื่อไฟล์เป็นตัวระบุ** · ต้องเอาชื่อกลุ่มจาก `list_groups()`
+    มาเทียบ AUMID แล้วคืน `lnk_name(ชื่อกลุ่ม)`
+- **Windows: ชื่อไฟล์ `.lnk` = ชื่อกลุ่ม** — Windows เอาชื่อไฟล์ไปแสดงบน taskbar/Start
+  (`taskbargroups-game.lnk` → โชว์ยาวๆ, `Game.lnk` → โชว์ "Game")
+  · เก็บ `.lnk` ไว้ที่ **`config/shortcuts/`** ไม่ใช่ Start Menu (portable เหมือนฝั่ง Linux)
+- **Windows: UX ปุ่มสถานะต่างจาก Linux โดยเจตนา** — ปุ่มตา toggle ได้เฉพาะ Linux
+  (ที่ปัก/ถอนจริง) ฝั่ง Windows เป็น **ปุ่มโฟลเดอร์** = เปิด Explorer ให้ผู้ใช้ลากวาง
+  · สร้างกลุ่มแล้วสร้าง `.lnk` ให้อัตโนมัติ ไม่งั้น user ไม่มีไฟล์ให้ลาก
 - **packaging:** เครื่องไม่มี pip/python3-venv (venv `--without-pip`) · repo อยู่บน fuseblk (chmod ไม่ติด → สคริปต์ `.deb` สเตจ `/tmp`)
   · ไม่มี `libxcb-cursor0` → รันจากซอร์สต้องมี `lib/libxcb-cursor.so.0` แล้ว `__main__` re-exec ตั้ง `LD_LIBRARY_PATH`
 
@@ -116,6 +140,9 @@ README.md                          (ไทย + อังกฤษ · หน้�
 taskbargroups/
 ├── __main__.py                     (GUI + CLI --open/--list)
 ├── core/  models.py · storage.py · paths.py · launcher.py · desktop.py · hotkeys.py · panel.py
+│          launchers.py + taskbar.py (dispatch ข้าม OS · ชื่อฟังก์ชันเดียวกันทุก OS)
+│          win32.py + win32_com.py (COM IShellLinkW · AUMID · PNG→ICO)
+│          macos.py · win32_hotkey อยู่ฝั่ง gui
 │          settings.py (config/settings.json · ธีม · ภาษา) · i18n.py (TH/EN + config/lang overlay)
 │          icons.py (resolve/cache ไอคอน รวม .AppImage)
 │          archive.py (export/inspect/import config zip · merge/replace · zip-slip guard)

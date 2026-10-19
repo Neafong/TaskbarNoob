@@ -65,7 +65,36 @@ def group_icon(group: Group, store: ConfigStore, dir_name: str) -> QIcon:
         icon = _from_file(cached)
         if icon is not None:
             return icon
+    fallback = _from_file(default_group_icon_file(store))
+    if fallback is not None:
+        return fallback
     return QIcon.fromTheme("folder")
+
+
+def default_group_icon_file(store: ConfigStore) -> Path | None:
+    """ไฟล์ไอคอนสำรองของกลุ่ม — ดึงไอคอนโฟลเดอร์จากระบบมาแคชไว้ครั้งเดียว.
+
+    ต้องเป็น **ไฟล์จริง** ไม่ใช่ QIcon เปล่า เพราะ `.lnk` บน Windows รับได้แค่พาธ
+    (IconLocation) — ถ้าไม่มีไฟล์ ปุ่มบน taskbar จะโชว์ไอคอน shortcut ทั่วไปของ Windows
+
+    เก็บใน `config/cache/` (ไม่ใช่ `config/groups/`) เพื่อไม่ให้สับสนกับกลุ่มจริง
+    """
+    cache = store.cache_dir() / "icons"
+    png = cache / "default.png"
+    if png.is_file():
+        return png
+    source = cache if cache.is_dir() else store.groups_dir
+    icon = _provider.icon(QFileInfo(str(source if source.is_dir() else Path.home())))
+    pixmap = icon.pixmap(256, 256)
+    if pixmap.isNull():
+        return None
+    try:
+        cache.mkdir(parents=True, exist_ok=True)
+        if not pixmap.save(str(png), "PNG"):
+            return None
+    except (OSError, RuntimeError):
+        return None
+    return png
 
 
 def cache_provider_icon(

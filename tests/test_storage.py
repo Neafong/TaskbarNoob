@@ -1,3 +1,4 @@
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -90,6 +91,99 @@ class ConfigStoreTests(unittest.TestCase):
         second = self.store.duplicate_group("G", "G copy")
         self.assertEqual(first, "G copy")
         self.assertEqual(second, "G copy 2")
+
+
+class OrderHygieneTests(unittest.TestCase):
+    """ชื่อกลุ่มที่ลบแล้วต้องหายจาก order.json ไม่งั้นสร้างชื่อเดิมแล้วซ้ำ."""
+
+    def test_delete_removes_name_from_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ConfigStore(Path(tmp))
+            store.save_group(Group(name="Alpha", items=[]))
+            store.save_order(["Alpha"])
+            store.delete_group("Alpha")
+            self.assertEqual(store.load_order(), [])
+
+    def test_recreate_same_name_after_delete(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ConfigStore(Path(tmp))
+            store.save_group(Group(name="Alpha", items=[]))
+            store.save_order(["Alpha"])
+            store.delete_group("Alpha")
+            store.save_group(Group(name="Alpha", items=[]))
+            self.assertEqual(store.load_order(), ["Alpha"])
+
+    def test_new_group_enters_order(self) -> None:
+        """กลุ่มใหม่ต้องเข้า order — เดิมมีแต่โฟลเดอร์ ทำให้ไม่มีลำดับ"""
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ConfigStore(Path(tmp))
+            store.save_group(Group(name="Alpha", items=[]))
+            self.assertEqual(store.load_order(), ["Alpha"])
+
+    def test_edit_existing_does_not_reorder(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ConfigStore(Path(tmp))
+            store.save_group(Group(name="Alpha", items=[]))
+            store.save_group(Group(name="Beta", items=[]))
+            store.save_group(
+                Group(name="Alpha", items=[Shortcut(name="x", target="x.exe")])
+            )
+            self.assertEqual(store.load_order(), ["Alpha", "Beta"])  # ยังอยู่หน้าเดิม
+
+    def test_save_order_adopts_orphan_group(self) -> None:
+        """กลุ่มที่มีโฟลเดอร์แต่หลุดจาก order ต้องถูกดึงกลับมา"""
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ConfigStore(Path(tmp))
+            store.save_group(Group(name="Alpha", items=[]))
+            store.save_group(Group(name="Orphan", items=[]))
+            store.order_file().write_text("[]", encoding="utf-8")  # order หาย
+            store.save_order(store.load_order())
+            self.assertEqual(store.load_order(), ["Alpha", "Orphan"])
+
+    def test_save_order_drops_missing_group(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ConfigStore(Path(tmp))
+            store.save_group(Group(name="Alpha", items=[]))
+            store.save_order(["Alpha", "Ghost"])
+            self.assertEqual(store.load_order(), ["Alpha"])  # Ghost ถูกตัดทิ้ง
+
+    def test_save_order_drops_case_duplicates(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ConfigStore(Path(tmp))
+            store.save_group(Group(name="test", items=[]))
+            store.save_order(["Game", "test", "Test"])
+            kept = store.load_order()
+            self.assertEqual(len(kept), len(set(kept)))  # ไม่มีชื่อซ้ำ
+            self.assertIn("test", kept)
+
+    def test_order_matches_disk_after_selfheal(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ConfigStore(Path(tmp))
+            for name in ("A", "B", "C"):
+                store.save_group(Group(name=name, items=[]))
+            store.order_file().write_text('["C"]', encoding="utf-8")
+            store.save_order(store.load_order())
+            self.assertEqual(store.load_order(), ["C", "A", "B"])  # C ก่อน แล้วคนที่เหลือ
+
+
+class CacheLocationTests(unittest.TestCase):
+    def test_cache_dir_is_outside_groups(self) -> None:
+        """`config/groups/` ต้องมีแต่กลุ่มจริง — ของแอปห้ามปนอยู่ข้างใน
+
+        ผู้ใช้มักเปิดโฟลเดอร์นี้มาเพิ่มกลุ่มเอง ถ้ามีโฟลเดอร์แปลกๆ ปนอยู่
+        จะเปิดแล้วไม่มีในรายการ (เพราะไม่มี group.json) → สับสน
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ConfigStore(Path(tmp))
+            self.assertNotIn("groups", store.cache_dir().parts)
+            self.assertTrue(str(store.cache_dir()).startswith(tmp))
+
+    def test_list_groups_ignores_folder_without_group_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ConfigStore(Path(tmp))
+            store.save_group(Group(name="Real", items=[]))
+            (store.groups_dir / "EmptyFolder").mkdir()  # โฟลเดอร์เปล่า ไม่ใช่กลุ่ม
+            self.assertEqual(store.list_groups(), ["Real"])
 
 
 if __name__ == "__main__":

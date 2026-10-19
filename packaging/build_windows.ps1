@@ -11,6 +11,17 @@ $BUILD = Join-Path $ROOT "build\win"
 $DIST = Join-Path $ROOT "dist"
 $OUTDIR = Join-Path $DIST "TaskbarNoob"
 $ICON = Join-Path $ROOT "packaging\appimage\$APP_ID.png"
+$EXE_ICO = Join-Path $ROOT "packaging\win\taskbarnoob.ico"   # ไอค่อนโลโก้ TG (ต้องเป็น .ico)
+
+# สร้าง .ico จากโลโก้ SVG ให้อัตโนมัติ (ยังไม่มีไฟล์ = ใช้ไอค่อนเก่า)
+if (!(Test-Path $EXE_ICO)) {
+    Write-Host "สร้างไอคอน exe จาก Logo TG.svg..."
+    $env:QT_QPA_PLATFORM = "offscreen"
+    & $PY packaging\render_icon.py (Join-Path $ROOT "packaging\assets\Logo TG.svg") $EXE_ICO
+    if (!(Test-Path $EXE_ICO)) {
+        $EXE_ICO = ""   # สร้างไม่ได้ = ไม่ใส่ --icon (ไม่ทำให้ build พัง)
+    }
+}
 
 if (!(Test-Path $PY)) {
     Write-Host "สร้าง venv ใหม่..."
@@ -19,18 +30,21 @@ if (!(Test-Path $PY)) {
 & $PY -m pip install --quiet PySide6 pyinstaller
 
 Write-Host "[1/2] PyInstaller build (portable, one-dir)..."
-& $PY -m PyInstaller `
-    --noconfirm --clean `
-    --name $EXE_NAME `
-    --paths $ROOT `
-    --collect-submodules taskbargroups `
-    --add-data "$ICON;taskbargroups/assets" `
-    --add-data "$ROOT\packaging\assets\icons;taskbargroups/assets/icons" `
-    --distpath "$BUILD\dist" `
-    --workpath "$BUILD\build" `
-    --specpath "$BUILD" `
-    --windowed `
-    (Join-Path $ROOT "packaging\entrypoint.py")
+$pyArgs = @(
+    "--noconfirm", "--clean",
+    "--name", $EXE_NAME,
+    "--paths", $ROOT,
+    "--collect-submodules", "taskbargroups",
+    "--add-data", "$ICON;taskbargroups/assets",
+    "--add-data", "$ROOT\packaging\assets\icons;taskbargroups/assets/icons",
+    "--distpath", "$BUILD\dist",
+    "--workpath", "$BUILD\build",
+    "--specpath", "$BUILD",
+    "--windowed"
+)
+if ($EXE_ICO) { $pyArgs += @("--icon", $EXE_ICO) }
+$pyArgs += (Join-Path $ROOT "packaging\entrypoint.py")
+& $PY -m PyInstaller @pyArgs
 
 Write-Host "[2/2] จัดโฟลเดอร์ portable..."
 if (Test-Path $OUTDIR) { Remove-Item -Recurse -Force $OUTDIR }
