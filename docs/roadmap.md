@@ -8,8 +8,8 @@
 
 เป้าหมาย: แอปจัดกลุ่ม shortcut แล้วกดครั้งเดียวเปิดทั้งกลุ่ม — **Linux Mint (Cinnamon) เป้าหลัก, Windows 11 (portable) เป้ารอง**
 - **v0.1.0:** ขึ้น GitHub แล้ว (2026-10-12) — Linux Mint AppImage + `.deb` · GPL-3.0-or-later
-- **v0.2.0 (กำลังปิดงาน):** รองรับ Windows 11 (portable `TaskbarNoob.exe`, AUMID แยกต่อกลุ่ม/แอป, Hotkey Win32, multi-res `.ico`, MSIX/WindowsApps icon, Flyout เงามุมโค้ง) · **372 เทสต์ผ่าน 100%** · เหลือปรับปรุงตัวเลือกไอคอนระบบฝั่ง Windows + Handoff กลับ Mint → Publish
-- **v0.3.0 (รุ่นถัดไป):** **ปรับปรุงโครงสร้างโค้ดใหม่ทั้งหมด (Full Architecture Refactor) แต่ยึดฟีเจอร์เดิมเป็นแกน** — เริ่มรื้อที่ **Linux Mint** ก่อน แล้วค่อยเชื่อมฝั่ง **Windows** ตามอย่างเป็นระบบ (ไม่ให้เป็น AI Slop) · **พับเก็บ macOS ไว้ก่อน** จนกว่าจะมีเครื่องจริงสำหรับพัฒนาและทดสอบ
+- **v0.2.0 (ปล่อยแล้ว 2026-11-23):** รองรับ Linux Mint + Windows 11 (portable `TaskbarNoob.exe`, AUMID แยกต่อกลุ่ม/แอป, Hotkey Win32, multi-res `.ico`, MSIX/WindowsApps icon, Flyout เงามุมโค้ง, ตัวเลือกไอคอนระบบ 2 แหล่ง)
+- **v0.3.0 (กำลังทำ):** **ปรับปรุงโครงสร้างโค้ดใหม่ทั้งหมด (Full Architecture Refactor) แต่ยึดฟีเจอร์เดิมเป็นแกน** — เริ่มรื้อที่ **Linux Mint** ก่อน แล้วค่อยเชื่อมฝั่ง **Windows** ตามอย่างเป็นระบบ (ไม่ให้เป็น AI Slop) · **พับเก็บ macOS ไว้ก่อน** จนกว่าจะมีเครื่องจริงสำหรับพัฒนาและทดสอบ
 - repo: **github.com/Neafong/TaskbarNoob** (Public) · License **GPL-3.0-or-later**
 
 ## เฟสที่ทำแล้ว (Linux — Cinnamon)
@@ -62,9 +62,9 @@
 > **หลักการสำคัญ:** ไม่เพิ่มฟีเจอร์ฟุ่มเฟือย แต่ล้างหนี้เทคนิค/กลิ่น AI Slop ที่สะสมจากการแก้หลายรอบหลายโมเดล
 > **ลำดับการทำงาน:** จัดระเบียบ `docs/` เป็นอย่างแรก (R0) → รื้อและวางโครงสร้างใหม่บน **Linux Mint (ต้นทาง)** ให้เรียบร้อยและเทสต์ผ่านครบก่อน → แล้วค่อยนำโครงสร้างเดียวกันมาปรับฝั่ง **Windows** ให้เข้าชุดกัน
 
-### R0 — จัดระเบียบเอกสาร (`docs/`) เป็นอย่างแรกก่อนเริ่มรื้อโค้ด
-- ย้ายแผนเก่าที่ปิดจบแล้ว (`phase18-plan.md`, `windows-plan.md`) และ log เก่ายาวๆ (`WORKLOG.md` 170 KB, `feedback.md` 107 KB) แยกภาค `v0.1–v0.2` ลง `docs/archive/` แล้วเริ่ม `WORKLOG.md` ชุดใหม่ให้สั้นเบา ประหยัด token
-- อัปเดต `docs/README.md`, `docs/team.md` (สะท้อนการทำงานร่วมกับเจนนี่แทนทีม OpenCode เดิม) และ `README.md` หน้าแรกให้ตรงกับโครงสร้างใหม่
+### R0 — จัดระเบียบเอกสาร (`docs/`) เป็นอย่างแรกก่อนเริ่มรื้อโค้ด ✅ เสร็จ (2026-11-23)
+- ย้ายแผนเก่าที่ปิดจบแล้ว (`phase18-plan.md`, `windows-plan.md`) และ log เก่ายาวๆ (`WORKLOG.md`, `feedback.md`) แยกภาค `v0.1–v0.2` ลง `docs/archive/` แล้วเริ่ม `WORKLOG.md` / `feedback.md` ชุดใหม่ให้สั้นเบา ประหยัด token
+- อัปเดต `docs/README.md`, `docs/team.md` (สะท้อนการทำงานร่วมกับเจนนี่แทนทีม OpenCode เดิม) และ `AGENTS.md` ให้ตรงกับสถานะล่าสุด + แก้บั๊ก `storage._prune_order()` ให้เทสต์ Mint เขียว 100%
 
 ### R1 — Platform Backend แยกขาดชัดเจน (`core/platform/`)
 - ยุบไฟล์เฉพาะ OS ที่กระจัดกระจาย (`desktop.py`, `panel.py`, `hotkeys.py`, `taskbar.py`, `launchers.py`, `win32.py`, `win32_com.py`) เป็นแพ็กเกจ `core/platform/`:

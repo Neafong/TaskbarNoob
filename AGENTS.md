@@ -43,16 +43,12 @@
 - **hotkey:** gsettings ของ **Cinnamon** เท่านั้น
 
 ## สถานะปัจจุบัน
-- **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12):** repo `github.com/Neafong/TaskbarNoob` (Public) ·
-  Release แนบ `TaskbarNoob-x86_64.AppImage` + `taskbargroups_0.1.0_amd64.deb` · GPL-3.0 · README มี badge + Screenshots
-- **โค้ดล่าสุด:** **v0.2.0** (2026-11-23 · Windows 11 ทดสอบจริงครบแล้ว)
-  · Windows: AUMID แยกต่อกลุ่ม + `app_aumid()` หน้าต่างหลัก · `.lnk` ผ่าน COM `IShellLinkW` · multi-res `.ico` · Hotkey Win32 + foreground focus + ย้ายคีย์ตามตอนเปลี่ยนชื่อ · ไอคอน MSIX/WindowsApps อัตโนมัติ · ตัวเลือกไอคอนระบบ 2 แหล่ง (`imageres`/`shell32` + Start Menu กรอง Uninstall) · Flyout เงาตามมุมโค้ง
-  · **Win11 ไม่ให้ปัก taskbar อัตโนมัติ** (พิสูจน์แล้ว 4 วิธี · ต้นฉบับก็ทำไม่ได้) → ใช้**ลาก `.lnk` วางเอง**
-  · **374 เทสต์ (Win: OK skipped=23)** · ไอคอน exe = โลโก้ TG · โฟลเดอร์ใช้งานจริงบน Win: `D:\Portable\Tool\TaskbarNoob`
-- **git:** พร้อม commit + push ขึ้น `main` → แพ็ก Windows `.zip` + ฝั่ง Mint rebuild `.deb`/AppImage → **publish v0.2.0**
-- 🔖 **งานค้างทั้งหมด + Handoff ฝั่ง Mint** → หัวข้อ "📌 Handoff สำหรับเจนนี่บน Linux Mint" ท้าย [`docs/WORKLOG.md`](docs/WORKLOG.md)
-  · **อ่านก่อนเปิดเซคชั่นใหม่** · งานรอบ Windows **ไม่ต้อง port ไป Mint** (gate ด้วย `sys.platform` แล้ว)
-- **แผนต่อจากนี้:** ปล่อย `v0.2.0` → ลุย **`v0.3.0` รื้อโครงสร้างใหม่ทั้งหมด (ยึดฟีเจอร์เดิมเป็นแกน)** เริ่มที่ **Linux Mint** ก่อน (พับเก็บ macOS ไว้ก่อน) · ดู [`docs/roadmap.md`](docs/roadmap.md)
+- **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12):** repo `github.com/Neafong/TaskbarNoob` (Public) · GPL-3.0-or-later
+- **v0.2.0 ปล่อยขึ้น GitHub แล้ว (2026-11-23):** ครบทั้ง Linux Mint + Windows 11 (portable `TaskbarNoob.exe`, AUMID แยกต่อกลุ่ม/แอป, `.lnk` ผ่าน COM `IShellLinkW`, multi-res `.ico`, Hotkey Win32 + foreground focus + ย้ายคีย์ตามตอนเปลี่ยนชื่อ, ไอคอน MSIX/WindowsApps อัตโนมัติ, ตัวเลือกไอคอนระบบ 2 แหล่ง, Flyout เงามุมโค้ง)
+  · โฟลเดอร์ใช้งานจริงบน Win: `D:\Portable\Tool\TaskbarNoob`
+- **งานปัจจุบัน (`v0.3.0` — Full Architecture Refactor บน Linux Mint):**
+  · ✅ **R0 เสร็จแล้ว (2026-11-23):** จัดระเบียบ `docs/` ลง `docs/archive/` + แก้บั๊ก `storage._prune_order()` → **375 เทสต์ ผ่าน 100% บน Mint (skipped=10 Windows-only)**
+  · **ถัดไป:** `R1` (แยก `core/platform/` + พับเก็บ macOS) → `R2` (แตกไฟล์ยักษ์) → `R3` (icon pipeline เดียว + ตัวเลือกไอคอนแยกหมวด Mint + Steam icon resolver) → `R4` (เก็บกวาด + รีแบรนด์ `taskbargroups` → `taskbarnoob` พร้อม Auto-Migration + เครดิต `Noob & Jenny`) · ดู [`docs/roadmap.md`](docs/roadmap.md)
 - **ยังเทสต์บนเครื่องนี้ไม่ได้:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่น (hotkey/pin = Cinnamon-only)
 
 ## หมายเหตุเทคนิคสำคัญ (แก้โค้ดตรงส่วนนี้ ต้องอ่านก่อน!)
@@ -113,19 +109,19 @@
 
 > ตั้งขึ้นเพราะเดิมไฟล์เกลื่อนหลายที่ พอความจำหายแล้วสร้างใหม่ เลยหาไม่เจอ — **รวมที่เดียว**
 
-- **โปรเจกต์ (ทำงาน):** `/home/noob/Desktop/TaskbarNoob` (SSD) = source หลัก
+- **โปรเจกต์ (ทำงาน):** `/mnt/Backup/TaskbarNoob` = source หลัก (SSH remote · `core.fileMode false` · มี `.venv` + `lib/libxcb-cursor.so.0`)
 - **AppImage ที่ใช้จริง/เทสต์ = ที่เดียว:** `/home/noob/AppImage/Tool/TaskbarNoob-x86_64.AppImage`
   → หลัง `bash packaging/build_appimage.sh` **คัดลอกไฟล์ไปทับที่นี่เสมอ** · **อย่าเทสต์จาก `dist/` ตรง ๆ**
 - **config จริง (portable):** `/home/noob/AppImage/Tool/config/` (อยู่ข้าง AppImage) — groups: Game · Production · Tool
   · รันจากซอร์สให้ชี้มาที่นี่: `TASKBARGROUPS_CONFIG=$HOME/AppImage/Tool/config`
 - **build output:** `<repo>/dist/` = ที่พักผลลัพธ์ชั่วคราว (gitignored) — ไม่ใช่ที่ใช้ประจำ
-- **HDD เก่า:** `/mnt/Backup/TaskbarGroups/` = **สำรองเท่านั้น** (มี `.git` history + สำเนา config) · อย่ารันจากที่นี่
+- **โฟลเดอร์เก่า (สำรอง):** `/mnt/Backup/TaskbarGroups/` = **สำรองเท่านั้น** (commit เก่าก่อน v0.2.0 + สำเนา config เก่า) · อย่ารันจากที่นี่
 - **กติกา:** AppImage มีที่เดียว · กลุ่มจริงมีที่เดียว · ถ้าเจอไฟล์ซ้ำที่อื่น = ให้ถือที่ตามข้างบนนี้
 
 ## วิธีรัน / Dev
 - รันแอป: `.venv/bin/python -m taskbargroups`
 - เปิด flyout: `... -m taskbargroups --open "<GroupDir>"` · list: `... --list`
-- เทสต์: `.venv/bin/python tests/run.py` → **307 ผ่าน**
+- เทสต์: `QT_QPA_PLATFORM=offscreen .venv/bin/python tests/run.py` → **375 เทสต์ ผ่าน 100% (skipped=10 Windows-only)**
   · (ถ้ารัน `python -m unittest discover -s tests` ผลเทสต์เท่ากันแต่ตอนปิด PySide6 6.12 จะ segfault
     ใน `destroyQCoreApplication()` — บั๊กฝั่ง Qt · `tests/run.py` เรียก `os._exit()` เลี่ยงให้)
 - แพ็ก: `bash packaging/build_appimage.sh` → `dist/TaskbarNoob-x86_64.AppImage`
@@ -157,19 +153,18 @@ docs/   README.md (แผนที่เอกสาร) · roadmap.md (แผ�
 config/ (gitignored) — ข้อมูลกลุ่มจริงแบบ portable
 ```
 
-## อนูเบ-ต่อไป (Next Actions)
-1. **v0.2.0 ครบแล้ว — เหลือ publish:** tag `v0.2.0` = HEAD · เหลือ rebuild deb + AppImage → แนบใน draft Release
-   → **เทสต์ Windows จริง** → publish · เริ่มเซคชันใหม่แล้วอ่าน snapshot นี้ + `docs/README.md` + ไฟล์แผนก่อนลงมือ
-2. **จัดระเบียบเอกสาร (ระบบการเขียนแผน):** ✅ เฟส A–E + G เสร็จ (`docs/README.md` · `roadmap.md` · `release-process.md` · `CHANGELOG.md` · `.github/**` · `CONTRIBUTING.md`) — เหลือ **F `docs/windows-plan.md`** (เลื่อนไว้ทำตอนเริ่ม Windows จริง)
-3. **Windows port** — alpha เสร็จ (โค้ดพร้อม · hotkey/pin/launcher/ไอคอน) · เหลือ **เทสต์บนเครื่องจริง** (เช็กลิสต์ใน `docs/windows-plan.md`)
-4. เริ่มงานชุดใหญ่ใน **เซคชั่นใหม่** เสมอ (ประหยัด token) — อ่าน AGENTS.md + `docs/README.md` + ไฟล์แผนก่อนลงมือ
-5. อย่าลืม: อัปเดต `docs/WORKLOG.md` เมื่อจบงาน + `docs/feedback.md` เมื่อปิดฟีดแบ็ก
+## งานถัดไป (Next Actions — v0.3.0)
+1. **R1:** แยก Platform Backend เข้า `core/platform/{base,linux,win32}` + พับเก็บ `core/macos.py` + ลด `sys.platform` ใน `gui/`
+2. **R2:** แตกไฟล์ยักษ์ (`gui/main_window.py`, `gui/group_editor.py`, `core/win32.py`) เป็นโมดูลย่อยหน้าที่เดียว
+3. **R3:** รวม icon pipeline เป็นจุดเดียว (เลิก circular import) + ตัวเลือกไอคอนระบบแบบแยกหมวดบน Mint + Steam `steam://rungameid/<appid>` icon resolver ข้าม OS
+4. **R4:** เก็บกวาด Dead Code / แยก `i18n` + รีแบรนด์ชื่อภายใน `taskbargroups` → `taskbarnoob` พร้อม Auto-Migration + เปลี่ยนเครดิตเป็น `Noob & Jenny`
+5. อย่าลืม: อัปเดต `docs/WORKLOG.md` และรันเทสต์ให้เขียว 100% ทุกเฟสก่อน commit
 
 ## เอกสารอ้างอิง
-- `docs/README.md` — แผนที่/ดัชนีเอกสาร + ลำดับเฟสจัดเอกสาร
-- `docs/roadmap.md` — แผนภาพรวมทุกเฟส + งานถัดไป + แผน Windows
-- `docs/WORKLOG.md` — ประวัติงานต่อเฟส (อ่านเมื่ออยากรู้ย้อนหลัง)
-- `docs/feedback.md` — ฟีดแบ็กผู้ใช้ + งานค้าง
+- `docs/README.md` — แผนที่/ดัชนีเอกสาร (รวม `docs/archive/`)
+- `docs/roadmap.md` — แผนภาพรวมทุกเฟส + แผน `v0.3.0` (R0–R4)
+- `docs/WORKLOG.md` — ประวัติงานภาค `v0.3.0+` (ภาคเก่าอยู่ที่ `docs/archive/WORKLOG-v0.1-v0.2.md`)
+- `docs/feedback.md` — งานค้างและฟีดแบ็กที่ยังไม่ปิด
 - `docs/data-model.md` — สกีมา + ฟอร์แมตเก็บกลุ่ม
-- `docs/team.md` — รายชื่อทีมโมเดล + แบ่งสายงาน
+- `docs/team.md` — บทบาทและแนวทางการทำงานร่วมกัน
 - `docs/upstream.md` — ผลวิจัยต้นฉบับ Windows + ฟีเจอร์ค้างใน PR

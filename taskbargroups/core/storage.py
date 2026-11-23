@@ -80,7 +80,9 @@ class ConfigStore:
         if self.groups_dir.is_dir():
             on_disk = [
                 path.name
-                for path in self.groups_dir.iterdir()
+                for path in sorted(
+                    self.groups_dir.iterdir(), key=lambda p: p.name.casefold()
+                )
                 if path.is_dir() and (path / GROUP_FILE_NAME).is_file()
             ]
         seen: set[str] = set()

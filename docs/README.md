@@ -1,48 +1,37 @@
 # เอกสารโปรเจกต์ TaskbarNoob — แผนที่ (Docs Index)
 
-> ดัชนีเอกสารทั้งหมด + แผนการจัดระเบียบเอกสาร · อัปเดตล่าสุด: 2026-10-12
+> ดัชนีเอกสารทั้งหมด · อัปเดตล่าสุด: 2026-11-23
 > **เปิด [`../AGENTS.md`](../AGENTS.md) ก่อนเสมอ** เพื่อดู snapshot สถานะปัจจุบัน
-> 🔖 **งานค้าง + ข้อควรระวัง** → หัวข้อ "handoff" ท้าย [`WORKLOG.md`](WORKLOG.md)
 
 ## หลักการจัดเอกสาร
 
 - **1 ไฟล์ = 1 หน้าที่** — อย่าให้ไฟล์เดียวบวมรวมทุกเรื่อง
 - **snapshot สั้น** (`AGENTS.md`) · **log ต่อท้ายอย่างเดียว** (`WORKLOG.md`)
+- **เอกสารเก่าที่ปิดจบแล้ว** → เก็บไว้ใน `docs/archive/` เพื่อประหยัด context
 - **ของเฉพาะ GitHub** → ไว้ที่ root หรือ `.github/` (ไม่ปนกับ `docs/`)
 
-## เอกสารที่มีอยู่
+## เอกสารที่ใช้งานอยู่ (Active)
 
 | ไฟล์ | หน้าที่ |
 |---|---|
 | [`../AGENTS.md`](../AGENTS.md) | snapshot สถานะปัจจุบัน (สั้น · อัปเดตทุกครั้งที่จบงาน) |
-| [`WORKLOG.md`](WORKLOG.md) | บันทึกงานย้อนหลังต่อเฟส (append-only) |
-| [`feedback.md`](feedback.md) | ฟีดแบ็กผู้ใช้ + สถานะ + งานค้าง |
-| [`roadmap.md`](roadmap.md) | แผนภาพรวมทุกเฟส + งานถัดไป + แผน Windows (W0–W5) |
+| [`WORKLOG.md`](WORKLOG.md) | บันทึกงานย้อนหลังภาค `v0.3.0+` (append-only) |
+| [`feedback.md`](feedback.md) | งานค้างและฟีดแบ็กที่ยังไม่ปิด |
+| [`roadmap.md`](roadmap.md) | แผนภาพรวมทุกเฟส + แผน `v0.3.0` (R0–R4) |
 | [`release-process.md`](release-process.md) | ขั้นตอนออกรุ่น/อัปเดต (bump → CHANGELOG → build → tag → Release) |
 | [`data-model.md`](data-model.md) | สกีมา `group.json` + ฟอร์แมตเก็บกลุ่ม |
 | [`upstream.md`](upstream.md) | ผลวิจัยต้นฉบับ Windows (Taskbar Groups) |
-| [`windows-plan.md`](windows-plan.md) | แผนพอร์ต Windows + macOS แบบ portable (W0–W5) + เช็กลิสต์เทสต์ |
-| [`team.md`](team.md) | รายชื่อทีมโมเดล + แบ่งสายงาน (ใช้คนให้ถูกกะงาน/ส่งต่อตอนลิมิตหมด) |
-| [`phase18-plan.md`](phase18-plan.md) | แผน Phase 18 (import/export zip) — อ้างอิงย้อนหลัง |
+| [`team.md`](team.md) | บทบาทผู้ช่วยและแนวทางการทำงานร่วมกัน |
 | [`screenshots/`](screenshots/) | รูปหน้าจอสำหรับ README |
 | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) | วิธีร่วมพัฒนา (Issue → PR → CI → เอกสาร) |
-| `../CHANGELOG.md` | ประวัติเวอร์ชัน (Keep a Changelog) |
-| `../.github/**` | CI (`workflows/`) · เทมเพลต issue/PR · `FUNDING.yml` |
+| [`../CHANGELOG.md`](../CHANGELOG.md) | ประวัติเวอร์ชัน (Keep a Changelog) |
+| [`../.github/`](../.github/) | CI (`workflows/`) · เทมเพลต issue/PR · `FUNDING.yml` |
 
-## เอกสารที่จะเพิ่มถัดไป
+## เอกสารเก่าเก็บ ([`archive/`](archive/))
 
-_(ว่าง — ครบแล้ว)_
-
-## ลำดับเฟสสร้างเอกสาร (ทีละเฟส = 1 commit)
-
-| เฟส | ทำอะไร | ไฟล์ | สถานะ |
-|---|---|---|---|
-| **A** | ดัชนี/แผนที่เอกสาร (ไฟล์นี้) | `docs/README.md` | ✅ เสร็จ |
-| **B** | แผนภาพรวมทุกเฟส + ย่อ `AGENTS.md` ให้ชี้ไปแผน | `docs/roadmap.md` + `../AGENTS.md` | ✅ เสร็จ |
-| **C** | ขั้นตอนออกรุ่น/อัปเดต | `docs/release-process.md` | ✅ เสร็จ |
-| **D** | ประวัติเวอร์ชัน (เริ่ม v0.1.0) | `CHANGELOG.md` | ✅ เสร็จ |
-| **E** | ของ GitHub: CI + เทมเพลต + ปุ่มสนับสนุน | `.github/**` | ✅ เสร็จ |
-| **F** | แผนพอร์ต Windows + macOS portable (W0–W5) | `docs/windows-plan.md` | ✅ เสร็จ |
-| **G** | วิธีร่วมพัฒนา | `CONTRIBUTING.md` | ✅ เสร็จ |
-
-**เหตุผลลำดับ:** จัดของเดิมให้เข้าที่ (A→B) → ของ GitHub ที่ใช้ตอนแจกจริง (C→E) → งานอนาคต Windows (F→G)
+| ไฟล์ | หน้าที่ |
+|---|---|
+| [`archive/WORKLOG-v0.1-v0.2.md`](archive/WORKLOG-v0.1-v0.2.md) | ประวัติการทำงานทั้งหมดของภาค `v0.1.0–v0.2.0` |
+| [`archive/feedback-v0.1-v0.2.md`](archive/feedback-v0.1-v0.2.md) | ฟีดแบ็กและมติทั้งหมดที่ปิดจบแล้วในภาค `v0.1.0–v0.2.0` |
+| [`archive/phase18-plan.md`](archive/phase18-plan.md) | แผน Phase 18 (import/export zip) — อ้างอิงย้อนหลัง |
+| [`archive/windows-plan.md`](archive/windows-plan.md) | แผนพอร์ต Windows 11 (W0–W5) — ปิดจบใน `v0.2.0` |
