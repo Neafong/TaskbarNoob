@@ -63,21 +63,27 @@ cp "$ROOT/packaging/appimage/${APP_ID}.png" "$APPDIR/usr/share/icons/hicolor/256
 cp "$ROOT/packaging/appimage/${APP_ID}.appdata.xml" "$APPDIR/usr/share/metainfo/"
 
 # รวม libxcb-cursor (Qt 6.6+ ต้องใช้; เครื่องที่ไม่มีจะเปิด xcb plugin ไม่ได้)
+mkdir -p "$TOOLS" "$DIST"
 XCB_DIR="$BUILD/tools/xcb-cursor"
-if [[ ! -e "$XCB_DIR/usr/lib/x86_64-linux-gnu/libxcb-cursor.so.0" ]]; then
-  rm -rf "$XCB_DIR"
-  if (cd "$BUILD/tools" && apt-get download libxcb-cursor0 >/dev/null 2>&1); then
-    deb="$(ls "$BUILD"/tools/libxcb-cursor0_*.deb 2>/dev/null | head -1)"
-    mkdir -p "$XCB_DIR"
-    dpkg-deb -x "$deb" "$XCB_DIR"
-    rm -f "$deb"
-  fi
-fi
-if [[ -e "$XCB_DIR/usr/lib/x86_64-linux-gnu/libxcb-cursor.so.0" ]]; then
+if [[ -e "$ROOT/lib/libxcb-cursor.so.0" ]]; then
   mkdir -p "$APPDIR/usr/lib"
-  cp -a "$XCB_DIR"/usr/lib/x86_64-linux-gnu/libxcb-cursor.so.0* "$APPDIR/usr/lib/"
+  cp -a "$ROOT"/lib/libxcb-cursor.so.0* "$APPDIR/usr/lib/"
 else
-  echo "คำเตือน: ไม่พบ libxcb-cursor0 — เครื่องที่ไม่มีไลบรารีนี้จะเปิด GUI ไม่ได้"
+  if [[ ! -e "$XCB_DIR/usr/lib/x86_64-linux-gnu/libxcb-cursor.so.0" ]]; then
+    rm -rf "$XCB_DIR"
+    if (cd "$BUILD/tools" && apt-get download libxcb-cursor0 >/dev/null 2>&1); then
+      deb="$(ls "$BUILD"/tools/libxcb-cursor0_*.deb 2>/dev/null | head -1)"
+      mkdir -p "$XCB_DIR"
+      dpkg-deb -x "$deb" "$XCB_DIR"
+      rm -f "$deb"
+    fi
+  fi
+  if [[ -e "$XCB_DIR/usr/lib/x86_64-linux-gnu/libxcb-cursor.so.0" ]]; then
+    mkdir -p "$APPDIR/usr/lib"
+    cp -a "$XCB_DIR"/usr/lib/x86_64-linux-gnu/libxcb-cursor.so.0* "$APPDIR/usr/lib/"
+  else
+    echo "คำเตือน: ไม่พบ libxcb-cursor0 — เครื่องที่ไม่มีไลบรารีนี้จะเปิด GUI ไม่ได้"
+  fi
 fi
 
 echo "[3/4] เตรียม appimagetool..."
@@ -88,10 +94,15 @@ if [[ ! -x "$AIT" ]]; then
     "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
   chmod +x "$AIT"
 fi
+RUNTIME="$TOOLS/runtime-x86_64"
+if [[ ! -f "$RUNTIME" ]]; then
+  curl -L --fail -o "$RUNTIME" \
+    "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64"
+fi
 
 echo "[4/4] สร้าง AppImage..."
 rm -f "$OUT"
-ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 "$AIT" --no-appstream "$APPDIR" "$OUT"
+ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 "$AIT" --no-appstream --runtime-file "$RUNTIME" "$APPDIR" "$OUT"
 chmod +x "$OUT"
 echo "เสร็จแล้ว: $OUT"
 ls -lh "$OUT"
