@@ -229,6 +229,87 @@ def reload_grouped_window_applet() -> bool:
     return result.returncode == 0
 
 
+def _parse_cinnamon_eval_json(raw: str):
+    """ดึง JSON จากผลลัพธ์ `gdbus call ... org.Cinnamon.Eval` เช่น `(true, '\"[...]\"')`."""
+    text = (raw or "").strip()
+    if not text.startswith("(true,"):
+        return None
+    inner = text[len("(true,") :].rstrip(")").strip()
+    try:
+        decoded = ast.literal_eval(inner)
+        if isinstance(decoded, str):
+            decoded = json.loads(decoded)
+        if isinstance(decoded, str):
+            decoded = json.loads(decoded)
+        return decoded
+    except (ValueError, SyntaxError):
+        return None
+
+
+def pinned_icon_rect(
+    desktop_id: str,
+    legacy_id: str | None = None,
+    runner: Runner | None = None,
+) -> tuple[int, int, int, int] | None:
+    """ถาม Cinnamon หาพิกัด (x, y, w, h) จริงของไอคอนกลุ่มที่ปักบน panel.
+
+    ใช้ตรึงตำแหน่ง flyout ให้โผล่ตรงกลางเหนือไอคอนที่ปักเสมอ ไม่วิ่งตามเมาส์.
+    """
+    if not is_cinnamon():
+        return None
+    if runner is None and shutil.which("gdbus") is None:
+        return None
+    targets = [desktop_id]
+    if legacy_id and legacy_id != desktop_id:
+        targets.append(legacy_id)
+    targets_js = json.dumps(targets)
+    script = (
+        f"(() => {{ const ids = {targets_js}; "
+        "let found = null; "
+        "function walk(a) { if (!a || found) return; "
+        "const d = a._delegate; "
+        "if (d && d.groupState && ids.includes(d.groupState.appId)) { "
+        "const [x, y] = a.get_transformed_position(); "
+        "const [w, h] = a.get_transformed_size(); "
+        "if (w > 0 && h > 0) { found = [Math.round(x), Math.round(y), Math.round(w), Math.round(h)]; return; } "
+        "} "
+        "if (a.get_children) { for (const ch of a.get_children()) walk(ch); } "
+        "} "
+        "for (const p of Main.panelManager.panels) { if (!p) continue; "
+        "for (const b of [p._leftBox, p._centerBox, p._rightBox]) walk(b); "
+        "} return JSON.stringify(found); })()"
+    )
+    cmd = [
+        "gdbus",
+        "call",
+        "--session",
+        "--dest",
+        CINNAMON_BUS,
+        "--object-path",
+        CINNAMON_PATH,
+        "--method",
+        f"{CINNAMON_INTERFACE}.Eval",
+        script,
+    ]
+    try:
+        if runner is not None:
+            stdout = runner(cmd)
+        else:
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=0.6)
+            if res.returncode != 0:
+                return None
+            stdout = res.stdout
+    except (OSError, subprocess.SubprocessError, PinError):
+        return None
+    parsed = _parse_cinnamon_eval_json(stdout)
+    if isinstance(parsed, list) and len(parsed) == 4:
+        try:
+            return (int(parsed[0]), int(parsed[1]), int(parsed[2]), int(parsed[3]))
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
 def pin_to_panel(
     desktop_id: str,
     runner: Runner = _run,

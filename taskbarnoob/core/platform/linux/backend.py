@@ -93,3 +93,11 @@ class LinuxCinnamonBackend(PlatformBackend):
 
     def available_actions(self) -> Sequence[str]:
         return ("grouped-window-list", "panel-launchers")
+
+    def pinned_icon_rect(self, dir_name: str) -> tuple[int, int, int, int] | None:
+        from .migrate import legacy_desktop_file_name
+
+        return _panel.pinned_icon_rect(
+            _desktop.desktop_file_name(dir_name),
+            legacy_id=legacy_desktop_file_name(dir_name),
+        )

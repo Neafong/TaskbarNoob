@@ -117,6 +117,10 @@ class PlatformBackend(ABC):
     def available_actions(self) -> Sequence[str]:
         """รายการวิธีปักที่รองรับบน OS นี้."""
 
+    def pinned_icon_rect(self, dir_name: str) -> tuple[int, int, int, int] | None:
+        """พิกัด (x, y, w, h) ของไอคอนที่ปักบน panel/taskbar (ถ้า OS ให้ถามได้)."""
+        return None
+
     # --- Hotkey helpers ---
 
     def hotkey_slot(self, dir_name: str) -> str:

@@ -212,5 +212,27 @@ class PinnedStateTests(unittest.TestCase):
                 panel.unpin_from_panel("g.desktop", config_dir=Path("/nonexistent"))
 
 
+class PinnedIconRectTests(unittest.TestCase):
+    def test_parses_cinnamon_eval_rect(self) -> None:
+        def fake_runner(_cmd):
+            return '(true, \'"[545,1040,38,40]"\')'
+
+        with mock.patch.object(panel, "is_cinnamon", return_value=True):
+            rect = panel.pinned_icon_rect(
+                "taskbarnoob-tool.desktop",
+                legacy_id="taskbargroups-tool.desktop",
+                runner=fake_runner,
+            )
+        self.assertEqual(rect, (545, 1040, 38, 40))
+
+    def test_returns_none_when_not_found(self) -> None:
+        with mock.patch.object(panel, "is_cinnamon", return_value=True):
+            rect = panel.pinned_icon_rect(
+                "taskbarnoob-missing.desktop",
+                runner=lambda _cmd: '(true, \'"null"\')',
+            )
+        self.assertIsNone(rect)
+
+
 if __name__ == "__main__":
     unittest.main()

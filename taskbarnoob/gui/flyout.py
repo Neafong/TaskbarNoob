@@ -269,8 +269,15 @@ class FlyoutWindow(QWidget):
         )
 
     def show_at(self, point: QPoint | None = None) -> None:
-        """โชว์ flyout โดยตรึงตำแหน่งไว้ (point = ตำแหน่งที่จับได้ตอนเรียก)."""
+        """โชว์ flyout โดยตรึงตำแหน่งไว้เหนือไอคอนที่ปักบน panel (ไม่วิ่งตามเมาส์)."""
+        from taskbarnoob.core.platform import get_backend
+
         self.adjustSize()
+        if not self.focus_mode:
+            rect = get_backend().pinned_icon_rect(self.dir_name)
+            if rect is not None:
+                ix, iy, iw, ih = rect
+                point = QPoint(ix + iw // 2, iy + ih // 2)
         if point is None:
             point = QCursor.pos()
         screen = QGuiApplication.screenAt(point) or QGuiApplication.primaryScreen()
