@@ -4,6 +4,8 @@
 - `ComLnkTests` ต้องรันบน Windows จริง (COM ไม่มีบน Linux)
 """
 
+import os
+import struct
 import sys
 import tempfile
 import unittest
@@ -86,6 +88,16 @@ class SetProcessAumidTests(unittest.TestCase):
         ) as fn:
             win32.set_process_aumid("Game")
             fn.assert_called_once_with(win32.aumid("Game"))
+
+    def test_app_aumid_differs_from_group_and_calls_shell32(self) -> None:
+        self.assertNotEqual(win32.app_aumid(), win32.aumid("app"))
+        fake = mock.MagicMock()
+        with mock.patch.object(sys, "platform", "win32"), mock.patch.dict(
+            sys.modules, {"ctypes": fake}
+        ):
+            win32.set_app_aumid()
+            fn = fake.windll.shell32.SetCurrentProcessExplicitAppUserModelID
+            fn.assert_called_once_with(win32.app_aumid())
 
 
 class PinTests(unittest.TestCase):
@@ -190,6 +202,23 @@ class RepointPinnedTests(unittest.TestCase):
 
 
 class PngToIcoTests(unittest.TestCase):
+    """เทสต์ png_to_ico แบบ pure Python (PNG-in-ICO, lossless)."""
+
+    @staticmethod
+    def _fake_png(width: int = 64, height: int = 64) -> bytes:
+        """สร้าง bytes ที่มี PNG signature + IHDR header พอให้ png_to_ico อ่านขนาดได้."""
+        sig = b"\x89PNG\r\n\x1a\n"
+        # IHDR: length=13, type="IHDR", width, height, bit_depth=8, color_type=2 (truecolor)
+        ihdr = (
+            struct.pack(">I", 13)
+            + b"IHDR"
+            + struct.pack(">II", width, height)
+            + bytes([8, 2, 0, 0, 0])
+        )
+        # CRC ปลอม (png_to_ico ไม่ได้ validate CRC)
+        crc = b"\x00\x00\x00\x00"
+        return sig + ihdr + crc
+
     def test_script_uses_system_drawing(self) -> None:
         script = win32.build_png_to_ico_ps_script("C:\\a\\b.png", "C:\\a\\b.ico")
         self.assertIn("System.Drawing", script)
@@ -197,34 +226,86 @@ class PngToIcoTests(unittest.TestCase):
         self.assertIn("b.png", script)
         self.assertIn("b.ico", script)
 
-    def test_converts_when_runner_succeeds(self) -> None:
+    def test_converts_png_in_ico(self) -> None:
+        """PNG-in-ICO: header ถูก + PNG bytes ถูกฝังตรงๆ (lossless)."""
         with tempfile.TemporaryDirectory() as tmp:
             png = Path(tmp) / "g.png"
-            png.write_bytes(b"png")
+            png_data = self._fake_png(128, 128)
+            png.write_bytes(png_data)
 
-            def fake(_cmd):
-                png.with_suffix(".ico").write_bytes(b"ico")
-                return ""
-
-            ico = win32.png_to_ico(png, runner=fake)
+            ico = win32.png_to_ico(png)
             self.assertIsNotNone(ico)
             self.assertEqual(ico.name, "g.ico")
 
-    def test_returns_none_on_failure(self) -> None:
+            raw = ico.read_bytes()
+            # ICONDIR: reserved=0, type=1 (icon), count=1
+            self.assertEqual(raw[:6], struct.pack("<HHH", 0, 1, 1))
+            # ICONDIRENTRY: width/height byte = 0 (PNG-in-ICO convention — Windows อ่านจาก PNG header)
+            self.assertEqual(raw[6], 0)
+            self.assertEqual(raw[7], 0)
+            offset = struct.unpack("<I", raw[18:22])[0]
+            self.assertEqual(offset, 22)
+            # PNG bytes ถูกฝังตรงๆ (lossless — ไม่ผ่าน System.Drawing)
+            self.assertEqual(raw[22:], png_data)
+
+    def test_size_any_writes_zero(self) -> None:
+        """ขนาดใดก็ตาม → เขียน 0 ใน ICONDIRENTRY (0 = อ่านจาก PNG header ตาม convention)."""
+        for size in (64, 128, 256, 512):
+            with tempfile.TemporaryDirectory() as tmp:
+                png = Path(tmp) / "g.png"
+                png.write_bytes(self._fake_png(size, size))
+                ico = win32.png_to_ico(png)
+                self.assertIsNotNone(ico, f"size={size}")
+                raw = ico.read_bytes()
+                self.assertEqual(raw[6], 0, f"size={size}")
+                self.assertEqual(raw[7], 0, f"size={size}")
+
+    def test_returns_none_on_invalid_png(self) -> None:
+        """ไม่ใช่ PNG จริง → None."""
         with tempfile.TemporaryDirectory() as tmp:
             png = Path(tmp) / "g.png"
-            png.write_bytes(b"png")
+            png.write_bytes(b"not a png at all")
+            self.assertIsNone(win32.png_to_ico(png))
 
-            def boom(_cmd):
-                raise win32.WindowsError("no powershell")
-
-            self.assertIsNone(win32.png_to_ico(png, runner=boom))
+    def test_returns_none_on_too_short(self) -> None:
+        """PNG สั้นเกินไป (ไม่มี IHDR) → None."""
+        with tempfile.TemporaryDirectory() as tmp:
+            png = Path(tmp) / "g.png"
+            png.write_bytes(b"\x89PNG\r\n\x1a\n")  # เหลือแค่ signature
+            self.assertIsNone(win32.png_to_ico(png))
 
     def test_skips_non_png(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             ico = Path(tmp) / "g.ico"
             ico.write_bytes(b"ico")
-            self.assertIsNone(win32.png_to_ico(ico, runner=lambda _c: ""))
+            self.assertIsNone(win32.png_to_ico(ico))
+
+    def test_reuses_existing_ico(self) -> None:
+        """มี .ico ใหม่กว่า .png แล้ว = ไม่เขียนซ้ำ."""
+        with tempfile.TemporaryDirectory() as tmp:
+            png = Path(tmp) / "g.png"
+            ico = Path(tmp) / "g.ico"
+            png.write_bytes(self._fake_png())
+            ico.write_bytes(b"existing")
+            os.utime(ico, (png.stat().st_atime + 10, png.stat().st_mtime + 10))
+
+            self.assertEqual(win32.png_to_ico(png), ico)
+            self.assertEqual(ico.read_bytes(), b"existing")
+
+    def test_converts_when_ico_is_stale(self) -> None:
+        """มี .ico เก่ากว่า .png = ต้องแปลงใหม่."""
+        with tempfile.TemporaryDirectory() as tmp:
+            png = Path(tmp) / "g.png"
+            ico = Path(tmp) / "g.ico"
+            png.write_bytes(self._fake_png())
+            ico.write_bytes(b"old")
+            os.utime(png, (ico.stat().st_atime + 10, ico.stat().st_mtime + 10))
+
+            result = win32.png_to_ico(png)
+            self.assertEqual(result, ico)
+            # ไฟล์ใหม่ต้องเป็น PNG-in-ICO ไม่ใช่ b"old"
+            self.assertNotEqual(ico.read_bytes(), b"old")
+            self.assertEqual(ico.read_bytes()[:6], struct.pack("<HHH", 0, 1, 1))
 
 
 class ComLnkTests(unittest.TestCase):
@@ -258,6 +339,32 @@ class ComLnkTests(unittest.TestCase):
             self.assertTrue(link.is_file())
             self.assertIsNone(win32.read_lnk_aumid(link))
 
+    @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
+    def test_read_icon_location_roundtrip(self) -> None:
+        """IconLocation ต้องอ่านกลับได้ — ใช้ resolve ไอคอนจริงของ .lnk."""
+        from taskbargroups.core import win32_com
+
+        with tempfile.TemporaryDirectory() as tmp:
+            link = Path(tmp) / "Game.lnk"
+            win32_com.write_lnk(
+                link,
+                r"C:\app\TaskbarNoob.exe",
+                icon_location=r"C:\app\custom.ico",
+            )
+            self.assertEqual(
+                win32_com.read_icon_location(link), (r"C:\app\custom.ico", 0)
+            )
+
+    @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
+    def test_read_icon_location_empty_is_none(self) -> None:
+        from taskbargroups.core import win32_com
+
+        with tempfile.TemporaryDirectory() as tmp:
+            link = Path(tmp) / "Plain.lnk"
+            win32_com.write_lnk(link, r"C:\app\x.exe")
+            self.assertIsNone(win32_com.read_icon_location(link))
+            self.assertIsNone(win32_com.read_icon_location(Path(tmp) / "nope.lnk"))
+
     def test_guids_are_wellformed(self) -> None:
         """กัน GUID พิมพ์ผิด (เคยพังเพราะขาดเลขฐาน 16 ไป 1 ตัว)."""
         import uuid
@@ -269,6 +376,7 @@ class ComLnkTests(unittest.TestCase):
             win32_com.IID_SHELL_LINK_W,
             win32_com.IID_PERSIST_FILE,
             win32_com.IID_PROPERTY_STORE,
+            win32_com.IID_SHELL_ITEM_IMAGE_FACTORY,
             win32_com._PKEY_AUMID_FMTID,
         ):
             uuid.UUID(value)  # จะ raise ถ้าผิดรูป
@@ -300,7 +408,9 @@ class HotkeyParseTests(unittest.TestCase):
             win32.parse_hotkey_binding("")
 
     def test_register_outside_windows_raises(self) -> None:
-        with self.assertRaises(win32.WindowsError):
+        with mock.patch.object(sys, "platform", "linux"), self.assertRaises(
+            win32.WindowsError
+        ):
             win32.register_hotkey(1, 0, 0, ord("A"))
 
 
@@ -330,6 +440,88 @@ class RegistryTests(unittest.TestCase):
             with self.assertRaises(OSError):
                 registry.register_slot("s", "G", "<Control>F5", 0)
             reg.assert_not_called()
+
+    def test_filter_spawns_center_flyout_on_wm_hotkey(self) -> None:
+        import ctypes
+        from taskbargroups.gui import win32_hotkey
+
+        registry = win32_hotkey.HotkeyRegistry()
+        with mock.patch.object(win32_hotkey, "register_hotkey"):
+            registry.register_slot("taskbargroups-game", "Game", "<Control><Alt>g", 100)
+        msg = win32_hotkey._MSG(
+            hwnd=100,
+            message=win32_hotkey.WM_HOTKEY,
+            wParam=1,
+            lParam=0,
+            time=0,
+            x=0,
+            y=0,
+        )
+        filt = win32_hotkey.WinHotkeyFilter(registry, ["TaskbarNoob.exe"])
+        with mock.patch.object(win32_hotkey.subprocess, "Popen") as popen:
+            handled, result = filt.nativeEventFilter(
+                b"windows_generic_MSG", ctypes.addressof(msg)
+            )
+        self.assertTrue(handled)
+        self.assertEqual(result, 0)
+        popen.assert_called_once_with(
+            ["TaskbarNoob.exe", "--open", "Game", "--center"],
+            start_new_session=True,
+        )
+
+
+class AppExecLinkTests(unittest.TestCase):
+    """เทสต์แกะ reparse point ของแอป MSIX/WindowsApps และการสกัดไอคอน."""
+
+    def _build_reparse(self, *strings: str, tag: int = 0x8000001B) -> bytes:
+        body = struct.pack("<I", 3) + "".join(s + "\x00" for s in strings).encode(
+            "utf-16-le"
+        )
+        return struct.pack("<IHH", tag, len(body), 0) + body
+
+    def test_parse_valid_app_exec_link(self) -> None:
+        from taskbargroups.core import win32_com
+
+        buf = self._build_reparse(
+            "Canva.Affinity_8a0j1tnjnt4a4",
+            "Canva.Affinity_8a0j1tnjnt4a4!App",
+            r"C:\Program Files\WindowsApps\Canva.Affinity\Affinity.exe",
+        )
+        self.assertEqual(
+            win32_com.parse_app_exec_link_reparse(buf),
+            (
+                "Canva.Affinity_8a0j1tnjnt4a4!App",
+                r"C:\Program Files\WindowsApps\Canva.Affinity\Affinity.exe",
+            ),
+        )
+
+    def test_parse_rejects_wrong_tag_or_short_data(self) -> None:
+        from taskbargroups.core import win32_com
+
+        self.assertIsNone(win32_com.parse_app_exec_link_reparse(b"short"))
+        bad_tag = self._build_reparse("pkg", "pkg!App", tag=0xA000000C)
+        self.assertIsNone(win32_com.parse_app_exec_link_reparse(bad_tag))
+
+    def test_shell_icon_uses_appsfolder_for_msix_alias(self) -> None:
+        from taskbargroups.core import win32_com
+        from taskbargroups.gui import icons as gui_icons
+
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_alias = Path(tmp) / "Affinity.exe"
+            fake_alias.write_bytes(b"")
+            dest = Path(tmp) / "out.png"
+            with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
+                win32_com,
+                "read_app_exec_link",
+                return_value=("Canva.Affinity_8a0j1tnjnt4a4!App", ""),
+            ), mock.patch.object(
+                gui_icons, "_appsfolder_icon_png", return_value=dest
+            ) as apps_fn:
+                result = gui_icons.extract_os_icon_png(fake_alias, dest, 256)
+            self.assertEqual(result, dest)
+            apps_fn.assert_called_once_with(
+                "Canva.Affinity_8a0j1tnjnt4a4!App", dest, 256
+            )
 
 
 if __name__ == "__main__":

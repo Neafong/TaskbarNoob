@@ -10,8 +10,10 @@
 from __future__ import annotations
 
 import os
+import struct
 import subprocess
 import sys
+import zlib
 from pathlib import Path
 from typing import Callable, Sequence
 
@@ -81,12 +83,37 @@ def launcher_id(dir_name: str) -> str:
     return lnk_name(dir_name)[: -len(".lnk")]
 
 
+def notify_icon_changed(path: str | os.PathLike[str] | None = None) -> None:
+    """แจ้ง Windows ให้รีเฟรช icon cache (SHChangeNotify).
+
+    ใช้หลังเปลี่ยน .ico/.lnk แล้ว Windows ยังโชว์ไอคอนเก่า (cache ตาม path).
+    ถ้า path ให้มา → แจ้งเฉพาะไฟล์นั้น (SHCNE_UPDATEITEM) ไม่งั้นแจ้งทั้งระบบ (SHCNE_ASSOCCHANGED).
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        SHCNE_UPDATEITEM = 0x00002000
+        SHCNE_ASSOCCHANGED = 0x08000000
+        SHCNF_PATHW = 0x0005
+        SHCNF_FLUSH = 0x1000
+        SHCNF_FLUSHNOWAIT = 0x2000
+        shell32 = ctypes.windll.shell32
+        if path:
+            shell32.SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATHW, str(path), None)
+        else:
+            shell32.SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_FLUSHNOWAIT, None, None)
+    except Exception:
+        pass
+
+
 def aumid(dir_name: str) -> str:
     """AppUserModelID เฉพาะกลุ่ม.
 
     Windows รวมปุ่มบน taskbar ตาม AUMID — ถ้าทุกกลุ่มใช้ AUMID เดียวกับตัวแอป
-    ปุ่มจะซ้อนกันเหลือปุ่มเดียว (ต้นฉบับเขียนว่า *"tricks Windows to think they are
-    from different applications even though they are from the same .exe"*)
+    ปุ่มจะซ้อนกันเหลือปุ่มเดียว
+    (ต้นฉบับเขียนว่า *"tricks Windows to think they are from different applications even though they are from the same .exe"*)
     """
     from .storage import safe_dir_name
 
@@ -137,7 +164,11 @@ def _ps_quote(value: str) -> str:
 
 
 def build_png_to_ico_ps_script(png: str | os.PathLike[str], ico: str | os.PathLike[str]) -> str:
-    """สคริปต์ PowerShell แปลง .png → .ico (System.Drawing มีใน Windows ทุกเครื่อง)."""
+    """สคริปต์ PowerShell แปลง .png → .ico (System.Drawing มีใน Windows ทุกเครื่อง).
+
+    .. deprecated:: 0.3.0
+        ใช้ :func:`png_to_ico` แทน — pure Python, lossless, ไม่ต้อง spawn PowerShell
+    """
     return (
         "Add-Type -AssemblyName System.Drawing; "
         f"$src = [System.Drawing.Image]::FromFile({_ps_quote(str(png))}); "
@@ -152,18 +183,264 @@ def build_png_to_ico_ps_script(png: str | os.PathLike[str], ico: str | os.PathLi
     )
 
 
-def png_to_ico(
-    png: str | os.PathLike[str],
-    runner: Runner = _run,
-) -> Path | None:
-    """แปลง .png → .ico (คืน path .ico หรือ None ถ้าแปลงไม่ได้)."""
+def _png_decode(png: bytes) -> tuple[int, int, bytearray] | None:
+    """ถอดรหัส PNG (RGBA8/RGB8/GA8/Gray8, no interlace) → (w, h, pixels RGBA). คืน None ถ้าไม่รองรับ."""
+    if not png or png[:8] != b"\x89PNG\r\n\x1a\n":
+        return None
+    pos = 8
+    w = h = 0
+    bit_depth = color_type = 0
+    idat = bytearray()
+    while pos < len(png):
+        if pos + 12 > len(png):
+            return None
+        length = struct.unpack(">I", png[pos:pos + 4])[0]
+        chunk = png[pos + 4:pos + 8]
+        data = png[pos + 8:pos + 8 + length]
+        if chunk == b"IHDR":
+            w, h, bit_depth, color_type, comp, filt, inter = struct.unpack(
+                ">IIBBBBB", data[:13]
+            )
+            if bit_depth != 8 or inter != 0:
+                return None
+            if color_type not in (2, 6, 4, 0):
+                return None
+        elif chunk == b"IDAT":
+            idat.extend(data)
+        elif chunk == b"IEND":
+            break
+        pos += 12 + length
+    if w <= 0 or h <= 0 or not idat:
+        return None
+    try:
+        raw = zlib.decompress(bytes(idat))
+    except zlib.error:
+        return None
+    if color_type == 6:
+        channels = 4
+    elif color_type == 2:
+        channels = 3
+    elif color_type == 4:
+        channels = 2
+    else:
+        channels = 1
+    stride = w * channels
+    pixels = bytearray(w * h * 4)
+    prev_row = bytearray(stride)
+    row_size = stride + 1
+    for y in range(h):
+        if y * row_size + row_size > len(raw):
+            return None
+        filt = raw[y * row_size]
+        row = bytearray(raw[y * row_size + 1:y * row_size + 1 + stride])
+        for x in range(stride):
+            left = row[x - channels] if x >= channels else 0
+            above = prev_row[x]
+            above_left = prev_row[x - channels] if x >= channels else 0
+            if filt == 0:
+                pass
+            elif filt == 1:
+                row[x] = (row[x] + left) & 0xFF
+            elif filt == 2:
+                row[x] = (row[x] + above) & 0xFF
+            elif filt == 3:
+                row[x] = (row[x] + ((left + above) // 2)) & 0xFF
+            elif filt == 4:
+                p = left + above - above_left
+                pa = abs(p - left)
+                pb = abs(p - above)
+                pc = abs(p - above_left)
+                if pa <= pb and pa <= pc:
+                    predictor = left
+                elif pb <= pc:
+                    predictor = above
+                else:
+                    predictor = above_left
+                row[x] = (row[x] + predictor) & 0xFF
+            else:
+                return None
+        for x in range(w):
+            base = x * channels
+            out_base = (y * w + x) * 4
+            if channels == 4:
+                pixels[out_base:out_base + 4] = row[base:base + 4]
+            elif channels == 3:
+                pixels[out_base] = row[base]
+                pixels[out_base + 1] = row[base + 1]
+                pixels[out_base + 2] = row[base + 2]
+                pixels[out_base + 3] = 255
+            elif channels == 2:
+                pixels[out_base] = row[base]
+                pixels[out_base + 1] = row[base]
+                pixels[out_base + 2] = row[base]
+                pixels[out_base + 3] = row[base + 1]
+            else:
+                v = row[base]
+                pixels[out_base] = v
+                pixels[out_base + 1] = v
+                pixels[out_base + 2] = v
+                pixels[out_base + 3] = 255
+        prev_row = row
+    return w, h, pixels
+
+
+def _png_encode(w: int, h: int, pixels: bytearray) -> bytes:
+    """เข้ารหัส RGBA pixels → PNG bytes."""
+    ihdr = struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)
+    raw = bytearray()
+    stride = w * 4
+    for y in range(h):
+        raw.append(0)
+        raw.extend(pixels[y * stride:(y + 1) * stride])
+    compressed = zlib.compress(bytes(raw), 9)
+    out = b"\x89PNG\r\n\x1a\n"
+    out += struct.pack(">I", 13) + b"IHDR" + ihdr
+    out += struct.pack(">I", zlib.crc32(b"IHDR" + ihdr) & 0xFFFFFFFF)
+    out += struct.pack(">I", len(compressed)) + b"IDAT" + compressed
+    out += struct.pack(">I", zlib.crc32(b"IDAT" + compressed) & 0xFFFFFFFF)
+    out += struct.pack(">I", 0) + b"IEND"
+    out += struct.pack(">I", zlib.crc32(b"IEND") & 0xFFFFFFFF)
+    return out
+
+
+def _resize_rgba(
+    pixels: bytearray, src_w: int, src_h: int, dst_w: int, dst_h: int
+) -> bytearray:
+    """ย่อ/ขยาย RGBA pixels ด้วย bilinear interpolation."""
+    if src_w == dst_w and src_h == dst_h:
+        return bytearray(pixels)
+    result = bytearray(dst_w * dst_h * 4)
+    x_ratio = src_w / dst_w
+    y_ratio = src_h / dst_h
+    for dy in range(dst_h):
+        for dx in range(dst_w):
+            src_x = (dx + 0.5) * x_ratio - 0.5
+            src_y = (dy + 0.5) * y_ratio - 0.5
+            x0 = max(0, int(src_x))
+            y0 = max(0, int(src_y))
+            x1 = min(src_w - 1, x0 + 1)
+            y1 = min(src_h - 1, y0 + 1)
+            fx = src_x - x0
+            fy = src_y - y0
+            if fx < 0:
+                fx = 0
+            if fy < 0:
+                fy = 0
+            for c in range(4):
+                v00 = pixels[(y0 * src_w + x0) * 4 + c]
+                v10 = pixels[(y0 * src_w + x1) * 4 + c]
+                v01 = pixels[(y1 * src_w + x0) * 4 + c]
+                v11 = pixels[(y1 * src_w + x1) * 4 + c]
+                val = (
+                    v00 * (1 - fx) * (1 - fy)
+                    + v10 * fx * (1 - fy)
+                    + v01 * (1 - fx) * fy
+                    + v11 * fx * fy
+                )
+                result[(dy * dst_w + dx) * 4 + c] = int(val + 0.5)
+    return result
+
+
+def _resize_png(png_bytes: bytes, target_size: int) -> bytes | None:
+    """ย่อ PNG เป็นขนาด target_size x target_size ด้วย bilinear. คืน PNG bytes หรือ None."""
+    decoded = _png_decode(png_bytes)
+    if decoded is None:
+        return None
+    src_w, src_h, pixels = decoded
+    if src_w == target_size and src_h == target_size:
+        return png_bytes
+    resized = _resize_rgba(pixels, src_w, src_h, target_size, target_size)
+    return _png_encode(target_size, target_size, resized)
+
+
+def png_to_ico(png: str | os.PathLike[str]) -> Path | None:
+    """แปลง .png → .ico (multi-resolution, lossless).
+
+    สร้าง .ico ที่มีหลายขนาด (16, 24, 32, 48, 64, 128, 256) โดยย่อ
+    ต้นฉบับด้วย bilinear interpolation แล้วฝังเป็น PNG-in-ICO (lossless)
+    ไม่ผ่าน GDI HICON → ไม่มี palette quantization
+
+    ถ้าถอดรหัส PNG ไม่ได้ (เช่น ไฟล์ทดสอบ) → fallback เป็น single-res (ฝังต้นฉบับตรงๆ)
+    """
     src = Path(png)
     if not src.is_file() or src.suffix.lower() != ".png":
         return None
     ico = src.with_suffix(".ico")
+    if ico.is_file():
+        try:
+            if ico.stat().st_mtime >= src.stat().st_mtime:
+                return ico
+        except OSError:
+            pass
     try:
-        runner(lnk_command(build_png_to_ico_ps_script(src, ico)))
-    except WindowsError:
+        data = src.read_bytes()
+        if len(data) < 24 or data[:8] != b"\x89PNG\r\n\x1a\n":
+            return None  # ไม่ใช่ PNG จริง
+        width = struct.unpack(">I", data[16:20])[0]
+        height = struct.unpack(">I", data[20:24])[0]
+        if width == 0 or height == 0:
+            return None
+
+        # ขนาดมาตรฐานที่ Windows taskbar/Explorer ใช้
+        ICO_SIZES = (16, 24, 32, 48, 64, 128, 256)
+        # สร้าง PNG สำหรับแต่ละขนาด (ย่อถ้าจำเป็น)
+        entries: list[bytes] = []
+        max_side = max(width, height)
+        for side in ICO_SIZES:
+            if side > max_side:
+                continue  # ไม่ขยาย (ป้องกัน upscale ที่ทำให้เบลอ)
+            if side == width and side == height:
+                entries.append((side, side, data))
+            else:
+                resized = _resize_png(data, side)
+                if resized is not None:
+                    entries.append((side, side, resized))
+                else:
+                    # ถอดรหัสไม่ได้ → ใช้ต้นฉบับ (single fallback)
+                    entries.append((side, side, data))
+        decoded = _png_decode(data)
+
+        if decoded is None:
+            # ถอดรหัสไม่ได้ (เช่น ไฟล์ทดสอบ) → single-res ฝังต้นฉบับตรงๆ (backward compat)
+            # width/height byte = 0 (256 convention) เหมือนโค้ดเดิม
+            header = struct.pack("<HHH", 0, 1, 1)
+            entry = struct.pack(
+                "<BBBBHHII",
+                0, 0, 0, 0, 1, 32, len(data), 22,
+            )
+            ico.write_bytes(header + entry + data)
+            return ico if ico.is_file() else None
+
+        # ถ้ามี entry เดียวและเป็นต้นฉบับ → single-res (backward compat)
+        # สร้าง ICO
+        # คำนวณ offset
+        header_size = 6
+        entry_size = 16
+        num = len(entries)
+        offset = header_size + num * entry_size
+        # สร้าง header
+        ico_data = struct.pack("<HHH", 0, 1, num)
+        # สร้าง entries
+        image_blobs: list[bytes] = []
+        for w, h, png_bytes in entries:
+            entry = struct.pack(
+                "<BBBBHHII",
+                0 if w >= 256 else w,  # width byte (0 = 256)
+                0 if h >= 256 else h,  # height byte (0 = 256)
+                0,  # color count
+                0,  # reserved
+                1,  # planes
+                32,  # bit count
+                len(png_bytes),  # size
+                offset,  # offset
+            )
+            ico_data += entry
+            image_blobs.append(png_bytes)
+            offset += len(png_bytes)
+        for blob in image_blobs:
+            ico_data += blob
+        ico.write_bytes(ico_data)
+    except OSError:
         return None
     return ico if ico.is_file() else None
 
@@ -288,10 +565,57 @@ def repoint_pinned(old_dir_name: str, new_lnk: Path) -> bool:
             import shutil
 
             shutil.copy2(new_lnk, path)
+            notify_icon_changed(path)
             return True
         except OSError:
             continue
     return False
+
+
+def repoint_desktop_copies(old_dir_name: str, new_lnk: Path) -> int:
+    """อัปเดต `.lnk` ที่ผู้ใช้ลากไปวางบน Desktop ให้ใช้ `.lnk` ใหม่ (มีไอคอนใหม่).
+
+    Windows ก๊อปไฟล์ตอนลากวาง → สำเนาบน Desktop ยังชี้ไอคอนเก่า · เราสร้าง pin ใหม่
+    ไม่ได้ แต่เขียนทับไฟล์ของเดิมได้ — คืนจำนวนไฟล์ที่อัปเดต.
+    """
+    old_value = aumid(old_dir_name)
+    desktop = _home() / "Desktop"
+    try:
+        candidates = list(desktop.glob("*.lnk"))
+    except OSError:
+        return 0
+    updated = 0
+    import shutil
+
+    for path in candidates:
+        if not path.is_file():
+            continue
+        try:
+            if (read_lnk_aumid(path) or "") != old_value:
+                continue
+            shutil.copy2(new_lnk, path)
+            notify_icon_changed(path)
+            updated += 1
+        except OSError:
+            continue
+    return updated
+
+
+def app_aumid() -> str:
+    """AppUserModelID กลางของหน้าต่างหลัก (แยกจากกลุ่ม ไม่ให้ไปสิงปุ่ม .lnk)."""
+    return f"{APP_ID}.app"
+
+
+def set_app_aumid() -> None:
+    """ตั้ง AUMID ของโปรเซสหน้าต่างหลัก (ต้องเรียกก่อนเปิดหน้าต่างแรก)."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_aumid())
+    except (OSError, AttributeError):
+        pass
 
 
 def set_process_aumid(dir_name: str) -> None:
@@ -326,6 +650,23 @@ def is_pinned(
     return pinned_lnk_path(dir_name, env, home).is_file()
 
 
+def _reveal_fire_and_forget(command: str) -> str:
+    """เปิด Explorer แบบไม่รอ — `explorer /select,"path"` ส่งคำขอให้ process เดิมแล้วจบ
+
+    ถ้าใช้ `subprocess.run(capture_output=True)` จะรอ EOF ของ handle ที่ explorer
+    process หลักถือไว้ (มันมีชีวิตถาวร) → ค้างหลายวินาที. เราไม่ต้องการ output จึงทิ้ง pipe
+    """
+    try:
+        subprocess.Popen(
+            command,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError as exc:
+        raise WindowsError(str(exc)) from exc
+    return ""
+
+
 def reveal_in_explorer(
     path: str | os.PathLike[str],
     runner: Runner | None = None,
@@ -333,12 +674,12 @@ def reveal_in_explorer(
     """เปิด Explorer โดยเลือกไฟล์ไว้ (ให้ผู้ใช้ลากไปวางบน taskbar ได้เลย).
 
     ต้องส่งเป็น string เดี่ยว ไม่ใช่ list — เพราะ `explorer /select,"path with spaces"`
-    ต้องการ quote ติดกับพาธ ถ้าเป็น list Python จะ escape quote ให้แล้ว Explorer อ่านไม่ออก
+    ต้องการ quote ติดกับพาธ ถ้าเป็น list Python จะ escape quote ให้แล้ว Explorer อ่านไม้ออก
     (path ที่มีช่องว่างเช่น ...\\My Tools\\... จะพัดไปเปิดโฟลเดอร์ Documents แทน)
     """
     target = os.path.normpath(str(path))
     try:
-        (runner or _run_lenient)(f'explorer /select,"{target}"')
+        (runner or _reveal_fire_and_forget)(f'explorer /select,"{target}"')
     except OSError as exc:
         raise WindowsError(str(exc)) from exc
 
@@ -428,7 +769,18 @@ def register_hotkey(hotkey_id: int, hwnd: int, modifiers: int, vk: int) -> None:
     if sys.platform != "win32":
         raise WindowsError("ฟังก์ชันนี้ใช้ได้บน Windows เท่านั้น")
     try:
-        ok = _user32().RegisterHotKey(hwnd, hotkey_id, modifiers, vk)
+        import ctypes
+        from ctypes import wintypes
+
+        user32 = _user32()
+        user32.RegisterHotKey.argtypes = [
+            wintypes.HWND,
+            ctypes.c_int,
+            wintypes.UINT,
+            wintypes.UINT,
+        ]
+        user32.RegisterHotKey.restype = wintypes.BOOL
+        ok = user32.RegisterHotKey(hwnd, hotkey_id, modifiers, vk)
     except OSError as exc:
         raise WindowsError(str(exc)) from exc
     if not ok:
@@ -439,6 +791,12 @@ def unregister_hotkey(hotkey_id: int, hwnd: int) -> None:
     if sys.platform != "win32":
         return
     try:
-        _user32().UnregisterHotKey(hwnd, hotkey_id)
+        import ctypes
+        from ctypes import wintypes
+
+        user32 = _user32()
+        user32.UnregisterHotKey.argtypes = [wintypes.HWND, ctypes.c_int]
+        user32.UnregisterHotKey.restype = wintypes.BOOL
+        user32.UnregisterHotKey(hwnd, hotkey_id)
     except OSError:
         pass

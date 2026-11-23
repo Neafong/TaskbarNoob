@@ -4,21 +4,18 @@
 [Semantic Versioning](https://semver.org/lang/th/).
 ข้อมูลการออกรุ่น: ขั้นตอนใน [`docs/release-process.md`](docs/release-process.md)
 
-## [0.2.0] — 2026-10-17
+## [0.2.0] — 2026-11-23
 
-รุ่นปรับปรุงใหญ่: "กระเป๋าใส่ได้ทุกอย่าง" + UI polish + พอร์ตข้าม OS (alpha)
+รุ่นปรับปรุงใหญ่: "กระเป๋าใส่ได้ทุกอย่าง" + UI polish + รองรับ Windows 11 (portable)
 · **Linux Mint (Cinnamon)** = รองรับหลัก (ทดสอบแล้ว)
-· **Windows** = portable alpha (โค้ดพร้อม · กำลังทดสอบบนเครื่องจริง)
-· **macOS** = มีโค้ดรองรับแต่ยังไม่ทดสอบ (ทีมไม่มีเครื่อง Mac)
+· **Windows 11** = portable `TaskbarNoob.exe` (ทดสอบใช้งานจริงแล้ว — ลาก `.lnk` วางบน taskbar เองตามข้อจำกัด Win11)
+· **macOS** = พับเก็บไว้ก่อนใน `v0.3.0` (รอมีเครื่องจริงสำหรับพัฒนาและทดสอบ)
 
 ### Added
 
 - **กระเป๋าใส่ได้ทุกอย่าง** — launcher แบบ type-aware เปิด target ได้หลายชนิด (แอป · โฟลเดอร์ · ไฟล์ · URL)
 - **flyout คลิกขวาเปิดที่อยู่** — เปิดตำแหน่งโฟลเดอร์ที่มีไฟล์นั้น (ทุก OS)
-- **พอร์ตข้าม OS (alpha)** — **Windows**: launcher `.lnk` ผ่าน PowerShell · ปัก taskbar
-  · global hotkey (`RegisterHotKey` จำใน settings) · ไอคอน `.exe/.lnk` ผ่าน Qt
-  · สคริปต์ `packaging/build_windows.ps1` · แผน/เช็กลิสต์เทสต์ `docs/windows-plan.md`
-  · **macOS** (ยังไม่ทดสอบ): launcher `.command` + ปัก Dock (best-effort)
+- **รองรับ Windows 11 (portable)** — `.lnk` ผ่าน COM `IShellLinkW` + `IPropertyStore` (แยก AUMID ต่อกลุ่ม + แยก `app_aumid()` สำหรับหน้าต่างหลักไม่ให้รวมปุ่ม) · multi-res `.ico` (16–256px) · global hotkey (`RegisterHotKey` + `AllowSetForegroundWindow` + ย้ายคีย์ตามเมื่อเปลี่ยนชื่อกลุ่ม) · ดึงไอคอนความละเอียดสูงไร้ลูกศร (`SHDefExtractIconW`) · ดึงไอคอนแอป MSIX/WindowsApps อัตโนมัติ (`IO_REPARSE_TAG_APPEXECLINK` + `IShellItemImageFactory`) · ตัวเลือกไอคอนระบบ 2 แหล่ง (`imageres.dll` / `shell32.dll` + แอป Start Menu กรอง Uninstall ออก) · Flyout เงาตามมุมโค้งไร้ขอบสี่เหลี่ยม (`Qt.NoDropShadowWindowHint` + `QGraphicsDropShadowEffect`) · สคริปต์ `packaging/build_windows.ps1`
 - **ชื่อใต้ไอคอน** — เปิด/ปิดได้ต่อกลุ่ม (ค่าเริ่มต้นระดับแอป · ปิดไว้ตั้งต้น) · เปิดแล้วปุ่มกว้างตามชื่อ
 - **โหมดโฟกัส (เปิดด้วย hotkey)** — flyout กลางจอ ไอคอนใหญ่ขึ้น · ขยายได้ 1.0–3.0x ต่อกลุ่ม (ค่าเริ่มต้น 2.0x)
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QMessageBox, QPushButton, QWidget
 
@@ -33,8 +34,12 @@ def show_warning(parent: QWidget | None, title: str, text: str) -> int:
     return style_message_box(box).exec()
 
 
-def show_information(parent: QWidget | None, title: str, text: str) -> int:
+def show_information(
+    parent: QWidget | None, title: str, text: str, rich: bool = False
+) -> int:
     box = QMessageBox(QMessageBox.Information, title, text, QMessageBox.Ok, parent)
+    if rich:
+        box.setTextFormat(Qt.TextFormat.RichText)
     return style_message_box(box).exec()
 
 

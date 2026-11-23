@@ -98,6 +98,11 @@ class WinHotkeyFilter(QAbstractNativeEventFilter):
         if dir_name is None:
             return False, 0
         try:
+            try:
+                # โอนสิทธิ์ foreground จากโปรเซสที่รับ WM_HOTKEY ให้ flyout โปรเซสลูก
+                ctypes.windll.user32.AllowSetForegroundWindow(-1)
+            except Exception:
+                pass
             subprocess.Popen(
                 [*self._exe_args, "--open", dir_name, "--center"],
                 start_new_session=True,

@@ -1,5 +1,6 @@
 import os
 import stat
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -20,6 +21,7 @@ class ArgumentTests(unittest.TestCase):
         self.assertEqual(_split_arguments(""), [])
         self.assertEqual(_split_arguments("   "), [])
 
+    @unittest.skipUnless(sys.platform == "linux", "Linux-only")
     def test_quoted(self) -> None:
         self.assertEqual(
             _split_arguments('--name "my app" --x'),
@@ -34,6 +36,7 @@ class CwdTests(unittest.TestCase):
     def test_missing_dir(self) -> None:
         self.assertIsNone(_resolve_cwd("/no/such/dir/xyz"))
 
+    @unittest.skipUnless(sys.platform == "linux", "Linux-only")
     def test_existing_dir(self) -> None:
         self.assertEqual(_resolve_cwd("/tmp"), "/tmp")
 
@@ -44,6 +47,7 @@ class LaunchTests(unittest.TestCase):
             launch(Shortcut(name="x", target="   "))
 
 
+@unittest.skipUnless(sys.platform == "linux", "Linux-only")
 class LaunchLinuxDispatchTests(unittest.TestCase):
     """ไฟล์ที่รันได้ต้องรันตรง ห้ามผ่าน `gio open` (กันบั๊ก v0.2-C).
 

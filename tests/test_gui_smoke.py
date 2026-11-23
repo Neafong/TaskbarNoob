@@ -194,6 +194,7 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertEqual(len(editor._group.items), 1)
         self.assertEqual(editor._group.items[0].name, "tool")
 
+    @unittest.skipUnless(sys.platform == "linux", "Linux-only")
     def test_main_window_marks_pinned_rows(self) -> None:
         from unittest import mock
 
@@ -207,6 +208,7 @@ class GuiSmokeTests(unittest.TestCase):
             window = MainWindow(store=self.store)
         self.assertTrue(window.list.item(0).data(PINNED_ROLE))
 
+    @unittest.skipUnless(sys.platform == "linux", "Linux-only")
     def test_refresh_pinned_icon_regenerates_launcher(self) -> None:
         from unittest import mock
 
@@ -257,6 +259,38 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertTrue(theme_icon.is_file())
         reload_mock.assert_called_once()
 
+    @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
+    def test_folder_button_rewrites_stale_lnk(self) -> None:
+        """ปุ่มโฟลเดอร์ต้อง (re)สร้าง `.lnk` แม้มีของอยู่แล้ว — ไม่งั้นไอคอนที่เพิ่ง
+        เปลี่ยนไม่อัพเดท จนผู้ใช้ต้องมานั่งลบไฟล์เอง."""
+        from unittest import mock
+
+        from taskbargroups.core import win32 as core_win32
+        from taskbargroups.gui import main_window
+        from taskbargroups.gui.main_window import MainWindow
+
+        self.store.save_group(Group(name="G"))
+        group = self.store.load_group("G")
+        window = MainWindow(store=self.store)
+        lnk = core_win32.shortcuts_dir() / core_win32.lnk_name("G")
+
+        with mock.patch.object(core_win32, "reveal_in_explorer") as reveal, mock.patch.object(
+            main_window, "show_information"
+        ), mock.patch.object(
+            core_win32,
+            "png_to_ico",
+            side_effect=lambda src, **_kw: Path(src).with_suffix(".ico"),
+        ):
+            window._reveal_launcher_dir(group, "G")
+            self.assertTrue(lnk.is_file())
+            with mock.patch.object(
+                MainWindow, "_install_launcher", wraps=window._install_launcher
+            ) as install:
+                window._reveal_launcher_dir(group, "G")
+                # ของเดิมมีอยู่แล้วแต่ต้องสร้างใหม่ (รอบ #21 เคย fast-path ข้ามไป → ไอคอนค้าง)
+                install.assert_called_once()
+        reveal.assert_called()
+
     def test_refresh_pinned_icon_skips_when_not_pinned(self) -> None:
         from unittest import mock
 
@@ -278,6 +312,7 @@ class GuiSmokeTests(unittest.TestCase):
 
         self.assertEqual(reload_mock.call_count, 0)
 
+    @unittest.skipUnless(sys.platform == "linux", "Linux-only")
     def test_sync_pinned_launchers_heals_absolute_icon(self) -> None:
         from unittest import mock
 
@@ -715,6 +750,7 @@ class GuiSmokeTests(unittest.TestCase):
             )
         )
 
+    @unittest.skipUnless(sys.platform == "linux", "Linux-only")
     def test_delete_pinned_group_removes_launcher_and_unpins(self) -> None:
         from unittest import mock
 
@@ -757,6 +793,7 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertTrue(reload_mock.called)
         self.assertEqual(self.store.list_groups(), [])
 
+    @unittest.skipUnless(sys.platform == "linux", "Linux-only")
     def test_rename_pinned_group_migrates_launcher(self) -> None:
         from unittest import mock
 
@@ -1074,6 +1111,34 @@ class FolderIconAssetTests(unittest.TestCase):
         path = button_icons._assets_dir() / "folder-fill.svg"
         self.assertTrue(path.is_file(), f"ไม่พบ {path}")
         self.assertIn("viewBox", path.read_text(encoding="utf-8"))
+
+    def test_rename_group_migrates_win_hotkey(self) -> None:
+        """เปลี่ยนชื่อกลุ่มบน Windows → hotkey ต้องย้ายตามไปชื่อใหม่."""
+        from taskbargroups.core.hotkeys import hotkey_slot
+        from taskbargroups.core.settings import Settings
+        from taskbargroups.gui import win32_hotkey
+        from taskbargroups.gui.main_window import MainWindow
+
+        with tempfile.TemporaryDirectory() as tmp:
+            store = ConfigStore(tmp)
+            store.save_group(Group(name="Old"))
+            settings = Settings(store.config_dir)
+            settings.set_hotkey(hotkey_slot("Old"), "<Control><Alt>g")
+            with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
+                win32_hotkey, "register_hotkey"
+            ), mock.patch.object(win32_hotkey, "unregister_hotkey"):
+                win32_hotkey.registry.register_slot(
+                    hotkey_slot("Old"), "Old", "<Control><Alt>g", 1
+                )
+                window = MainWindow(store=store)
+                window._migrate_win_hotkey("Old", "New")
+            self.assertNotIn(hotkey_slot("Old"), settings.get_hotkeys())
+            self.assertEqual(
+                settings.get_hotkeys().get(hotkey_slot("New")), "<Control><Alt>g"
+            )
+            self.assertEqual(
+                win32_hotkey.registry.slots().get(hotkey_slot("New")), "New"
+            )
 
 
 if __name__ == "__main__":

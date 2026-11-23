@@ -18,28 +18,35 @@ from .panel import PinError, Runner, _run
 from .panel import is_cinnamon
 
 
-def _win_pinned_aumids() -> set[str]:
-    """AUMID ของ `.lnk` ใน User Pinned ที่เป็นของเรา.
+def pinned_aumid_files(
+    env: dict | None = None, home: Path | None = None
+) -> dict[str, str]:
+    """สแกน User Pinned ครั้งเดียว → {aumid: ชื่อไฟล์} (เฉพาะที่เป็นของเรา).
 
     Windows เป็นคนเขียนไฟล์พวกนี้ตอนผู้ใช้ลากวาง และ**เปลี่ยนชื่อให้เองได้**
     (เช่นชนกับ `.lnk` ของแอปอื่น → `Game.lnk` กลายเป็น `Game (2).lnk`)
     จึงระบุตัวตนจาก AUMID อย่างเดียว อย่าเชื่อชื่อไฟล์
     """
     try:
-        directory = _win32.taskbar_pinned_dir()
+        directory = _win32.taskbar_pinned_dir(env, home)
     except OSError:
-        return set()
-    found: set[str] = set()
+        return {}
+    found: dict[str, str] = {}
     try:
         for path in directory.glob("*.lnk"):
             if not path.is_file():
                 continue
             value = _win32.read_lnk_aumid(path) or ""
             if value.startswith(f"{_win32.APP_ID}.group."):
-                found.add(value)
+                found[value] = path.name
     except OSError:
-        return set()
+        return {}
     return found
+
+
+def _win_pinned_aumids() -> set[str]:
+    """AUMID ของ `.lnk` ใน User Pinned ที่เป็นของเรา."""
+    return set(pinned_aumid_files())
 
 
 def pinned_desktop_ids(
@@ -47,7 +54,7 @@ def pinned_desktop_ids(
 ) -> set[str]:
     """id launcher ทั้งหมดที่ปักอยู่ (ชื่อไฟล์ .desktop/.lnk/.command)."""
     if sys.platform == "win32":
-        pinned = _win_pinned_aumids()
+        pinned = set(pinned_aumid_files())
         if not pinned:
             return set()
         from .storage import ConfigStore
@@ -149,7 +156,10 @@ def unpin_from_panel(
 
 
 def stale_pin_label(
-    dir_name: str, env: dict | None = None, home: Path | None = None
+    dir_name: str,
+    env: dict | None = None,
+    home: Path | None = None,
+    pinned: dict[str, str] | None = None,
 ) -> bool:
     """True เมื่อปุ่มบน taskbar ยังโชว์ชื่อเก่าหลังผู้ใช้เปลี่ยนชื่อกลุ่ม
 
@@ -157,18 +167,19 @@ def stale_pin_label(
     และ**ลบไฟล์ทิ้งทันที** ถ้าเรา rename ให้ → ป้ายจึงแก้ไม่ได้
     (เนื้อในไฟล์แก้ได้ เรา repoint ให้อยู่แล้ว → กดแล้วเปิดกลุ่มถูกต้อง)
     ทางแก้คือถอนแล้วลากวางใหม่
+
+    ส่ง `pinned` (ผลจาก `pinned_aumid_files`) มาได้เพื่อเลี่ยงสแกนซ้ำต่อกลุ่ม
     """
     if sys.platform != "win32":
         return False
     try:
-        directory = _win32.taskbar_pinned_dir(env, home)
-        value = _win32.aumid(dir_name)
-        for path in directory.glob("*.lnk"):
-            if path.is_file() and (_win32.read_lnk_aumid(path) or "") == value:
-                return path.name != _win32.lnk_name(dir_name)
+        files = pinned if pinned is not None else pinned_aumid_files(env, home)
     except OSError:
         return False
-    return False
+    filename = files.get(_win32.aumid(dir_name))
+    if filename is None:
+        return False
+    return filename != _win32.lnk_name(dir_name)
 
 
 def available_actions() -> Sequence[str]:

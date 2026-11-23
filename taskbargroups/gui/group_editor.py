@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
+import sys
 import tempfile
 from pathlib import Path
+from typing import Iterable
 
 from PySide6.QtCore import QFileInfo, QPoint, QRect, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QIcon, QPainter, QPalette, QPen, QPixmap
@@ -49,10 +52,15 @@ from taskbargroups.core.settings import Settings
 from taskbargroups.core.storage import ConfigStore
 from .button_icons import themed_icon
 from .dialogs import show_information, show_warning
+from .icons import (
+    _from_file,
+    extract_dll_icon_png,
+    extract_os_icon_png,
+    list_dll_icons,
+)
 from .theme import app_color, app_text_color
 
 _FALLBACK_GRID_ICON = "application-x-executable"
-_file_icon_provider = QFileIconProvider()
 
 # ขนาดพรีวิวไอคอนกลุ่ม (คงที่ — ไม่ตามสไลเดอร์ขนาดไอคอน)
 _GROUP_ICON_PREVIEW = 32
@@ -68,6 +76,12 @@ def _normalize_hex(value: str) -> str:
 _ICON_SUFFIXES = {".png", ".svg", ".xpm", ".jpg", ".jpeg"}
 _ICON_SCAN_LIMIT = 4000
 _ICON_DISPLAY_LIMIT = 1000
+
+# นามสกุลที่ OS (Windows) เก็บไอคอนไว้ในไฟล์เอง — ดึงผ่าน QFileIconProvider
+_PROVIDER_ICON_SUFFIXES = frozenset(
+    {".exe", ".lnk", ".bat", ".cmd", ".msc", ".cpl", ".scr", ".url"}
+)
+_PROVIDER_ICON_CACHE_DIRNAME = "provider-icons-v3"
 
 _ITEM_BUTTON_ICONS = {
     "add": ("plus-fill.svg",),
@@ -101,18 +115,125 @@ def _style_dialog_buttons(box: QDialogButtonBox) -> None:
             cancel_button.setIcon(icon)
 
 
+def _provider_png(source: Path, dest: Path, size: int = 256) -> Path | None:
+    """สกัดไอคอนที่ฝังในไฟล์ของ OS (.exe/.lnk/.dll) ออกมาเป็น PNG.
+
+    ใช้ shell API บน Windows (ความละเอียดสูง ไม่มีลูกศร shortcut) — คืน path
+    PNG ที่บันทึกสำเร็จ หรือ None ถ้าดึงไม่ได้.
+    """
+    return extract_os_icon_png(source, dest, size)
+
+
+def _cached_provider_png(source: Path, base: Path, size: int = 256) -> Path | None:
+    """สกัดไอคอนจากไฟล์ OS แล้วแคชเป็น PNG (ข้ามถ้าแคชยังใหม่กว่าไฟล์ต้นทาง)."""
+    try:
+        mtime = source.stat().st_mtime
+    except OSError:
+        return None
+    digest = hashlib.sha1(
+        f"{source}|{int(mtime)}".encode("utf-8")
+    ).hexdigest()[:16]
+    dest = base / f"{digest}.png"
+    if dest.is_file():
+        try:
+            if dest.stat().st_mtime >= mtime:
+                return dest
+        except OSError:
+            pass
+    return _provider_png(source, dest, size)
+
+
+def _windows_shortcut_dirs() -> list[Path]:
+    """โฟลเดอร์ Start Menu ของผู้ใช้ + ทั้งเครื่อง (Windows)."""
+    dirs: list[Path] = []
+    for env_name in ("ProgramData", "APPDATA"):
+        root = os.environ.get(env_name)
+        if not root:
+            continue
+        dirs.append(
+            Path(root) / "Microsoft" / "Windows" / "Start Menu" / "Programs"
+        )
+    out: list[Path] = []
+    for d in dirs:
+        try:
+            if d.is_dir():
+                out.append(d)
+        except OSError:
+            continue
+    return out
+
+
+def _iter_windows_shortcuts(dirs: Iterable[Path]):
+    """เดินหาไฟล์ .lnk ทุกไฟล์ในโฟลเดอร์ Start Menu (ไม่รวมตัวโมดูลเองซ้ำ)."""
+    seen: set[str] = set()
+    for base in dirs:
+        try:
+            entries = sorted(base.rglob("*.lnk"))
+        except OSError:
+            continue
+        for path in entries:
+            key = path.name.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            yield path
+
+
+_NOISE_SHORTCUT_WORDS = (
+    "uninstall",
+    "remove ",
+    "readme",
+    "manual",
+    "license",
+    "release notes",
+    "ถอนการติดตั้ง",
+    "คู่มือ",
+)
+
+
+def _is_noise_shortcut(name: str) -> bool:
+    """กรองทางลัดที่ไม่ใช่ตัวแอปจริง (เช่น Uninstall, Readme, Manual)."""
+    low = name.strip().lower()
+    if not low:
+        return True
+    if any(word in low for word in _NOISE_SHORTCUT_WORDS):
+        return True
+    return low.endswith((" help", " docs", " documentation"))
+
+
+def _windows_system_icon_dlls() -> list[Path]:
+    """ไฟล์ DLL ไอคอนระบบมาตรฐานของ Windows (imageres.dll, shell32.dll)."""
+    sys32 = Path(os.environ.get("SystemRoot") or r"C:\Windows") / "System32"
+    return [
+        p
+        for name in ("imageres.dll", "shell32.dll")
+        if (p := sys32 / name).is_file()
+    ]
+
 
 class _SystemIconDialog(QDialog):
     """สังเกรายชื่อไอคอนจากชุดธีมของระบบ แล้วให้เลือก/ค้นหาไอคอนได้."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, parent: QWidget | None = None, cache_dir: Path | None = None
+    ) -> None:
         super().__init__(parent)
         self.setWindowTitle(tr("system_icon.title"))
         self.resize(560, 480)
         self._path: str | None = None
         self._names: dict[str, str] = {}
+        self._dll_entries: list[tuple[str, Path, int, QIcon]] = []
+        self._apps_scanned = False
+        self._cache_dir = cache_dir
 
         layout = QVBoxLayout(self)
+        self.source_combo: QComboBox | None = None
+        if sys.platform == "win32":
+            self.source_combo = QComboBox()
+            self.source_combo.addItem(tr("system_icon.source_system"), "system")
+            self.source_combo.addItem(tr("system_icon.source_apps"), "apps")
+            self.source_combo.currentIndexChanged.connect(self._on_source_changed)
+            layout.addWidget(self.source_combo)
         self.search = QLineEdit()
         self.search.setPlaceholderText(tr("system_icon.search_placeholder"))
         self.search.textChanged.connect(self._apply_filter)
@@ -146,12 +267,62 @@ class _SystemIconDialog(QDialog):
     def selected_path(self) -> str | None:
         return self._path
 
+    def _effective_cache_dir(self) -> Path:
+        if self._cache_dir is not None:
+            return self._cache_dir
+        return Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
+
     def done(self, result: int) -> None:
         if result == QDialog.Accepted and self.grid.currentItem() is not None:
-            self._path = self.grid.currentItem().data(Qt.UserRole)
+            data = self.grid.currentItem().data(Qt.UserRole)
+            if isinstance(data, tuple) and len(data) == 3 and data[0] == "dll":
+                _, dll_str, idx = data
+                dll_path = Path(dll_str)
+                dest = self._effective_cache_dir() / f"{dll_path.stem}_{idx}.png"
+                png = extract_dll_icon_png(dll_path, idx, dest, size=256)
+                self._path = str(png) if png is not None else None
+            else:
+                self._path = data
         super().done(result)
 
+    def _on_source_changed(self) -> None:
+        if (
+            self.source_combo is not None
+            and self.source_combo.currentData() == "apps"
+            and not self._apps_scanned
+        ):
+            self._scan_windows()
+        self._apply_filter(self.search.text())
+
     def _scan(self) -> None:
+        if sys.platform == "win32":
+            self._scan_windows_dlls()
+        else:
+            self._scan_linux()
+
+    def _scan_windows_dlls(self) -> None:
+        """Windows: ดึงไอคอนระบบจาก imageres.dll + shell32.dll."""
+        self._dll_entries.clear()
+        for dll in _windows_system_icon_dlls():
+            stem = dll.stem.lower()
+            for idx, icon in list_dll_icons(dll):
+                self._dll_entries.append((f"{stem} #{idx}", dll, idx, icon))
+
+    def _scan_windows(self) -> None:
+        """Windows: สกัดไอคอนแอปจาก .lnk ใน Start Menu (กรอง Uninstall/Manual ออก)."""
+        self._apps_scanned = True
+        cache = self._effective_cache_dir()
+        for lnk in _iter_windows_shortcuts(_windows_shortcut_dirs()):
+            if len(self._names) >= _ICON_SCAN_LIMIT:
+                return
+            name = lnk.stem
+            if not name or name in self._names or _is_noise_shortcut(name):
+                continue
+            png = _cached_provider_png(lnk, cache)
+            if png is not None:
+                self._names[name] = str(png)
+
+    def _scan_linux(self) -> None:
         bases = dict.fromkeys(
             [Path(p) for p in QIcon.themeSearchPaths()]
             + [Path("/usr/share/icons")]
@@ -204,18 +375,32 @@ class _SystemIconDialog(QDialog):
         self.grid.clear()
         shown = 0
         capped = False
-        for name in sorted(self._names):
-            if needle and needle not in name.lower():
-                continue
-            if shown >= _ICON_DISPLAY_LIMIT:
-                capped = True
-                break
-            item = QListWidgetItem(QIcon(self._names[name]), name)
-            item.setData(Qt.UserRole, self._names[name])
-            item.setTextAlignment(Qt.AlignHCenter | Qt.AlignBottom)
-            item.setToolTip(name)
-            self.grid.addItem(item)
-            shown += 1
+        if self.source_combo is not None and self.source_combo.currentData() == "system":
+            for label, dll_path, idx, icon in self._dll_entries:
+                if needle and needle not in label.lower():
+                    continue
+                if shown >= _ICON_DISPLAY_LIMIT:
+                    capped = True
+                    break
+                item = QListWidgetItem(icon, label)
+                item.setData(Qt.UserRole, ("dll", str(dll_path), idx))
+                item.setTextAlignment(Qt.AlignHCenter | Qt.AlignBottom)
+                item.setToolTip(label)
+                self.grid.addItem(item)
+                shown += 1
+        else:
+            for name in sorted(self._names):
+                if needle and needle not in name.lower():
+                    continue
+                if shown >= _ICON_DISPLAY_LIMIT:
+                    capped = True
+                    break
+                item = QListWidgetItem(QIcon(self._names[name]), name)
+                item.setData(Qt.UserRole, self._names[name])
+                item.setTextAlignment(Qt.AlignHCenter | Qt.AlignBottom)
+                item.setToolTip(name)
+                self.grid.addItem(item)
+                shown += 1
         if needle:
             self.count_label.setText(tr("system_icon.count", n=shown))
         elif capped:
@@ -419,7 +604,7 @@ class ShortcutGrid(QListWidget):
         last_cell.moveCenter(last.center())
         if pos.y() > last_cell.bottom() or (
             last_cell.top() <= pos.y() <= last_cell.bottom()
-            and pos.x() > last_cell.center().x()
+            and pos.x() > last_cell.right()
         ):
             return None
         best_row = 0
@@ -585,6 +770,10 @@ class ShortcutDialog(QDialog):
     def _auto_icon(self) -> None:
         target = self.target_edit.text().strip()
         source = core_icons.resolve_icon_source(target)
+        if source is None and target and Path(target).suffix.lower() in _PROVIDER_ICON_SUFFIXES:
+            # Windows: สกัดไอคอนที่ฝังในไฟล์ (.exe/.lnk/...) ผ่าน OS
+            cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
+            source = _cached_provider_png(Path(target), cache)
         if source is None and target and os.access(target, os.X_OK):
             source = core_icons.icon_from_executable(target)
         if source is None:
@@ -808,16 +997,21 @@ class GroupEditor(QDialog):
         if self._group.icon and self.dir_name:
             cached = self.store.resolve_relative(self.dir_name, self._group.icon)
             if cached is not None:
-                icon = QIcon(str(cached))
-                if not icon.isNull():
+                icon = _from_file(cached)
+                if icon is not None and not icon.isNull():
                     return icon
         return QIcon.fromTheme("folder")
 
     def _refresh_icon_ui(self) -> None:
         size = self.icon_size_slider.value()
-        self.icon_preview.setPixmap(
-            self._preview_icon().pixmap(_GROUP_ICON_PREVIEW, _GROUP_ICON_PREVIEW)
-        )
+        try:
+            pixmap = self._preview_icon().pixmap(_GROUP_ICON_PREVIEW, _GROUP_ICON_PREVIEW)
+        except Exception:
+            pixmap = None
+        if pixmap is not None and not pixmap.isNull():
+            self.icon_preview.setPixmap(pixmap)
+        else:
+            self.icon_preview.clear()
         self.items_list.setIconSize(QSize(size, size))
         self.items_list.setGridSize(QSize(max(72, size + 52), max(72, size + 44)))
 
@@ -861,21 +1055,30 @@ class GroupEditor(QDialog):
             self._update_color_ui(from_swatch=True)
 
     def _pick_icon(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self,
-            tr("editor.pick_icon_dialog"),
-            "",
-            "Images (*.png *.jpg *.jpeg *.svg *.ico *.bmp);;All files (*)",
-        )
-        if path:
-            self._icon_source = path
-            self._refresh_icon_ui()
+        try:
+            path, _ = QFileDialog.getOpenFileName(
+                self,
+                tr("editor.pick_icon_dialog"),
+                "",
+                "Images (*.png *.jpg *.jpeg *.svg *.ico *.bmp);;All files (*)",
+            )
+            if path:
+                self._icon_source = path
+                self._refresh_icon_ui()
+        except Exception as exc:
+            import sys as _sys
+            print(f"_pick_icon error: {exc}", file=_sys.stderr)
 
     def _pick_system_icon(self) -> None:
-        dialog = _SystemIconDialog(self)
-        if dialog.exec() == QDialog.Accepted and dialog.selected_path():
-            self._icon_source = dialog.selected_path()
-            self._refresh_icon_ui()
+        try:
+            cache_dir = self.store.cache_dir() / _PROVIDER_ICON_CACHE_DIRNAME
+            dialog = _SystemIconDialog(self, cache_dir=cache_dir)
+            if dialog.exec() == QDialog.Accepted and dialog.selected_path():
+                self._icon_source = dialog.selected_path()
+                self._refresh_icon_ui()
+        except Exception as exc:
+            import sys as _sys
+            print(f"_pick_system_icon error: {exc}", file=_sys.stderr)
 
     def _reload_items(self) -> None:
         self.items_list.clear()
@@ -907,6 +1110,14 @@ class GroupEditor(QDialog):
                 if not icon.isNull():
                     return icon
         if item.target and Path(item.target).exists():
+            # Windows: .url/.lnk ไม่ใช่ image → ใช้ shell API สกัดไอคอน
+            if sys.platform == "win32" and Path(item.target).suffix.lower() in _PROVIDER_ICON_SUFFIXES:
+                cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
+                png = _cached_provider_png(Path(item.target), cache)
+                if png is not None:
+                    icon = _from_file(png)
+                    if icon is not None and not icon.isNull():
+                        return icon
             provider = QFileIconProvider()
             return provider.icon(QFileInfo(item.target))
         theme = core_icons.find_theme_icon(Path(item.target).stem) if item.target else None
@@ -929,6 +1140,14 @@ class GroupEditor(QDialog):
             source = core_icons.resolve_icon_source(path)
             if source is None and os.access(path, os.X_OK):
                 source = core_icons.icon_from_executable(path)
+            # .ico → สกัดเป็น .png (Qt โหลด .ico ได้แค่ขนาดเดียว → ไอค่อนเล็ก)
+            if source is not None and Path(source).suffix.lower() == ".ico" and sys.platform == "win32":
+                cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
+                source = _cached_provider_png(Path(source), cache) or source
+            # Windows: .lnk/.url ไม่ใช่ image → ใช้ shell API สกัดไอคอน
+            if source is None and sys.platform == "win32" and Path(path).suffix.lower() in _PROVIDER_ICON_SUFFIXES:
+                cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
+                source = _cached_provider_png(Path(path), cache)
             if source is not None:
                 self._pending_icons[id(shortcut)] = str(source)
             added = True
@@ -965,13 +1184,17 @@ class GroupEditor(QDialog):
             return
         index = self.items_list.row(selected)
         old = self._group.items[index]
+        old_pending = self._pending_icons.get(id(old))
         dialog = ShortcutDialog(self, shortcut=old)
         if dialog.exec() == QDialog.Accepted:
             shortcut = dialog.result_shortcut()
             self._group.items[index] = shortcut
             self._pending_icons.pop(id(old), None)
-            if dialog.icon_source():
-                self._pending_icons[id(shortcut)] = dialog.icon_source()
+            new_source = dialog.icon_source()
+            if new_source:
+                self._pending_icons[id(shortcut)] = new_source
+            elif old_pending:
+                self._pending_icons[id(shortcut)] = old_pending
             self._reload_items()
 
     def _remove_item(self) -> None:

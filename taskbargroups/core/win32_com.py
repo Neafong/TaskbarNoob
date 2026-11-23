@@ -13,6 +13,8 @@
 from __future__ import annotations
 
 import os
+import struct
+import sys
 import uuid
 from ctypes import wintypes
 from pathlib import Path
@@ -21,6 +23,15 @@ CLSID_SHELL_LINK = "00021401-0000-0000-c000-000000000046"
 IID_SHELL_LINK_W = "000214f9-0000-0000-c000-000000000046"
 IID_PERSIST_FILE = "0000010b-0000-0000-c000-000000000046"
 IID_PROPERTY_STORE = "886d8eeb-8cf2-4446-8d02-cdba1dbdcf99"
+IID_SHELL_ITEM_IMAGE_FACTORY = "bcc18b79-ba16-442f-80c4-8a59c30c463b"
+
+# MSIX / WindowsApps AppExecutionAlias reparse tag
+_IO_REPARSE_TAG_APPEXECLINK = 0x8000001B
+_FSCTL_GET_REPARSE_POINT = 0x000900A8
+_FILE_FLAG_BACKUP_SEMANTICS = 0x02000000
+_FILE_FLAG_OPEN_REPARSE_POINT = 0x00200000
+_SIIGBF_BIGGERSIZEOK = 0x01
+_SIIGBF_ICONONLY = 0x04
 
 # PROPERTYKEY.AppUserModel_ID — fmtid ของ System.AppUserModel.ID, pid 5
 _PKEY_AUMID_FMTID = "9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3"
@@ -28,6 +39,7 @@ _PKEY_AUMID_PID = 5
 _VT_LPWSTR = 31
 
 # vtable ของ IShellLinkW (ลำดับตาม shobjidl.h)
+_GET_ICON_LOCATION = 16
 _SET_PATH = 20
 _SET_ARGUMENTS = 11
 _SET_DESCRIPTION = 7
@@ -291,6 +303,33 @@ def read_arguments(path: Path) -> str | None:
         _method(link, 2, ctypes.c_ulong)(link)
 
 
+def read_icon_location(path: Path) -> tuple[str, int] | None:
+    """อ่าน IconLocation (path, index) จาก .lnk (None ถ้าไม่ได้ตั้ง/อ่านไม่ได้)."""
+    import ctypes
+
+    if not path.is_file():
+        return None
+    link, _persist, _props = _open_lnk(path)
+    try:
+        get_icon = _method(
+            link,
+            _GET_ICON_LOCATION,
+            ctypes.c_long,
+            ctypes.c_wchar_p,
+            ctypes.c_int,
+            ctypes.POINTER(ctypes.c_int),
+        )
+        buffer = ctypes.create_unicode_buffer(32768)
+        index = ctypes.c_int(0)
+        if get_icon(link, buffer, 32768, ctypes.byref(index)) != 0:
+            return None
+        return (buffer.value, index.value) if buffer.value else None
+    except Exception:
+        return None
+    finally:
+        _method(link, 2, ctypes.c_ulong)(link)
+
+
 def read_aumid(path: Path) -> str | None:
     """อ่าน AppUserModelID (None ถ้าไม่มี/อ่านไม่ได้)."""
     import ctypes
@@ -319,3 +358,133 @@ def read_aumid(path: Path) -> str | None:
         return None
     finally:
         _method(link, 2, ctypes.c_ulong)(link)
+
+
+def parse_app_exec_link_reparse(data: bytes) -> tuple[str, str] | None:
+    """แกะ (aumid, target_exe) จาก REPARSE_DATA_BUFFER ของ IO_REPARSE_TAG_APPEXECLINK."""
+    if len(data) < 12:
+        return None
+    tag, data_len = struct.unpack_from("<IH", data, 0)
+    if tag != _IO_REPARSE_TAG_APPEXECLINK or data_len < 4:
+        return None
+    payload = data[12 : 8 + data_len]
+    payload = payload[: len(payload) - (len(payload) % 2)]
+    parts = [s for s in payload.decode("utf-16-le", errors="ignore").split("\x00") if s]
+    if len(parts) < 2:
+        return None
+    return parts[1], (parts[2] if len(parts) >= 3 else "")
+
+
+def read_app_exec_link(path: Path) -> tuple[str, str] | None:
+    """อ่าน (aumid, target_exe) จากไฟล์ MSIX WindowsApps alias (None ถ้าไม่ใช่)."""
+    if sys.platform != "win32":
+        return None
+    import ctypes
+
+    kernel32 = ctypes.windll.kernel32
+    kernel32.CreateFileW.argtypes = [
+        wintypes.LPCWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.HANDLE,
+    ]
+    kernel32.CreateFileW.restype = wintypes.HANDLE
+    kernel32.DeviceIoControl.argtypes = [
+        wintypes.HANDLE,
+        wintypes.DWORD,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.DWORD),
+        ctypes.c_void_p,
+    ]
+    kernel32.DeviceIoControl.restype = wintypes.BOOL
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.CloseHandle.restype = wintypes.BOOL
+
+    invalid = ctypes.c_void_p(-1).value
+    handle = kernel32.CreateFileW(
+        str(path),
+        0,
+        7,  # FILE_SHARE_READ | WRITE | DELETE
+        None,
+        3,  # OPEN_EXISTING
+        _FILE_FLAG_BACKUP_SEMANTICS | _FILE_FLAG_OPEN_REPARSE_POINT,
+        None,
+    )
+    if not handle or handle == invalid:
+        return None
+    try:
+        buf = ctypes.create_string_buffer(16384)
+        returned = wintypes.DWORD(0)
+        ok = kernel32.DeviceIoControl(
+            handle,
+            _FSCTL_GET_REPARSE_POINT,
+            None,
+            0,
+            buf,
+            len(buf),
+            ctypes.byref(returned),
+            None,
+        )
+        if not ok or returned.value < 12:
+            return None
+        return parse_app_exec_link_reparse(buf.raw[: returned.value])
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+def extract_appsfolder_hbitmap(aumid: str, size: int = 256) -> int | None:
+    """ดึง HBITMAP ไอคอนของแอป MSIX/Store ผ่าน shell:AppsFolder\\<aumid>.
+
+    ผู้เรียกต้องคืนหน่วยความจำด้วย `gdi32.DeleteObject(hbm)` เอง.
+    """
+    if sys.platform != "win32" or not aumid:
+        return None
+    import ctypes
+
+    class _Size(ctypes.Structure):
+        _fields_ = [("cx", ctypes.c_long), ("cy", ctypes.c_long)]
+
+    _ctypes, guid_cls, _key_cls, _pv_cls = _types()
+    _ole32()
+    shell32 = ctypes.windll.shell32
+    shell32.SHCreateItemFromParsingName.argtypes = [
+        wintypes.LPCWSTR,
+        ctypes.c_void_p,
+        ctypes.POINTER(guid_cls),
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    shell32.SHCreateItemFromParsingName.restype = ctypes.c_long
+
+    iid = _guid(guid_cls, IID_SHELL_ITEM_IMAGE_FACTORY)
+    factory = ctypes.c_void_p()
+    hr = shell32.SHCreateItemFromParsingName(
+        f"shell:AppsFolder\\{aumid}",
+        None,
+        ctypes.byref(iid),
+        ctypes.byref(factory),
+    )
+    if hr != 0 or not factory.value:
+        return None
+    try:
+        get_image = _method(
+            factory,
+            3,  # IShellItemImageFactory::GetImage
+            ctypes.c_long,
+            _Size,
+            ctypes.c_int,
+            ctypes.POINTER(wintypes.HBITMAP),
+        )
+        hbm = wintypes.HBITMAP()
+        for flags in (_SIIGBF_BIGGERSIZEOK | _SIIGBF_ICONONLY, 0):
+            hr = get_image(factory, _Size(size, size), flags, ctypes.byref(hbm))
+            if hr == 0 and hbm.value:
+                return int(hbm.value)
+        return None
+    finally:
+        _method(factory, 2, ctypes.c_ulong)(factory)

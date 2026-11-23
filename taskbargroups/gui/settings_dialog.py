@@ -149,6 +149,7 @@ class SettingsDialog(QDialog):
         app = QApplication.instance()
         if app is not None:
             apply_theme(app, resolve_theme(value, app))
+            self.setPalette(app.palette())
         self._style_config_button()
         main = self._main
         if hasattr(main, "refresh_icons"):

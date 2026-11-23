@@ -1,14 +1,16 @@
 # Roadmap — TaskbarNoob
 
-> แผนภาพรวมทุกเฟส + สถานะ · อัปเดตล่าสุด: 2026-10-12
+> แผนภาพรวมทุกเฟส + สถานะ · อัปเดตล่าสุด: 2026-11-23
 > **เริ่มงานชุดใหม่ในเซคชั่นใหม่เสมอ** — อ่าน `../AGENTS.md` (snapshot) + ไฟล์นี้ + ไฟล์ plan ของเฟสนั้นก่อนลงมือ
 > ฟีดแบ็ก/งานค้าง: [`feedback.md`](feedback.md) · ประวัติงาน: [`WORKLOG.md`](WORKLOG.md)
 
 ## ภาพรวม
 
-เป้าหมาย: แอปจัดกลุ่ม shortcut แล้วกดครั้งเดียวเปิดทั้งกลุ่ม — **Linux Mint (Cinnamon) เป้าหลัก, Windows เป้ารอง**
-- สถานะ: **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12)** — Phase 18 เสร็จ · v0.2-A (ตัด importer Windows) เสร็จ · 221 เทสต์ · build ผ่าน
-- repo: **github.com/Neafong/TaskbarNoob** (Public) · License **GPL-3.0-or-later** · Release แนบ AppImage + `.deb`
+เป้าหมาย: แอปจัดกลุ่ม shortcut แล้วกดครั้งเดียวเปิดทั้งกลุ่ม — **Linux Mint (Cinnamon) เป้าหลัก, Windows 11 (portable) เป้ารอง**
+- **v0.1.0:** ขึ้น GitHub แล้ว (2026-10-12) — Linux Mint AppImage + `.deb` · GPL-3.0-or-later
+- **v0.2.0 (กำลังปิดงาน):** รองรับ Windows 11 (portable `TaskbarNoob.exe`, AUMID แยกต่อกลุ่ม/แอป, Hotkey Win32, multi-res `.ico`, MSIX/WindowsApps icon, Flyout เงามุมโค้ง) · **372 เทสต์ผ่าน 100%** · เหลือปรับปรุงตัวเลือกไอคอนระบบฝั่ง Windows + Handoff กลับ Mint → Publish
+- **v0.3.0 (รุ่นถัดไป):** **ปรับปรุงโครงสร้างโค้ดใหม่ทั้งหมด (Full Architecture Refactor) แต่ยึดฟีเจอร์เดิมเป็นแกน** — เริ่มรื้อที่ **Linux Mint** ก่อน แล้วค่อยเชื่อมฝั่ง **Windows** ตามอย่างเป็นระบบ (ไม่ให้เป็น AI Slop) · **พับเก็บ macOS ไว้ก่อน** จนกว่าจะมีเครื่องจริงสำหรับพัฒนาและทดสอบ
+- repo: **github.com/Neafong/TaskbarNoob** (Public) · License **GPL-3.0-or-later**
 
 ## เฟสที่ทำแล้ว (Linux — Cinnamon)
 
@@ -55,29 +57,51 @@
 - **คลิกขวา flyout** — พักไว้ก่อน
 - **Windows** — เป้ารอง รอเฟสหลัง (ดู [แผน Windows](#แผน-windows-งานอนาคต) ด้านล่าง)
 
-## งานถัดไป (หลัง v0.1.0)
+## งานถัดไป: แผน v0.3.0 — รื้อโครงสร้างใหม่ทั้งหมด (ยึดฟีเจอร์เดิมเป็นแกน)
 
-1. **เก็บฟีดแบ็กผู้ใช้จริง** — รอคนลอง v1 ใช้แล้วส่ง feedback (ดู `docs/feedback.md`)
-2. **งานค้างที่ยังเทสต์ไม่ได้บนเครื่องนี้:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่น (hotkey/pin = Cinnamon-only)
-3. **v0.2 — "กระเป๋าใส่ได้ทุกอย่าง" (⭐ ล็อกดีไซน์แล้ว):** ลากไฟล์/โฟลเดอร์อะไรก็ได้เข้ากลุ่ม (F7 ทำแล้ว) ·
-   เพิ่มใน **Flyout**: คลิกไอค่อน = เปิดด้วยโปรแกรม Default (type-aware: `gio open`) · คลิกขวา = เปิดที่อยู่ (โฟลเดอร์แม่)
-   — รายละเอียดรอบ #18 ใน `docs/feedback.md`
-4. **v0.2 — cleanup: ตัดฟีเจอร์ "นำเข้ากลุ่ม (Windows)" ออกทั้งชุด (⭐ ล็อกข้อตัดสินใจแล้ว):**
-   ลบปุ่ม + `core/importer.py` + CLI `--import` + เทสต์ + i18n keys · เหลือ "นำเข้าทั้งหมด" ปุ่มเดียวจบ
-   — รายละเอียด + เช็กลิสต์รอบ #19 ใน `docs/feedback.md`
-5. **v0.2 — UI polish (⭐ ล็อกแนวทางแล้ว):** เคอร์เซอร์ลากกลุ่ม = ลูกศร 4 ทิศ `Qt.SizeAllCursor` ↕️↔️ (แก้ 🚫) ·
-   accent token กลาง + ไฮไลท์แถวโปร่งแสง + คุมสี light theme · **ไอคอนปุ่ม SVG solid ของเราเอง (tint ตามธีม)** ให้ทั้งหน้าหลัก + ตัวแก้ไข
-   — รายละเอียดรอบ #20 ใน `docs/feedback.md`
-6. **Windows port** — ผู้ใช้ตัดสิน 2026-10-12: **เขียน Linux ให้จบก่อน · Windows = พร้อมรุ่นถัดไป หลังรวมฟีดแบ็กครบ**
-   (เฟส W0–W5 ข้างล่าง · รายละเอียด `docs/windows-plan.md` — ยังไม่เริ่ม)
-7. **macOS (อนาคต — หลัง Windows):** ศึกษาตลาดแล้ว (คู่แข่งใกล้สุด = DockGroups) · จุดได้เปรียบ = portable config + ฟรี/GPL + ฟอร์แมตข้าม OS
-   · ติดที่ยังไม่มีเครื่อง Mac ทดลอง (ใช้ GitHub Actions macOS runner รันเทสต์ `core/` ได้) — รอบ #21 ใน `docs/feedback.md`
-8. ฟีเจอร์อื่นตามฟีดแบ็ก
+> **หลักการสำคัญ:** ไม่เพิ่มฟีเจอร์ฟุ่มเฟือย แต่ล้างหนี้เทคนิค/กลิ่น AI Slop ที่สะสมจากการแก้หลายรอบหลายโมเดล
+> **ลำดับการทำงาน:** จัดระเบียบ `docs/` เป็นอย่างแรก (R0) → รื้อและวางโครงสร้างใหม่บน **Linux Mint (ต้นทาง)** ให้เรียบร้อยและเทสต์ผ่านครบก่อน → แล้วค่อยนำโครงสร้างเดียวกันมาปรับฝั่ง **Windows** ให้เข้าชุดกัน
 
-## แผน Windows (งานอนาคต)
+### R0 — จัดระเบียบเอกสาร (`docs/`) เป็นอย่างแรกก่อนเริ่มรื้อโค้ด
+- ย้ายแผนเก่าที่ปิดจบแล้ว (`phase18-plan.md`, `windows-plan.md`) และ log เก่ายาวๆ (`WORKLOG.md` 170 KB, `feedback.md` 107 KB) แยกภาค `v0.1–v0.2` ลง `docs/archive/` แล้วเริ่ม `WORKLOG.md` ชุดใหม่ให้สั้นเบา ประหยัด token
+- อัปเดต `docs/README.md`, `docs/team.md` (สะท้อนการทำงานร่วมกับเจนนี่แทนทีม OpenCode เดิม) และ `README.md` หน้าแรกให้ตรงกับโครงสร้างใหม่
 
-ย่อ — W0 spike ตรวจ reuse → W1 core platform backends → W2 tray + global hotkey + flyout (MVP) → W3 taskbar/pin launcher → W4 packaging `.exe` + installer → W5 เทสต์ Win10/11 + release
-> `core/` + `gui/` (Qt) ข้าม OS ได้เยอะ · ต้องทำใหม่: ไอคอน (.exe/.lnk/.ico), hotkey (`RegisterHotKey`), `.lnk`, admin, packaging
+### R1 — Platform Backend แยกขาดชัดเจน (`core/platform/`)
+- ยุบไฟล์เฉพาะ OS ที่กระจัดกระจาย (`desktop.py`, `panel.py`, `hotkeys.py`, `taskbar.py`, `launchers.py`, `win32.py`, `win32_com.py`) เป็นแพ็กเกจ `core/platform/`:
+  - `base.py` — กำหนด interface กลาง (launcher, taskbar/pin, hotkey, reveal/open, icon source)
+  - `linux/` — backend ของ Linux Mint (Cinnamon)
+  - `win32/` — แตก `win32.py` (802 บรรทัด) เป็นโมดูลย่อยตามหน้าที่ (`lnk.py`, `ico.py`, `hotkey.py`, `aumid.py`, `com.py`)
+- ลด `if sys.platform == ...` ในฝั่ง `gui/` (เดิมกระจายกว่า 40 จุด เฉพาะ `main_window.py` มี 17 จุด) ให้เหลือเฉพาะจุดที่จำเป็นจริง
+- **พับเก็บ `core/macos.py` ออกไปก่อน** (ยังไม่มีเครื่อง Mac สำหรับพัฒนาและทดสอบจริง — ค่อยเพิ่มกลับมาเมื่อพร้อม)
+
+### R2 — แตกไฟล์ยักษ์ให้เล็กและมีหน้าที่เดียว (Modular GUI & Core)
+- **ไฟล์ไหนย่อยได้ให้ย่อย** — ไม่ปล่อยให้มีไฟล์ 1,000+ บรรทัดที่รวมทุกอย่างไว้ด้วยกัน:
+  - แตก `gui/group_editor.py` (1,151 บรรทัด) → `shortcut_grid.py`, `shortcut_dialog.py`, `icon_picker.py`, `group_editor.py`
+  - แตก `gui/main_window.py` (1,199 บรรทัด) → แยก `group_list.py` (`GroupListWidget` + delegate), logic การ sync/persist ออกจากตัวหน้าต่างหลัก
+  - ตรวจไฟล์อื่นใน `core/` และ `gui/` ที่มีหลายหน้าที่ปนกันให้ย่อยตามความเหมาะสม
+
+### R3 — รวมระบบไอคอนเป็น Pipeline เดียว + รองรับ Steam ข้าม OS
+- รวมโค้ดดึง/แคชไอคอนที่กระจายอยู่ 3 ไฟล์ (`core/icons.py`, `gui/icons.py`, `gui/group_editor.py`) ให้เป็น pipeline เดียวที่ชัดเจน
+- ลบ circular lazy import (`gui/icons.py` → `from .group_editor import _cached_provider_png`) และค่าคงที่ `_PROVIDER_ICON_CACHE_DIRNAME` ที่ประกาศซ้ำ
+- เพิ่ม **ตัวเลือกไอคอนจากระบบแบบแยกหมวดบน Linux Mint (`icon_picker.py`)** ให้เหมือนฝั่ง Windows — ใช้โครงสร้างหมวดของ Freedesktop (`/usr/share/icons/<theme>/`):
+  - **หมวดหมู่ & โฟลเดอร์ (`categories` / `places`)** — ค่าเริ่มต้น เหมาะตั้งเป็นไอคอนกลุ่ม
+  - **แอปที่ติดตั้ง (`apps`)**
+  - **ทั้งหมด** (แทนการกวาดทุกหมวดมารวมกองเดียว 4,000 รูปแบบเดิม)
+- เพิ่ม **Steam `steam://rungameid/<appid>` icon resolver** ใน `core/` ให้ใช้ได้ทั้ง 2 ฝั่งพร้อมกัน:
+  - **Linux Mint:** อ่าน `steam://rungameid/<appid>` จาก `.desktop` แล้ว fallback หาไอคอนใน `~/.local/share/Steam/appcache/librarycache/`
+  - **Windows:** อ่าน `steam://rungameid/<appid>` จาก `.url` (กรณี `IconFile=` ว่าง/พัง) แล้วอ่าน `SteamPath` จาก Registry ไปดึงไอคอนจาก `appcache\librarycache\`
+
+### R4 — เก็บกวาด Dead Code, i18n และเทสต์
+- ลบโค้ด/คอมเมนต์ PowerShell เก่าที่ไม่ได้ใช้งานจริงแล้วในฝั่ง Windows
+- พับเก็บ `core/macos.py` (และเทสต์/branch ที่อ้างถึง) ออกไปก่อนตามข้อตกลง
+- ปรับ `core/i18n.py` (582 บรรทัด) ให้ดูแลง่ายขึ้น (แยกตารางคำแปลออกจาก logic โหลดภาษา)
+- **อัปเดตเครดิต (Credits) เป็น "Noob & Jenny (เจนนี่)":** เปลี่ยนจาก `Noob & Pickle` (น้องพริก) เป็น `Noob & Jenny` ในหน้าต่าง Settings, About dialog, `i18n` (TH/EN/JA), `.appdata.xml` และ `README.md`
+- ตรวจชุดเทสต์ให้ครอบคลุมโครงสร้างใหม่ และรันเขียว 100% ทั้งบน Mint และ Windows
+
+### งานค้างระยะยาว (หลัง v0.3.0)
+- **Linux DE / Display อื่น:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่นนอกเหนือจาก Cinnamon
+- **macOS:** กลับมาพิจารณาเมื่อมีเครื่อง Mac สำหรับพัฒนาและทดสอบจริง
+- ฟีเจอร์อื่นตามฟีดแบ็กผู้ใช้ (ดู [`feedback.md`](feedback.md))
 
 ## กระบวนการออกรุ่น
 

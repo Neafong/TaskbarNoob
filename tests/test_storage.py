@@ -42,6 +42,24 @@ class ConfigStoreTests(unittest.TestCase):
         self.store.save_group(Group(name="G"))
         self.assertTrue(self.store.icons_dir("G").is_dir())
 
+    def test_import_group_icon_freshens_mtime(self) -> None:
+        """mtime ไฟล์ที่ import ต้องเป็น "ตอนนี้" ไม่ใช่ของต้นทาง — ไม่งั้น .ico
+        ที่แปลงไว้แล้ว (คิดจาก mtime) ดูใหม่กว่า .png นี้ → เปลี่ยนไอคอนแล้ว
+        .lnk ยังใช้รูปเก่า."""
+        import os
+
+        self.store.save_group(Group(name="G"))
+        source = Path(self._tmp.name) / "pick.png"
+        source.write_bytes(b"png")
+        os.utime(source, (1_000_000_000, 1_000_000_000))  # ทำ mtime เก่าจงใจ
+
+        self.store.import_group_icon("G", str(source))
+        # ชื่อไฟล์มี hash suffix → หาไฟล์ที่ขึ้นต้นด้วย group_icon_
+        dests = list(self.store.group_dir("G").glob("group_icon_*"))
+        self.assertEqual(len(dests), 1)
+        dest = dests[0]
+        self.assertGreater(dest.stat().st_mtime, source.stat().st_mtime)
+
     def test_save_invalid_raises(self) -> None:
         with self.assertRaises(StorageError):
             self.store.save_group(Group(name=""))

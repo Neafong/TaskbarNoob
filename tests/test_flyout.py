@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 import unittest
 
@@ -239,6 +240,17 @@ class FlyoutWindowTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
+    def test_flyout_disables_native_drop_shadow(self) -> None:
+        from PySide6.QtCore import Qt
+        from taskbargroups.gui.flyout import FlyoutWindow
+
+        group = self.store.load_group("G")
+        window = FlyoutWindow(group, self.store, "G")
+        try:
+            self.assertTrue(bool(window.windowFlags() & Qt.NoDropShadowWindowHint))
+        finally:
+            window.deleteLater()
+
 
 @unittest.skipUnless(HAVE_QT, "PySide6 not installed")
 class ControllerTests(unittest.TestCase):
@@ -271,6 +283,7 @@ class ControllerTests(unittest.TestCase):
         controller = FlyoutController(self.app, self.store, server_name=self.name)
         self.assertFalse(controller.try_delegate("G"))
 
+    @unittest.skipUnless(sys.platform == "linux", "Linux-only")
     def test_primary_opens_then_delegate_switches_group(self) -> None:
         from taskbargroups.gui.flyout import FlyoutController
 
@@ -314,6 +327,7 @@ class ControllerTests(unittest.TestCase):
         if primary.server is not None:
             primary.server.close()
 
+    @unittest.skipUnless(sys.platform == "linux", "Linux-only")
     def test_start_primary_carries_focus_mode(self) -> None:
         from taskbargroups.gui.flyout import FlyoutController
 

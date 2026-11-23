@@ -99,17 +99,16 @@ class ThemeTests(unittest.TestCase):
         color = self.app.palette().color(QPalette.ColorRole.Window)
         self.assertEqual(color.name(), "#2b2b2b")
 
-    def test_apply_light_resets_to_system(self) -> None:
+    def test_apply_light_uses_explicit_palette(self) -> None:
+        """ธีมสว่างต้องคุมสีเองทั้งชุด (ไม่พึ่ง standardPalette ที่คืนค่าไม่สม่ำเสมอบน Windows dark mode)."""
         from PySide6.QtGui import QPalette
 
         from taskbargroups.gui.theme import apply_theme
 
         apply_theme(self.app, "dark")
         apply_theme(self.app, "light")
-        standard = self.app.style().standardPalette().color(QPalette.ColorRole.Window)
-        self.assertEqual(
-            self.app.palette().color(QPalette.ColorRole.Window), standard
-        )
+        color = self.app.palette().color(QPalette.ColorRole.Window)
+        self.assertEqual(color.name(), "#f5f5f5")
 
 
 @unittest.skipUnless(HAVE_QT, "PySide6 not installed")

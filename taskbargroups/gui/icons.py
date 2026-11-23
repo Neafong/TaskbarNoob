@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 from PySide6.QtCore import QFileInfo
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QImage, QPixmap
 from PySide6.QtWidgets import QFileIconProvider
 
 from taskbargroups.core import icons as core_icons
@@ -15,6 +17,7 @@ from taskbargroups.core.storage import ConfigStore
 
 _provider = QFileIconProvider()
 _FALLBACK = "application-x-executable"
+_PROVIDER_ICON_CACHE_DIRNAME = "provider-icons-v3"
 
 # นามสกุลที่ให้ QFileIconProvider ดึงไอคอนระบบให้ (Windows/macOS)
 # — core ดึงให้ไม่ได้ (ไม่ใช่ไฟล์รูป) แต่ Qt อ่านไอคอนฝังของ OS ได้
@@ -24,9 +27,25 @@ _PROVIDER_SUFFIXES = frozenset(
 
 
 def _from_file(path: Path) -> QIcon | None:
-    if path.is_file():
-        return QIcon(str(path))
-    return None
+    """โหลดไอคอนจากไฟล์ — ใช้ QPixmap ไม่ใช่ QIcon(path).
+
+    QIcon(str(path)) cache ตาม path → เปลี่ยนไอคอนแล้ว Qt ยังโชว์ของเก่า
+    (path เดิม `group_icon.png` แต่เนื้อไฟล์เปลี่ยน) — QPixmap โหลดใหม่ทุกครั้ง
+
+    ยกเว้น .ico: QPixmap โหลดได้แค่ขนาดเล็กสุด → ใช้ QIcon(str(path)) เพื่อ
+    โหลดทุกขนาด (multi-res) — .ico มี hashed filename แล้วจึงไม่มีปัญหา cache
+    """
+    if not path.is_file():
+        return None
+    if path.suffix.lower() in (".exe", ".lnk", ".dll", ".bat", ".cmd"):
+        return None
+    if path.suffix.lower() == ".ico":
+        icon = QIcon(str(path))
+        return icon if not icon.isNull() else None
+    pixmap = QPixmap(str(path))
+    if pixmap.isNull():
+        return None
+    return QIcon(pixmap)
 
 
 def _provider_icon(target: str) -> QIcon | None:
@@ -42,6 +61,205 @@ def _provider_icon(target: str) -> QIcon | None:
     return icon if not icon.isNull() else None
 
 
+def _lnk_icon_source(lnk: Path) -> tuple[str, int] | None:
+    """หาไฟล์จริงที่เก็บไอคอนของ `.lnk` (IconLocation ถ้าตั้งเอง → ไม่งั้น Target)."""
+    from taskbargroups.core import win32 as core_win32
+    from taskbargroups.core import win32_com
+
+    loc = win32_com.read_icon_location(lnk)
+    if loc:
+        icon_path, index = loc
+        # IconLocation อาจมีตัวแปรสภาพแวดล้อม เช่น %windir%\system32\app.exe
+        expanded = Path(os.path.expandvars(icon_path)) if icon_path else None
+        if expanded is not None and expanded.is_file():
+            return str(expanded), index
+    target = core_win32.read_lnk_target(lnk)
+    if target and Path(target).is_file():
+        return target, 0
+    return None
+
+
+def _url_icon_source(url: Path) -> str | None:
+    """อ่าน `IconFile=` จากไฟล์ .url (Internet shortcut)."""
+    try:
+        text = url.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return None
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.lower().startswith("iconfile="):
+            value = stripped[len("iconfile="):].strip()
+            if value:
+                return os.path.expandvars(value)
+    return None
+
+
+def _appsfolder_icon_png(aumid: str, dest: Path, size: int) -> Path | None:
+    """สกัดไอคอนแอป MSIX/Store ผ่าน shell:AppsFolder\\<aumid> เป็น PNG."""
+    import ctypes
+    from ctypes import wintypes
+    from taskbargroups.core import win32_com
+
+    hbm = win32_com.extract_appsfolder_hbitmap(aumid, size)
+    if not hbm:
+        return None
+    gdi32 = ctypes.windll.gdi32
+    gdi32.DeleteObject.argtypes = [wintypes.HGDIOBJ]
+    gdi32.DeleteObject.restype = wintypes.BOOL
+    try:
+        image = QImage.fromHBITMAP(hbm)
+        if image.isNull():
+            return None
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if not image.save(str(dest), "PNG"):
+            return None
+        return dest
+    finally:
+        gdi32.DeleteObject(wintypes.HGDIOBJ(hbm))
+
+
+def _extract_icon_index_png(
+    icon_path: str, index: int, dest: Path, size: int
+) -> Path | None:
+    """สกัดไอคอนตาม (path, index) ด้วย SHDefExtractIconW เป็น PNG ความละเอียดสูง."""
+    import ctypes
+    from ctypes import wintypes
+
+    shell32 = ctypes.windll.shell32
+    shell32.SHDefExtractIconW.argtypes = [
+        wintypes.LPCWSTR,
+        ctypes.c_int,
+        ctypes.c_uint,
+        ctypes.POINTER(wintypes.HICON),
+        ctypes.POINTER(wintypes.HICON),
+        ctypes.c_uint,
+    ]
+    shell32.SHDefExtractIconW.restype = ctypes.c_long
+    user32 = ctypes.windll.user32
+    large = wintypes.HICON()
+    small = wintypes.HICON()
+    hr = shell32.SHDefExtractIconW(
+        icon_path,
+        index,
+        0,
+        ctypes.byref(large),
+        ctypes.byref(small),
+        (size << 16) | size,
+    )
+    try:
+        if hr != 0 or not large.value:
+            return None
+        image = QImage.fromHICON(large.value)
+        if image.isNull():
+            return None
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if not image.save(str(dest), "PNG"):
+            return None
+        return dest
+    finally:
+        if large.value:
+            user32.DestroyIcon(large.value)
+        if small.value:
+            user32.DestroyIcon(small.value)
+
+
+def extract_dll_icon_png(
+    dll_path: Path, index: int, dest: Path, size: int = 256
+) -> Path | None:
+    """สกัดไอคอนจาก DLL/EXE ของ Windows ตาม index เป็น PNG."""
+    if sys.platform != "win32" or not dll_path.is_file():
+        return None
+    return _extract_icon_index_png(str(dll_path), index, dest, size)
+
+
+def list_dll_icons(dll_path: Path) -> list[tuple[int, QIcon]]:
+    """ดึงรายการ (index, QIcon) ทั้งหมดจาก DLL ไอคอนระบบของ Windows แบบรวดเร็ว."""
+    if sys.platform != "win32" or not dll_path.is_file():
+        return []
+    import ctypes
+    from ctypes import wintypes
+
+    shell32 = ctypes.windll.shell32
+    user32 = ctypes.windll.user32
+    count = int(shell32.ExtractIconExW(str(dll_path), -1, None, None, 0))
+    if count <= 0:
+        return []
+    handles = (wintypes.HICON * count)()
+    got = int(shell32.ExtractIconExW(str(dll_path), 0, handles, None, count))
+    result: list[tuple[int, QIcon]] = []
+    for idx in range(got):
+        h = handles[idx]
+        if not h:
+            continue
+        try:
+            image = QImage.fromHICON(h)
+            if not image.isNull():
+                result.append((idx, QIcon(QPixmap.fromImage(image))))
+        finally:
+            user32.DestroyIcon(h)
+    return result
+
+
+def _shell_icon_png(source: Path, dest: Path, size: int) -> Path | None:
+    """สกัดไอคอนด้วย shell API ของ Windows (ความละเอียดสูง ไม่มี overlay ลูกศร)."""
+    from taskbargroups.core import win32_com
+
+    icon_path, index = str(source), 0
+    if source.suffix.lower() == ".lnk":
+        resolved = _lnk_icon_source(source)
+        if resolved is None:
+            return None
+        icon_path, index = resolved
+    elif source.suffix.lower() == ".url":
+        resolved = _url_icon_source(source)
+        if resolved is None or not Path(resolved).is_file():
+            return None
+        icon_path, index = resolved, 0
+    # แอป MSIX/WindowsApps (เช่น Affinity) เป็น 0-byte AppExecutionAlias
+    # ไม่มี PE resource ในตัว → อ่าน reparse point ไปดึงไอคอนจาก AppsFolder หรือ target exe จริง
+    if Path(icon_path).suffix.lower() == ".exe":
+        app_link = win32_com.read_app_exec_link(Path(icon_path))
+        if app_link is not None:
+            aumid, target_exe = app_link
+            png = _appsfolder_icon_png(aumid, dest, size)
+            if png is not None:
+                return png
+            if target_exe and Path(target_exe).is_file():
+                icon_path = target_exe
+    if not Path(icon_path).is_file():
+        return None
+    return _extract_icon_index_png(icon_path, index, dest, size)
+
+
+def extract_os_icon_png(source: Path, dest: Path, size: int = 256) -> Path | None:
+    """สกัดไอคอนจากไฟล์ OS (.exe/.lnk/.dll/โฟลเดอร์) เป็น PNG — คืน path (None ถ้าไม่ได้).
+
+    Windows: shell API (SHDefExtractIconW) → ได้ความละเอียดสูงสุดที่ฝังไว้ (เช่น 256px)
+    และ**ไม่มีลูกศร shortcut** — ต้อง resolve `.lnk` ไปหาไฟล์ไอคอนจริงก่อน
+    (QFileIconProvider เดิมได้แค่ ~128px และมี overlay ของ .lnk ติดมาด้วย)
+    OS อื่น/ดึงไม่ได้ → fallback QFileIconProvider (พฤติกรรมเดิม).
+    """
+    if sys.platform == "win32":
+        png = _shell_icon_png(source, dest, size)
+        if png is not None:
+            return png
+    icon = _provider.icon(QFileInfo(str(source)))
+    if icon.isNull():
+        return None
+    pixmap = icon.pixmap(size, size)
+    if pixmap.isNull():
+        return None
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        # เพิ่ม anti-aliasing buffer ก่อน save PNG เพื่อลด Moire artifacts ที่ขอบไอคอน
+        # (QPixmap.save() จะทำ anti-alias อัตโนมัติถ้าเปิด smoothing hint แล้ว)
+        if not pixmap.save(str(dest), "PNG"):
+            return None
+    except (OSError, RuntimeError):
+        return None
+    return dest
+
+
 def shortcut_icon(shortcut: Shortcut, store: ConfigStore, dir_name: str) -> QIcon:
     cached = store.resolve_relative(dir_name, shortcut.icon)
     if cached is not None:
@@ -53,6 +271,19 @@ def shortcut_icon(shortcut: Shortcut, store: ConfigStore, dir_name: str) -> QIco
         icon = _from_file(Path(target))
         if icon is not None and not icon.isNull():
             return icon
+        # Windows: .url/.lnk → สกัดไอคอนผ่าน shell API
+        if sys.platform == "win32" and Path(target).suffix.lower() in (".url", ".lnk") and Path(target).is_file():
+            cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
+            # Need to import _cached_provider_png from group_editor
+            try:
+                from .group_editor import _cached_provider_png
+                png = _cached_provider_png(Path(target), cache)
+                if png is not None:
+                    icon = _from_file(png)
+                    if icon is not None and not icon.isNull():
+                        return icon
+            except Exception:
+                pass
         icon = _provider_icon(target)
         if icon is not None:
             return icon
@@ -112,12 +343,6 @@ def cache_provider_icon(
     path = Path((target or "").strip())
     if path.suffix.lower() not in _PROVIDER_SUFFIXES or not path.is_file():
         return None
-    icon = _provider.icon(QFileInfo(str(path)))
-    if icon.isNull():
-        return None
-    pixmap = icon.pixmap(size, size)
-    if pixmap.isNull():
-        return None
     icons_dir = store.icons_dir(dir_name)
     try:
         icons_dir.mkdir(parents=True, exist_ok=True)
@@ -130,9 +355,6 @@ def cache_provider_icon(
         except OSError:
             pass
     dest = icons_dir / f"{safe}.png"
-    try:
-        if not pixmap.save(str(dest), "PNG"):
-            return None
-    except (OSError, RuntimeError):
+    if extract_os_icon_png(path, dest, size) is None:
         return None
     return f"{core_icons.ICONS_DIR_NAME}/{dest.name}"

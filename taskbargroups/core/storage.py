@@ -137,11 +137,21 @@ class ConfigStore:
             raise StorageError(f"ไม่พบไฟล์ไอคอน: {source}")
         target_dir = self.group_dir(dir_name)
         target_dir.mkdir(parents=True, exist_ok=True)
-        for old in target_dir.glob(f"{GROUP_ICON_STEM}.*"):
-            old.unlink()
-        dest = target_dir / f"{GROUP_ICON_STEM}{src.suffix.lower()}"
+        # ลบไอคอนเก่าทั้งหมด (รวม hashed versions)
+        for old in target_dir.glob(f"{GROUP_ICON_STEM}*"):
+            try:
+                old.unlink()
+            except OSError:
+                pass
+        # ใช้ hash ของ content เป็น suffix เพื่อ bust Windows icon cache
+        # (ถ้าใช้ชื่อเดิม Windows จะโชว์ไอคอนเก่าที่แคชไว้ตาม path)
+        import hashlib
+
+        content_hash = hashlib.sha1(src.read_bytes()).hexdigest()[:8]
+        dest = target_dir / f"{GROUP_ICON_STEM}_{content_hash}{src.suffix.lower()}"
         try:
-            shutil.copy2(src, dest)
+            # ใช้ copy (ไม่ใช่ copy2) — mtime ของ dest ต้องเป็น "ตอนนี้"
+            shutil.copy(src, dest)
         except OSError as exc:
             raise StorageError(f"คัดลอกไอคอนไม่สำเร็จ: {exc}") from exc
         return dest.name

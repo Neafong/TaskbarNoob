@@ -334,10 +334,29 @@ def resolve_icon_source(target: str | os.PathLike[str] | None) -> Path | None:
     candidate = Path(str(target))
     if candidate.suffix.lower() == ".desktop" and candidate.is_file():
         return icon_from_desktop_file(candidate)
+    if candidate.suffix.lower() == ".url" and candidate.is_file():
+        icon_file = _read_url_icon_file(candidate)
+        if icon_file is not None and icon_file.is_file():
+            return icon_file
     if is_image_file(candidate):
         return candidate
     if is_appimage(candidate):
         return _extract_appimage_icon(candidate)
+    return None
+
+
+def _read_url_icon_file(path: Path) -> Path | None:
+    """อ่าน `IconFile=` จากไฟล์ .url (Internet shortcut)."""
+    try:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return None
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.lower().startswith("iconfile="):
+            value = stripped[len("iconfile="):].strip()
+            if value:
+                return Path(os.path.expandvars(value))
     return None
 
 
@@ -376,6 +395,10 @@ def cache_shortcut_icon(
     """
     src = Path(source) if source else resolve_icon_source(target)
     if src is None or not src.is_file():
+        return None
+    # .ico/.exe/.lnk ไม่พกพาได้ดี (Qt โหลดได้แค่ขนาดเดียว หรือไม่โหลดเลย)
+    # → คืน None เพื่อให้ฝั่ง GUI ใช้ cache_provider_icon สกัดเป็น .png แทน
+    if src.suffix.lower() in (".ico", ".exe", ".lnk", ".dll"):
         return None
     if not stem:
         stem = Path(str(target or "")).stem or "icon"

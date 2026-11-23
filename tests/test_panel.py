@@ -1,4 +1,5 @@
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -192,6 +193,7 @@ class PinnedStateTests(unittest.TestCase):
                 self.assertTrue(panel.is_pinned("g.desktop", cfg))
                 self.assertFalse(panel.is_pinned("x.desktop", cfg))
 
+    @unittest.skipUnless(sys.platform == "linux", "Linux-only")
     def test_unpin_from_panel_removes_and_reloads(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             cfg = Path(tmp)

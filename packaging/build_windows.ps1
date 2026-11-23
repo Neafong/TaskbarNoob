@@ -1,4 +1,4 @@
-# สร้าง TaskbarNoob Portable ฝั่ง Windows (รันบนเครื่อง Windows)
+﻿# สร้าง TaskbarNoob Portable ฝั่ง Windows (รันบนเครื่อง Windows)
 # ใช้: powershell -ExecutionPolicy Bypass -File packaging\build_windows.ps1
 # ผลลัพธ์: dist\TaskbarNoob\  (คัดลอกทั้งโฟลเดอร์ไปใช้งานได้เลย — config อยู่ข้าง exe)
 
@@ -10,24 +10,29 @@ $EXE_NAME = "TaskbarNoob"   # ชื่อแอปที่ผู้ใช้�
 $BUILD = Join-Path $ROOT "build\win"
 $DIST = Join-Path $ROOT "dist"
 $OUTDIR = Join-Path $DIST "TaskbarNoob"
-$ICON = Join-Path $ROOT "packaging\appimage\$APP_ID.png"
+$ICON = Join-Path $ROOT "packaging\win\$APP_ID.png"
 $EXE_ICO = Join-Path $ROOT "packaging\win\taskbarnoob.ico"   # ไอค่อนโลโก้ TG (ต้องเป็น .ico)
 
-# สร้าง .ico จากโลโก้ SVG ให้อัตโนมัติ (ยังไม่มีไฟล์ = ใช้ไอค่อนเก่า)
+# สร้าง .ico + .png จากโลโก้ SVG เสมอ (multi-res PNG-in-ICO) — ไม่งั้น ICO เก่า (single-res) จะถูกใช้ต่อ
+Write-Host "สร้างไอคอน exe จาก Logo TG.svg (multi-res)..."
+$env:QT_QPA_PLATFORM = "offscreen"
+& $PY packaging\render_icon.py (Join-Path $ROOT "packaging\assets\Logo TG.svg") $EXE_ICO
+& $PY packaging\render_icon.py (Join-Path $ROOT "packaging\assets\Logo TG.svg") $ICON 256
+if (!(Test-Path $ICON)) {
+    $ICON = Join-Path $ROOT "packaging\appimage\$APP_ID.png"
+}
 if (!(Test-Path $EXE_ICO)) {
-    Write-Host "สร้างไอคอน exe จาก Logo TG.svg..."
-    $env:QT_QPA_PLATFORM = "offscreen"
-    & $PY packaging\render_icon.py (Join-Path $ROOT "packaging\assets\Logo TG.svg") $EXE_ICO
-    if (!(Test-Path $EXE_ICO)) {
-        $EXE_ICO = ""   # สร้างไม่ได้ = ไม่ใส่ --icon (ไม่ทำให้ build พัง)
-    }
+    $EXE_ICO = ""   # สร้างไม่ได้ = ไม่ใส่ --icon (ไม่ทำให้ build พัง)
 }
 
 if (!(Test-Path $PY)) {
     Write-Host "สร้าง venv ใหม่..."
     py -3.11 -m venv (Join-Path $ROOT ".venv-win")
 }
-& $PY -m pip install --quiet PySide6 pyinstaller
+& $PY -c "import PySide6, PyInstaller" 2>$null
+if ($LASTEXITCODE -ne 0) {
+    & $PY -m pip install --quiet PySide6 pyinstaller
+}
 
 Write-Host "[1/2] PyInstaller build (portable, one-dir)..."
 $pyArgs = @(

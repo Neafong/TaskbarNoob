@@ -109,6 +109,8 @@ TH = {
     "system_icon.choose": "เลือก",
     "system_icon.count": "{n} ไอคอน",
     "system_icon.count_capped": "แสดง {n} ไอคอน — พิมพ์เพื่อค้นหาเพิ่ม",
+    "system_icon.source_system": "ไอคอนระบบ Windows (imageres / shell32)",
+    "system_icon.source_apps": "แอปใน Start Menu",
     # แก้ไขกลุ่ม (GroupEditor)
     "editor.edit_title": "แก้ไขกลุ่ม",
     "editor.new_title": "เพิ่มกลุ่มใหม่",
@@ -325,6 +327,8 @@ EN = {
     "system_icon.choose": "Choose",
     "system_icon.count": "{n} icons",
     "system_icon.count_capped": "Showing {n} icons — type to search more",
+    "system_icon.source_system": "Windows system icons (imageres / shell32)",
+    "system_icon.source_apps": "Start Menu apps",
     "editor.edit_title": "Edit group",
     "editor.new_title": "New group",
     "editor.group_name": "Group name",

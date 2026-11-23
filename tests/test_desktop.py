@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -63,6 +64,7 @@ class DesktopTests(unittest.TestCase):
         self.assertIn("Icon=", entry)
         self.assertIn(f"Path={app_dir()}", entry)
 
+    @unittest.skipUnless(sys.platform == "linux", "Linux-only")
     def test_install_and_remove(self) -> None:
         group = Group(name="Tools", items=[Shortcut(name="a", target="/bin/true")])
         self.store.save_group(group)
@@ -112,7 +114,7 @@ class DesktopTests(unittest.TestCase):
         source.write_text("<svg/>", encoding="utf-8")
         group = Group(name="Tools", icon="group_icon.svg")
         self.store.save_group(group)
-        self.store.import_group_icon("Tools", str(source))
+        group.icon = self.store.import_group_icon("Tools", str(source))
         path = install_launcher(
             group, self.store, "Tools", target_dir=self.data, icons_root=self.icons
         )

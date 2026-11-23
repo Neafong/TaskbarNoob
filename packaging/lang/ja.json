@@ -62,6 +62,8 @@
   "system_icon.choose": "選択",
   "system_icon.count": "{n} 個のアイコン",
   "system_icon.count_capped": "{n} 個のアイコンを表示中 — 検索して絞り込み",
+  "system_icon.source_system": "Windows システムアイコン (imageres / shell32)",
+  "system_icon.source_apps": "スタートメニューのアプリ",
   "editor.edit_title": "グループを編集",
   "editor.new_title": "新しいグループ",
   "editor.group_name": "グループ名",

@@ -41,6 +41,7 @@ from taskbargroups.core.launchers import (
 )
 
 from taskbargroups.core.i18n import setup, tr
+from taskbargroups.core.win32 import unregister_hotkey
 from taskbargroups.core.panel import (
     PinError,
     reload_grouped_window_applet,
@@ -53,6 +54,7 @@ from taskbargroups.core.taskbar import (
 from taskbargroups.core.paths import app_icon_path
 from taskbargroups.core.settings import Settings
 from taskbargroups.core.storage import ConfigStore, StorageError, safe_dir_name
+from taskbargroups.gui.win32_hotkey import registry as win_registry
 
 from .about_dialog import AboutDialog
 from .button_icons import themed_icon, tinted_icon_pixmap
@@ -439,18 +441,23 @@ class GroupListWidget(QListWidget):
         painter.restore()
 
 
-def _pin_tooltip(group, pinned: bool, dir_name: str = "") -> str:
+def _pin_tooltip(group, pinned: bool, dir_name: str = "", stale: bool | None = None) -> str:
     """ข้อความช่วยเหลือของปุ่มสถานะ (ต่างกันตาม OS).
 
     - Linux: ปัก/ถอนได้จริง → บอกสถานะตรงๆสั้นๆ
     - Windows: ปุ่มเปิดโฟลเดอร์ให้ลากวาง → ต้องบอกขั้นตอนให้ครบ
+
+    `stale` = ผลตรวจป้ายชื่อเก่า (คำนวณครั้งเดียวต่อ refresh ได้) — ไม่ส่ง/None
+    จะเรียก `stale_pin_label` เอง (พฤติกรรมเดิม)
     """
     if sys.platform == "win32":
         if pinned:
             text = tr("main.win_pinned_tip")
-            from taskbargroups.core.taskbar import stale_pin_label
+            if stale is None:
+                from taskbargroups.core.taskbar import stale_pin_label
 
-            if dir_name and stale_pin_label(dir_name):
+                stale = bool(dir_name) and stale_pin_label(dir_name)
+            if stale:
                 text += tr("main.win_pin_label_stale")
             return text
         return tr("main.win_not_pinned_tip", file=desktop_file_name(dir_name or ""))
@@ -542,7 +549,20 @@ class MainWindow(QMainWindow):
         for key, button in self._nav_buttons:
             _apply_nav_icon(button, _NAV_BUTTON_ICONS[key])
         self.setup_button.setIcon(themed_icon(_SETUP_ICON, app_text_color()))
-        self.list.viewport().update()
+        # บังคับ list + ลูกทุกตัวใช้ palette ใหม่ (QListWidget ไม่ auto-refresh)
+        app = QApplication.instance()
+        if app is not None:
+            palette = app.palette()
+            self.setPalette(palette)
+            self.list.setPalette(palette)
+            self.list.viewport().setPalette(palette)
+            for i in range(self.list.count()):
+                item = self.list.item(i)
+                if item is not None:
+                    widget = self.list.itemWidget(item)
+                    if widget is not None:
+                        widget.setPalette(palette)
+            self.list.viewport().update()
 
     def retranslate(self) -> None:
         """อัปเดตข้อความ UI ตามภาษาที่ active อยู่ (เรียกหลังสลับภาษาแบบทันที)."""
@@ -556,6 +576,12 @@ class MainWindow(QMainWindow):
     def refresh(self) -> None:
         self.list.clear()
         pinned_ids = pinned_desktop_ids()
+        stale_files: dict[str, str] | None = None
+        if sys.platform == "win32":
+            # สแกน User Pinned ครั้งเดียว ใช้ทั้งหา stale ต่อกลุ่ม (เลี่ยง COM ซ้ำ)
+            from taskbargroups.core.taskbar import pinned_aumid_files
+
+            stale_files = pinned_aumid_files()
         dir_names = self.store.list_groups()
         try:
             bindings = group_hotkeys([hotkey_slot(name) for name in dir_names])
@@ -565,7 +591,7 @@ class MainWindow(QMainWindow):
             # Windows ไม่มีที่เก็บ hotkey ของระบบ — อ่านที่แอปจำไว้ใน settings
             from taskbargroups.core.settings import Settings
 
-            saved = Settings().get_hotkeys()
+            saved = Settings(self.store.config_dir).get_hotkeys()
             for name in dir_names:
                 slot = hotkey_slot(name)
                 if slot in saved:
@@ -586,7 +612,15 @@ class MainWindow(QMainWindow):
                 item.setData(Qt.UserRole, dir_name)
                 is_pinned = desktop_file_name(dir_name) in pinned_ids
                 item.setData(PINNED_ROLE, is_pinned)
-                item.setToolTip(f"{group.name} — " + _pin_tooltip(group, is_pinned, dir_name))
+                stale = None
+                if stale_files is not None and is_pinned:
+                    from taskbargroups.core.taskbar import _win32 as _w32
+
+                    filename = stale_files.get(_w32.aumid(dir_name))
+                    stale = filename is not None and filename != _w32.lnk_name(dir_name)
+                item.setToolTip(
+                    f"{group.name} — " + _pin_tooltip(group, is_pinned, dir_name, stale)
+                )
                 item.setIcon(group_icon(group, self.store, dir_name))
                 self.list.addItem(item)
             except Exception:
@@ -670,12 +704,15 @@ class MainWindow(QMainWindow):
         try:
             if renamed:
                 self._cleanup_launcher(old_dir, old_desktop_id)
+                self._migrate_win_hotkey(old_dir, new_dir)
                 if was_pinned:
                     self._install_and_pin(group, new_dir)
                     self._repoint_pinned(old_dir, new_dir)
             else:
                 self._refresh_pinned_icon(group, new_dir)
-            self._ensure_launcher(group, new_dir)
+            # เปลี่ยนไอคอน = force → ลบ .lnk เก่า+เขียนทับสำเนา taskbar/Desktop
+            # ไม่งั้น Windows แคชไอคอนเก่าไว้ ( Explorer/Taskbar ไม่เปลี่ยนตาม )
+            self._ensure_launcher(group, new_dir, force=bool(dialog.icon_source()))
         except Exception:
             # งานเสริม (ล้าง launcher / ทำ .lnk) พังไม่ได้ปล่อยให้กลุ่มที่เพิ่ง
             # บันทึกแล้วหายจากรายการ — กันไว้ก่อน แล้วค่อยรีเฟรช
@@ -683,6 +720,30 @@ class MainWindow(QMainWindow):
         finally:
             # เสมอต้องรีเฟรช ไม่งั้นผู้ใช้บันทึกกลุ่มแล้วไม่เห็นในรายการ
             self.refresh()
+
+    def _migrate_win_hotkey(self, old_dir: str | None, new_dir: str) -> None:
+        """หลังเปลี่ยนชื่อกลุ่ม — ย้าย hotkey ฝั่ง Windows ตามไปชี้ชื่อใหม่."""
+        if sys.platform != "win32" or not old_dir:
+            return
+        from .win32_hotkey import registry
+
+        old_slot = hotkey_slot(old_dir)
+        new_slot = hotkey_slot(new_dir)
+        settings = Settings(self.store.config_dir)
+        binding = settings.get_hotkeys().get(old_slot)
+        if not binding:
+            return
+        try:
+            hwnd = int(self.winId())
+        except (TypeError, ValueError):
+            hwnd = 0
+        registry.unregister_slot(old_slot, hwnd)
+        settings.remove_hotkey(old_slot)
+        try:
+            registry.register_slot(new_slot, new_dir, binding, hwnd)
+        except OSError:
+            pass
+        settings.set_hotkey(new_slot, binding)
 
     def _repoint_pinned(self, old_dir: str, new_dir: str) -> None:
         """หลังเปลี่ยนชื่อ — ให้ปุ่มบน taskbar ที่ผู้ใช้ลากวางไว้ชี้กลุ่มใหม่
@@ -714,12 +775,15 @@ class MainWindow(QMainWindow):
             group, self.store, dir_name, default_icon=default_icon
         )
 
-    def _ensure_launcher(self, group, dir_name: str) -> None:
+    def _ensure_launcher(self, group, dir_name: str, force: bool = False) -> None:
         """สร้าง/รีเฟรช `.lnk` อัตโนมัติหลังบันทึกกลุ่ม (Windows เท่านั้น).
 
         ฝั่ง Linux ปักลง panel ได้จริงจึงยังคงพฤติกรรมเดิม (ค่อยกดปุ่มปักเอง)
         ส่วน Windows ปุ่มปักคือ "เปิดโฟลเดอร์ให้ลาก" — ถ้ายังไม่มีไฟล์ให้ลาก
         ผู้ใช้จะงง จึงต้องมีไฟล์อยู่เสมอหลังสร้างกลุ่ม
+
+        `force=True` (ตอนเปลี่ยนไอคอน) = ลบ `.lnk` เก่าแล้วสร้างใหม่ + เขียนทับ
+        สำเนาบน taskbar/Desktop — ถ้าใช้ของเดิม Windows แคชไอคอนไว้ ไม่อัพเดท.
         """
         if sys.platform != "win32":
             return
@@ -727,12 +791,37 @@ class MainWindow(QMainWindow):
 
         path = shortcuts_dir() / desktop_file_name(dir_name)
         pinned = desktop_file_name(dir_name) in pinned_desktop_ids()
-        if path.is_file() and not pinned:
-            return  # มีอยู่แล้ว ไม่ปัก — ไม่ต้องเขียนใหม่
+        if path.is_file() and not pinned and not force:
+            return  # มีอยู่แล้ว ไม่ปัก ไม่ได้เปลี่ยนไอคอน — ไม่ต้องเขียนใหม่
         try:
+            if force and path.is_file():
+                path.unlink()  # ลบของเก่าก่อน — ไม่งั้น Windows แคชไอคอนไว้
             self._install_launcher(group, dir_name)
         except OSError:
             pass  # เงียบไว้ ผู้ใช้ยังกดปุ่มเปิดโฟลเดอร์เพื่อสร้างเองได้
+        if force and path.is_file():
+            # อัปเดตสำเนาบน taskbar/Desktop ถ้ามี (Windows ก๊อปไฟล์ตอนลากวาง →
+            # สำเนาเก่าชี้ไอคอนเก่า · ต้องเขียนทับถึงจะเห็นไอคอนใหม่)
+            try:
+                from taskbargroups.core.win32 import (
+                    repoint_desktop_copies,
+                    repoint_pinned,
+                )
+
+                repoint_pinned(dir_name, path)
+                repoint_desktop_copies(dir_name, path)
+            except OSError:
+                pass
+            # แจ้ง Windows ให้รีเฟรช icon cache (ไม่งั้นยังโชว์ไอคอนเก่าตาม path)
+            try:
+                from taskbargroups.core.win32 import notify_icon_changed
+
+                icon_path = group.icon and self.store.resolve_relative(dir_name, group.icon)
+                if icon_path is not None:
+                    notify_icon_changed(icon_path)
+                notify_icon_changed(path)
+            except Exception:
+                pass
 
     def _cleanup_launcher(self, dir_name: str, desktop_id: str) -> None:
         """ลบ launcher/ไอคอนของกลุ่ม + ถอนหมุดออกจาก panel ถ้าปักอยู่."""
@@ -829,7 +918,7 @@ class MainWindow(QMainWindow):
             except (TypeError, ValueError):
                 hwnd = 0
             registry.unregister_slot(hotkey_slot(dir_name), hwnd)
-            Settings().remove_hotkey(hotkey_slot(dir_name))
+            Settings(self.store.config_dir).remove_hotkey(hotkey_slot(dir_name))
         self.refresh()
 
     def on_open(self) -> None:
@@ -930,24 +1019,31 @@ class MainWindow(QMainWindow):
             self._pin(group, dir_name, desktop_id)
 
     def _reveal_launcher_dir(self, group, dir_name: str) -> None:
-        """สร้าง `.lnk` ถ้ายังไม่มี แล้วเปิด Explorer เลือกไฟล์นั้นให้ผู้ใช้ลากวาง."""
+        """(re)สร้าง `.lnk` ให้ตรงกลุ่มปัจจุบัน แล้วเปิด Explorer เลือกไฟล์ให้ลากวาง.
+
+        เขียนใหม่ทุกครั้ง (ลบไฟล์เก่าก่อนสร้าง) — ถ้าใช้ของเดิม ไอคอนที่เพิ่งเปลี่ยน
+        จะไม่อัพเดทบน .lnk (Explorer cache ไฟล์เดิม) จนผู้ใช้ต้องมานั่งลบเอง
+        """
         from taskbargroups.core import win32 as _win32
 
         desktop_id = desktop_file_name(dir_name)
+        existing = _win32.shortcuts_dir() / desktop_id
         try:
+            if existing.is_file():
+                existing.unlink()
             path = self._install_launcher(group, dir_name)
             _win32.reveal_in_explorer(path)
         except OSError as exc:
             show_warning(self, tr("err.generic"), str(exc))
             return
         self.refresh()
-        show_information(
-            self,
-            tr("main.pin_title"),
-            tr("main.launcher_installed", path=path)
-            + "\n\n"
-            + tr("main.win_not_pinned_tip", file=desktop_id),
+        # compose เป็น HTML ทั้งก้อน (launcher_installed ใช้ \n → แปลงเป็น <br> ให้ตรง RichText)
+        html = (
+            tr("main.launcher_installed", path=path).replace("\n", "<br>")
+            + "<br><br>"
+            + tr("main.win_not_pinned_tip", file=desktop_id)
         )
+        show_information(self, tr("main.pin_title"), html, rich=True)
 
     def _pin(self, group, dir_name: str, desktop_id: str) -> None:
         """ปักหมุดจริง — ฝั่ง Linux/macOS เท่านั้น (Windows ไปที่ `_reveal_launcher_dir`)."""
@@ -1016,6 +1112,16 @@ def run(
     open_group: str | None = None,
     center: bool = False,
 ) -> int:
+    if sys.platform == "win32":
+        # ตั้ง AUMID ก่อนสร้างหน้าต่างแรกเสมอ:
+        # - โหมด flyout → ตรงกับ .lnk ของกลุ่ม (ปุ่ม taskbar กลุ่มนั้นจะแอ็กทีฟตรงกัน)
+        # - โหมดหน้าต่างหลัก → ใช้ AUMID กลาง (ไม่ให้ Windows จับไปสิงรวมกับ .lnk กลุ่มแรก)
+        from ..core.win32 import set_app_aumid, set_process_aumid
+
+        if open_group:
+            set_process_aumid(open_group)
+        else:
+            set_app_aumid()
     app = QApplication.instance() or QApplication(sys.argv if argv is None else argv)
     app.setApplicationName("TaskbarNoob")
     app.setApplicationDisplayName("TaskbarNoob")
@@ -1027,12 +1133,6 @@ def run(
     setup(settings.get_language())
     apply_theme(app, resolve_theme(settings.get_theme(), app))
     if open_group:
-        if sys.platform == "win32":
-            # ตั้ง AUMID ให้ตรงกับ .lnk ของกลุ่ม → ปุ่มที่ปักไว้บน taskbar
-            # กลายเป็นปุ่มของกลุ่มนี้ทันที (แทนที่จะเป็นอีกปุ่มแยก/ซ้อนกัน)
-            from ..core.win32 import set_process_aumid
-
-            set_process_aumid(open_group)
         return _run_flyout(app, open_group, center)
     window = MainWindow()
     if sys.platform == "win32":
@@ -1043,8 +1143,12 @@ def run(
 
 def _register_saved_win_hotkeys(app, window, settings) -> None:
     """ลงทะเบียน hotkey ที่จำไว้ใน settings ใหม่ทุกครั้งที่เปิดแอป (Windows)."""
-    from .win32_hotkey import WinHotkeyFilter, registry
-
+    from .win32_hotkey import WinHotkeyFilter
+    
+    # สำคัญ: ใช้ global registry object เดียวกัน — อย่าสร้างใหม่!
+    # HotkeyRegistry.register_slot() จะ unregister/ register เองอยู่แล้ว
+    from taskbargroups.gui.win32_hotkey import registry
+    
     try:
         if getattr(sys, "frozen", False):
             exe_args = [sys.executable]
@@ -1053,7 +1157,10 @@ def _register_saved_win_hotkeys(app, window, settings) -> None:
         hwnd = int(window.winId())
     except (TypeError, ValueError):
         return
-    app.installNativeEventFilter(WinHotkeyFilter(registry, exe_args, window))
+    hotkey_filter = WinHotkeyFilter(registry, exe_args, window)
+    app.installNativeEventFilter(hotkey_filter)
+    # เก็บ reference ไว้ ไม่งั้น Qt/Python GC จะทำลาย filter กลางคัน → hotkey ไม่ทำงาน
+    app._win_hotkey_filter = hotkey_filter
     store = ConfigStore()
     try:
         dir_names = store.list_groups()
@@ -1065,10 +1172,12 @@ def _register_saved_win_hotkeys(app, window, settings) -> None:
         binding = saved.get(slot)
         if not binding:
             continue
+        # ไม่ต้อง unregister ที่นี่ — WinHotkeyFilter/register_slot จัดการเองอยู่แล้ว!
+        # ถ้า ID ชนกัน (เปิดแอปหลายครั้งพร้อมกัน) Windows จะปฏิเสธ register เท่านั้น
         try:
             registry.register_slot(slot, dir_name, binding, hwnd)
-        except OSError:
-            continue
+        except OSError as e:
+            continue  # ID ชน หรือ hotkey เดิมยังอยู่ — ให้ข้ามไป
 
 
 def _run_flyout(app: QApplication, dir_name: str, center: bool = False) -> int:

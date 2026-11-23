@@ -159,7 +159,7 @@ class HotkeyDialog(QDialog):
         if sys.platform == "win32":
             from taskbargroups.core.settings import Settings
 
-            return Settings().get_hotkeys().get(self._slot(), "")
+            return Settings(self.store.config_dir).get_hotkeys().get(self._slot(), "")
         return ""
 
     def _install_windows(self, binding: str) -> None:
@@ -168,7 +168,7 @@ class HotkeyDialog(QDialog):
         from .win32_hotkey import registry
 
         registry.register_slot(self._slot(), self.dir_name, binding, self._hwnd())
-        Settings().set_hotkey(self._slot(), binding)
+        Settings(self.store.config_dir).set_hotkey(self._slot(), binding)
 
     def _remove_windows(self) -> None:
         from taskbargroups.core.settings import Settings
@@ -176,7 +176,7 @@ class HotkeyDialog(QDialog):
         from .win32_hotkey import registry
 
         registry.unregister_slot(self._slot(), self._hwnd())
-        Settings().remove_hotkey(self._slot())
+        Settings(self.store.config_dir).remove_hotkey(self._slot())
 
     def _install(self) -> None:
         binding = qt_sequence_to_cinnamon(self.key_edit.keySequence())

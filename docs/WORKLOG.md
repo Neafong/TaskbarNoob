@@ -1299,3 +1299,71 @@ tag พร้อมแล้ว (HEAD) · เหลือ: ทดสอบ Windo
   `D:\Portable Software\Tool\TaskbarNoob\` · build ด้วย `.venv-win`
   ต้อง `Stop-Process TaskbarNoob` ก่อน copy (ไฟล์ถูกล็อกตอนรัน)
 - **Mint (โปรเจกต์หลัก):** `.venv/bin/python tests/run.py` → ต้องผ่าน 349
+
+
+---
+
+## 2026-11-21 — เฟส 1 (`W-Clean`) + เฟส 2 (`W-TestGuard`) `[เสร็จ]`
+
+- **ผู้รับช่วงต่อ:** เจนนี่ (Gemini — รับช่วงต่อจากน้องพริก Big Pickle)
+- **เฟส 1 (`W-Clean`):**
+  - กู้คืน `docs/WORKLOG.md` (1,301 บรรทัด) และถอดโค้ดพัง/หลอนจากชุดวันที่ 26–27 ต.ค. (`QPixmap.setSmoothingHint`, `QImage.Filter.HighQuality`, `create_lnk_for_hotkey`, encoding พังใน `win32_com.py`, แก้ `core/desktop.py` ฝั่ง Linux)
+  - คัดเก็บข้อดีทั้งหมดจากชุดวันที่ 21–27 ต.ค. ไว้ครบ:
+    1. `png_to_ico` แบบ pure-Python multi-res (16/24/32/48/64/128/256 px พร้อม area/box filter downsampling) + `render_icon.py` multi-res `.ico` (แก้ไอคอนแตก/Moire ที่ต้นตอ)
+    2. `SHChangeNotify` (`notify_icon_changed`) + ลบ `.lnk` เก่าก่อนเขียนใหม่ใน `_reveal_launcher_dir` + hashed `.ico` filename (แก้ Windows icon cache ค้าง)
+    3. ดึงไอคอน Windows ความละเอียดสูงไร้ลูกศร shortcut (`SHDefExtractIconW` + `read_icon_location` ใน `win32_com.py`) + สแกน `.lnk` จาก Start Menu ใน `_SystemIconDialog` (พร้อม `try/except OSError` กันโฟลเดอร์ Start Menu ที่เข้าไม่ได้)
+    4. เก็บ reference `app._win_hotkey_filter = hotkey_filter` ใน `main_window.py` กัน Python/Qt GC ลบ native event filter ของ Hotkey
+    5. `self.setPalette(app.palette())` ใน `SettingsDialog._on_theme_changed` ให้หน้าต่าง Settings เปลี่ยนสีตามธีมทันที
+    6. ขอบเซลล์สุดท้ายใน `ShortcutGrid._partner_row` ใช้ `last_cell.right()` แทน `last_cell.center().x()`
+- **เฟส 2 (`W-TestGuard`):**
+  - ใส่ `@unittest.skipUnless(sys.platform == "linux", "Linux-only")` ให้เทสต์ที่ผูกกับ Linux/Cinnamon/Unix socket
+  - ผลรัน `.venv-win\Scripts\python.exe tests\run.py`: **365 เทสต์ ผ่าน 100% (`OK (skipped=23)`, 0 fail, 0 error)** เป็นครั้งแรกบน Windows
+- **ต่อไป (เฟส 3–5):** ตรวจ Hotkey & ไอคอนจริง → Build `TaskbarNoob.exe` ลง `D:\Portable\Tool\TaskbarNoob\` → ทดสอบใช้งานจริง → Commit/Push & Publish `v0.2.0`
+
+
+## 2026-11-21 — เฟส 3 (`W-Hotkey & Icon`) `[เสร็จ]`
+
+- **Hotkey Win32 (`core/win32.py`, `gui/win32_hotkey.py`, `gui/main_window.py`, `gui/hotkey_dialog.py`):**
+  1. กำหนด `argtypes` / `restype` ของ `RegisterHotKey` และ `UnregisterHotKey` (`wintypes.HWND`, `c_int`, `wintypes.UINT`, `wintypes.UINT`) กัน `HWND` 64-bit ล้น `c_int` บน Windows x64
+  2. เรียก `AllowSetForegroundWindow(-1)` (`ASFW_ANY`) ใน `WinHotkeyFilter.nativeEventFilter` ก่อน spawn โปรเซส `--open <dir> --center` เพื่อโอนสิทธิ์ foreground จากโปรเซสที่รับ `WM_HOTKEY` ให้หน้าต่าง Flyout เด้งขึ้นมาด้านหน้าและรับคีย์ `1–9`/`Esc` ได้ทันที
+  3. เพิ่ม `_migrate_win_hotkey(old_dir, new_dir)` ใน `MainWindow._persist` ให้ย้ายคีย์ลัดตามเมื่อผู้ใช้เปลี่ยนชื่อกลุ่มบน Windows
+  4. ส่ง `self.store.config_dir` ให้ `Settings(...)` ใน `MainWindow` และ `HotkeyDialog` ให้สอดคล้องกันทุกจุด
+- **ไอคอน Windows Build (`packaging/build_windows.ps1`):**
+  - เรนเดอร์ทั้ง `packaging/win/taskbarnoob.ico` (multi-res) และ `packaging/win/taskbargroups.png` (256px) จาก `Logo TG.svg` เพื่อให้ทั้งไอคอน `.exe` และไอคอนบน titlebar/window ของ Windows เป็นโลโก้ TG ตรงกัน โดยไม่แตะไฟล์ฝั่ง Linux Mint
+  - ข้าม `pip install` ถ้า `.venv-win` มี `PySide6` และ `PyInstaller` อยู่แล้ว (ไม่ต้องต่อเน็ตซ้ำตอน build)
+- **เทสต์:** เพิ่ม `test_filter_spawns_center_flyout_on_wm_hotkey` และ `test_rename_group_migrates_win_hotkey` → **367 เทสต์ ผ่าน 100% (`OK (skipped=23)`)**
+
+
+## 2026-11-23 — เฟส 4 (`W-Build & Live`) `[กำลังทดสอบจริง]`
+
+- **Deploy:** ย้ายโฟลเดอร์ใช้งานจริงไปที่ `D:\Portable\Tool\TaskbarNoob` (คง `config/` ของผู้ใช้ไว้เสมอ)
+- **แก้บั๊กจากการทดสอบใช้งานจริงบน Win11:**
+  1. **ไอคอน MainWindow บน Taskbar ไปรวมกับกลุ่มแรก:** เพิ่ม `app_aumid()` (`"taskbargroups.app"`) + `set_app_aumid()` ใน `core/win32.py` แล้วเรียกก่อนสร้าง `QApplication` ใน `gui/main_window.py` → ปุ่ม TaskbarNoob แยกจากปุ่มกลุ่มเรียบร้อย (ยืนยันแล้ว)
+  2. **เงาขอบสี่เหลี่ยมของ Flyout ลอยเกินมุมโค้งบน Win11:** ใส่ `Qt.NoDropShadowWindowHint` และ `QGraphicsDropShadowEffect` บน `QFrame#flyoutFrame` ใน `gui/flyout.py` → มุมโค้งเนียนไร้เส้นเงาเกินกรอบ (ยืนยันแล้ว)
+  3. **ไอคอนแอป MSIX/WindowsApps (เช่น Affinity) เป็นรูปหน้าต่างขาวเปล่า:** เพิ่ม `parse_app_exec_link_reparse()`, `read_app_exec_link()` (`IO_REPARSE_TAG_APPEXECLINK`), `extract_appsfolder_hbitmap()` (`IShellItemImageFactory` บน `shell:AppsFolder\<aumid>`) ใน `core/win32_com.py` และ `_appsfolder_icon_png()` ใน `gui/icons.py` (พร้อม fallback ไป `target_exe` + bump cache เป็น `provider-icons-v3`) — **ยืนยันแล้ว ไอคอน Affinity ขึ้นสมบูรณ์**
+  4. **ตัวเลือกไอคอนจากระบบฝั่ง Windows (`_SystemIconDialog`):** เปลี่ยนจากสแกนเฉพาะ Start Menu `.lnk` มาเป็น 2 แหล่งผ่าน `QComboBox`: (1) **ไอคอนระบบ Windows** ดึงจาก `imageres.dll` + `shell32.dll` แบบ batch (`ExtractIconExW`, ~0.04 วิ) และสกัด PNG 256px ตอนเลือก (`SHDefExtractIconW`) (2) **แอปใน Start Menu** พร้อมกรอง `Uninstall`/`Manual`/`Readme` ออก (เพิ่ม i18n keys `system_icon.source_system` / `system_icon.source_apps` ครบ TH/EN/JA)
+  5. **เก็บกวาดก่อน commit:** ลบ `set_process_aumid` ที่ซ้ำใน `gui/main_window.py` และลบโฟลเดอร์ `.opencode/` ที่ไม่ใช้แล้ว
+- **เทสต์:** เพิ่ม `test_app_aumid_differs_from_group_and_calls_shell32`, `test_flyout_disables_native_drop_shadow`, `AppExecLinkTests` (3 เทสต์), `test_scan_windows_filters_noise_shortcuts`, `test_windows_dll_source_extracts_png_on_accept` → **374 เทสต์ ผ่าน 100% (`OK (skipped=23)`)** · ทดสอบจริงบน Win11 ผ่านทั้ง Affinity icon และ Hotkey
+
+---
+
+## 📌 Handoff สำหรับเจนนี่บน Linux Mint (2026-11-23)
+
+> **อ่านก่อนเริ่มงานบน Mint:** งานฝั่ง Windows `v0.2.0` เสร็จและทดสอบจริงครบแล้ว (374 เทสต์บน Win ผ่าน 100%, โค้ดใหม่ทั้งหมด gate ด้วย `sys.platform == "win32"` ไม่กระทบ Mint)
+
+### สิ่งที่ต้องทำต่อบน Linux Mint
+1. **ดึงโค้ดล่าสุด + รันเทสต์ฝั่ง Mint:**
+   - `git pull origin main`
+   - `.venv/bin/python tests/run.py` → ต้องผ่าน **100%** (ตรวจโดยเฉพาะ `test_ja_asset_full_translation` และ `tests/test_group_editor.py` ที่เพิ่มเทสต์ใหม่)
+2. **ปล่อย `v0.2.0` บน Linux Mint (ถ้ายังไม่ได้ rebuild ล่าสุด):**
+   - `bash packaging/build_appimage.sh` + `bash packaging/build_deb.sh`
+   - คัดลอก AppImage ไปทับ `/home/noob/AppImage/Tool/TaskbarNoob-x86_64.AppImage` แล้วเทสต์เปิดใช้งานจริง
+   - แนบไฟล์ Linux (`.AppImage` + `.deb`) คู่กับไฟล์ Windows (`.zip`) ใน GitHub Release `v0.2.0` แล้วกด Publish
+3. **เริ่ม `v0.3.0` — ปรับปรุงโครงสร้างใหม่ทั้งหมด (ยึดฟีเจอร์เดิมเป็นแกน):**
+   - อ่านแผนเต็มใน [`docs/roadmap.md`](roadmap.md) (R0–R4):
+     - **R0 (ทำเป็นอย่างแรกก่อนแตะโค้ด!):** จัดระเบียบ `docs/` — ย้ายแผนเก่า + ตัดภาค log `v0.1–v0.2` ลง `docs/archive/`, เริ่ม `WORKLOG.md` ใหม่ให้เบา, อัปเดต `docs/README.md` และ `docs/team.md`
+     - **R1:** แยก `core/platform/{base,linux,win32}` ชัดเจน + พับเก็บ `core/macos.py` ออกไปก่อน
+     - **R2:** ย่อยไฟล์ยักษ์ (`main_window.py` 1,199 บรรทัด, `group_editor.py` 1,151 บรรทัด, `win32.py` 802 บรรทัด) เป็นโมดูลเล็กที่ทำหน้าที่เดียว
+     - **R3:** รวม icon pipeline เป็นจุดเดียว (เลิก circular import `gui/icons` ↔ `group_editor`) + เพิ่มตัวเลือกไอคอนระบบแบบแยกหมวดบน Mint + เพิ่ม **Steam `steam://rungameid/<appid>` icon resolver** ทั้ง Linux (`.desktop` + `~/.local/share/Steam/appcache/librarycache`) และ Windows (`.url` + Registry `SteamPath`)
+     - **R4:** เก็บกวาด Dead Code / PowerShell เก่า / `i18n.py` + **เปลี่ยนเครดิต `Noob & Pickle` → `Noob & Jenny` (เจนนี่)** ทุกจุด (Settings, About dialog, i18n, `.appdata.xml`, `README.md`)
+   - **กติกา:** รื้อบน **Linux Mint ก่อน** ให้เขียว 100% แล้วค่อยนำโครงสร้างเดียวกันมาปรับฝั่ง **Windows** ค่ะ

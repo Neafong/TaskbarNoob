@@ -12,6 +12,7 @@ from PySide6.QtGui import QColor, QCursor, QGuiApplication
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import (
     QFrame,
+    QGraphicsDropShadowEffect,
     QGridLayout,
     QLabel,
     QToolButton,
@@ -131,7 +132,9 @@ class FlyoutWindow(QWidget):
         self.buttons: list[QToolButton] = []
         self._closed_emitted = False
 
-        self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint)
+        self.setWindowFlags(
+            Qt.Popup | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint
+        )
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setWindowTitle(group.name)
 
@@ -160,6 +163,11 @@ class FlyoutWindow(QWidget):
 
         frame = QFrame()
         frame.setObjectName("flyoutFrame")
+        shadow = QGraphicsDropShadowEffect(frame)
+        shadow.setBlurRadius(16)
+        shadow.setOffset(0, 2)
+        shadow.setColor(QColor(0, 0, 0, 110))
+        frame.setGraphicsEffect(shadow)
         outer.addWidget(frame)
 
         frame_layout = QVBoxLayout(frame)

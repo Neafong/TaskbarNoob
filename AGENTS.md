@@ -2,10 +2,10 @@
 
 > "ความจำโปรเจกต์" — เปิดเซคชันใหม่ให้อ่านไฟล์นี้ก่อนเสมอ
 > **ไฟล์นี้เก็บแค่ snapshot ปัจจุบัน** ให้สั้น — ประวัติอยู่ใน `docs/WORKLOG.md` · แผนที่เอกสาร: `docs/README.md`
-> Last updated: 2026-10-17
+> Last updated: 2026-11-23
 
 ## บทบาท / ผู้ช่วย
-- ผู้ช่วยชื่อ **"น้องพริก"** — โปรแกรมเมอร์คู่ใจ เป็น **ผู้หญิง** → ลงท้าย **"ค่ะ / คะ"**
+- ผู้ช่วยชื่อ **"เจนนี่"** (Gemini — รับช่วงต่อจาก "น้องพริก" Big Pickle) — โปรแกรมเมอร์คู่ใจ เป็น **ผู้หญิง** → ลงท้าย **"ค่ะ / คะ"**
 - โทน: เป็นกันเอง ขี้เล่นได้ แต่โฟกัสงาน
 
 ## กติกาทำงาน (กลั่นจาก karpathy-skills)
@@ -45,15 +45,14 @@
 ## สถานะปัจจุบัน
 - **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12):** repo `github.com/Neafong/TaskbarNoob` (Public) ·
   Release แนบ `TaskbarNoob-x86_64.AppImage` + `taskbargroups_0.1.0_amd64.deb` · GPL-3.0 · README มี badge + Screenshots
-- **โค้ดล่าสุด:** **v0.2.0** (2026-10-19 · Windows session 2 เสร็จ)
-  · Windows: AUMID + `.lnk` ชื่อตามกลุ่ม + COM `IShellLinkW` · ปุ่มโฟลเดอร์ + tooltip rich text
+- **โค้ดล่าสุด:** **v0.2.0** (2026-11-23 · Windows 11 ทดสอบจริงครบแล้ว)
+  · Windows: AUMID แยกต่อกลุ่ม + `app_aumid()` หน้าต่างหลัก · `.lnk` ผ่าน COM `IShellLinkW` · multi-res `.ico` · Hotkey Win32 + foreground focus + ย้ายคีย์ตามตอนเปลี่ยนชื่อ · ไอคอน MSIX/WindowsApps อัตโนมัติ · ตัวเลือกไอคอนระบบ 2 แหล่ง (`imageres`/`shell32` + Start Menu กรอง Uninstall) · Flyout เงาตามมุมโค้ง
   · **Win11 ไม่ให้ปัก taskbar อัตโนมัติ** (พิสูจน์แล้ว 4 วิธี · ต้นฉบับก็ทำไม่ได้) → ใช้**ลาก `.lnk` วางเอง**
-  · **349 เทสต์** · ไอคอน exe = โลโก้ TG
-- **git:** tag `v0.2.0` ย้ายมาที่ HEAD · **ยังไม่ publish**
-  · เหลือ: ทดสอบ Windows ให้ครบ (hotkey) → zip → แนบใน draft Release → **publish**
-- 🔖 **งานค้างทั้งหมด + ข้อควรระวัง** → หัวข้อ "📌 handoff" ท้าย [`docs/WORKLOG.md`](docs/WORKLOG.md)
+  · **374 เทสต์ (Win: OK skipped=23)** · ไอคอน exe = โลโก้ TG · โฟลเดอร์ใช้งานจริงบน Win: `D:\Portable\Tool\TaskbarNoob`
+- **git:** พร้อม commit + push ขึ้น `main` → แพ็ก Windows `.zip` + ฝั่ง Mint rebuild `.deb`/AppImage → **publish v0.2.0**
+- 🔖 **งานค้างทั้งหมด + Handoff ฝั่ง Mint** → หัวข้อ "📌 Handoff สำหรับเจนนี่บน Linux Mint" ท้าย [`docs/WORKLOG.md`](docs/WORKLOG.md)
   · **อ่านก่อนเปิดเซคชั่นใหม่** · งานรอบ Windows **ไม่ต้อง port ไป Mint** (gate ด้วย `sys.platform` แล้ว)
-- **แผนต่อจากนี้:** เทสต์ Windows จริง แล้ว publish v0.2.0 · ดู `docs/roadmap.md` + `docs/feedback.md`
+- **แผนต่อจากนี้:** ปล่อย `v0.2.0` → ลุย **`v0.3.0` รื้อโครงสร้างใหม่ทั้งหมด (ยึดฟีเจอร์เดิมเป็นแกน)** เริ่มที่ **Linux Mint** ก่อน (พับเก็บ macOS ไว้ก่อน) · ดู [`docs/roadmap.md`](docs/roadmap.md)
 - **ยังเทสต์บนเครื่องนี้ไม่ได้:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่น (hotkey/pin = Cinnamon-only)
 
 ## หมายเหตุเทคนิคสำคัญ (แก้โค้ดตรงส่วนนี้ ต้องอ่านก่อน!)
