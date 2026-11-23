@@ -67,3 +67,37 @@
 - **ล็อกตำแหน่ง flyout เหนือไอคอนบน Cinnamon (`panel.pinned_icon_rect`):** ถามพิกัด `(x, y, w, h)` จริงของไอคอนที่ปักจาก Cinnamon DBus แล้วตรึง flyout ตรงกลางเหนือไอคอนนั้นเสมอ ไม่วิ่งตามเมาส์อีกต่อไป
 - **รองรับ Flatpak/Snap + เลือกไอคอนความละเอียดสูงสุด/SVG + ปุ่ม "จากแอป..." (`gui/app_picker.py`):** แก้ Zen Browser (Flatpak) ไม่มีไอคอน และ Chrome/Firefox/Brave ขนาดไม่เท่ากัน (16px/24px) + เพิ่มไดอะล็อกค้นหา/เพิ่มแอปที่ติดตั้งในคลิกเดียว (Linux `.desktop`/Flatpak/Snap + Windows Start Menu)
 - **9 ภาษาในตัวแอป (`core/i18n/` + `packaging/lang/`):** แพ็ก 9 ภาษา (`th`, `en`, `ja`, `zh_CN`, `ko`, `es`, `de`, `fr`, `pt_BR`) ติดมากับ AppImage/`.deb`/Windows `.exe` พร้อมเทสต์เช็กครบทุกคีย์ 100% → **392 เทสต์ ผ่าน 100% (`OK (skipped=10)`)**
+
+- **Build `.deb` สำเร็จ:** `dist/taskbarnoob_0.3.0_amd64.deb` (43 MB · `Package: taskbarnoob`, `Version: 0.3.0`, `Replaces: taskbargroups`, `Conflicts: taskbargroups`, แพ็ก `assets/lang/*.json` ทั้ง 7 ภาษา + `taskbarnoob.svg` ครบ)
+
+---
+
+## 📌 Handoff สำหรับเจนนี่ฝั่ง Windows 11 (v0.3.0)
+
+ฝั่ง **Linux Mint (Cinnamon)** เสร็จสมบูรณ์ 100% และ push ขึ้น `origin/main` แล้วค่ะ ต่อไปเป็นคิวทดสอบและ build ฝั่ง **Windows 11** ก่อนปล่อย GitHub Release `v0.3.0`:
+
+### สิ่งที่เปลี่ยนแปลงใหญ่ใน v0.3.0 ที่กระทบฝั่ง Windows 11
+1. **รีแบรนด์แพ็กเกจภายใน:** `taskbargroups` → `taskbarnoob` (AUMID ใหม่: `Noob.TaskbarNoob.*`, env: `TASKBARNOOB_CONFIG` โดยยังรองรับ `TASKBARGROUPS_CONFIG` เก่า)
+2. **แยกแพลตฟอร์มเป็น 6 โมดูลย่อย:** `taskbarnoob/core/platform/win32/{com,aumid,icons,shortcuts,taskbar,launcher}.py` + ลบ PowerShell dead code ทิ้งหมดแล้ว (ใช้ COM `IShellLinkW` + `IPropertyStore` ล้วน)
+3. **ปุ่ม "จากแอป..." (`gui/app_picker.py`):** สแกน Start Menu (`.lnk` + MSIX/WindowsApps เช่น Affinity) มาให้เลือกเพิ่มเข้ากลุ่มได้ตรงๆ ในคลิกเดียว
+4. **9 ภาษาในตัวแอป (`packaging/lang/*.json`):** อัปเดต `packaging/build_windows.ps1` ให้แพ็ก `--add-data "packaging/lang;taskbarnoob/assets/lang"` แล้ว
+5. **Steam icon resolver (`core/icons/steam.py`):** รองรับ `steam://rungameid/<appid>` ข้าม OS รวมถึงไฟล์ `.url` ของ Steam บน Windows
+6. **Electron/Portable ASAR icon (`core/icons/portable.py`)** + **ไอคอนแอปเนียนทุกระดับ (`app_window_icon()`)**
+
+### เช็กลิสต์สำหรับเจนนี่ฝั่ง Windows 11
+1. **ซิงก์โค้ดล่าสุด:** `git pull origin main`
+2. **รันเทสต์เต็มระบบบน Windows:** `python tests/run.py`
+   - ยืนยันว่า **392/392 เทสต์ผ่าน 100% (0 skipped)** รวมถึงเทสต์ Windows COM/Shell32 ทั้ง 10 ตัว
+3. **Build Windows Portable:** `powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1`
+   - ตรวจว่า `dist/TaskbarNoob/` มี `taskbarnoob/assets/lang/` ครบทั้ง 7 ไฟล์ JSON (+ `th`/`en` ในตัว รวม 9 ภาษา)
+   - นำไปทดสอบใช้งานจริงที่ `D:\Portable\Tool\TaskbarNoob`
+4. **Live-Test บน Windows 11:**
+   - [ ] เปิดแอปได้ปกติ, ไอคอน titlebar/taskbar คมเนียน
+   - [ ] เปลี่ยนภาษาใน Settings เห็นครบทั้ง 9 ภาษาและเปลี่ยนได้จริง
+   - [ ] กดปุ่ม **"จากแอป..."** ใน Group Editor → เห็นแอปใน Start Menu รวมถึงแอป MSIX (เช่น Affinity) และดึงไอคอนมาครบ
+   - [ ] สร้าง/แก้กลุ่ม → `.lnk` ใน `config/shortcuts/` มี AUMID `Noob.TaskbarNoob.*` ถูกต้อง, ปัก taskbar ไม่ซ้อนกลุ่มกัน
+   - [ ] Global Hotkey Win32 + Flyout foreground focus ทำงานปกติ
+   - [ ] ไอคอนเกม Steam (`steam://rungameid/...` หรือ `.url`) แสดงครบ
+5. **ปล่อย GitHub Release `v0.3.0`:**
+   - สร้าง tag `v0.3.0` จาก commit ที่ผ่านทดสอบทั้ง 2 OS
+   - แนบไฟล์ปล่อย: `TaskbarNoob-x86_64.AppImage`, `taskbarnoob_0.3.0_amd64.deb`, และ `TaskbarNoob-win64-portable.zip`

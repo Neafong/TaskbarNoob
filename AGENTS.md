@@ -2,7 +2,7 @@
 
 > "ความจำโปรเจกต์" — เปิดเซคชันใหม่ให้อ่านไฟล์นี้ก่อนเสมอ
 > **ไฟล์นี้เก็บแค่ snapshot ปัจจุบัน** ให้สั้น — ประวัติอยู่ใน `docs/WORKLOG.md` · แผนที่เอกสาร: `docs/README.md`
-> Last updated: 2026-11-23
+> Last updated: 2026-11-24
 
 ## บทบาท / ผู้ช่วย
 - ผู้ช่วยชื่อ **"เจนนี่"** (Gemini — รับช่วงต่อจาก "น้องพริก" Big Pickle) — โปรแกรมเมอร์คู่ใจ เป็น **ผู้หญิง** → ลงท้าย **"ค่ะ / คะ"**
@@ -12,7 +12,7 @@
 - **Think:** อย่าเดาเงียบๆ — เขียน assumption ก่อนลงมือ · มีหลายทางให้เสนอเทรดออฟ · งงให้หยุดถามค่ะ
 - **Simple:** โค้ดน้อยสุดที่แก้ได้ · ไม่เพิ่ม feature/abstraction/config เผื่ออนาคต · ถ้า 200 บรรทัดลดเหลือ 50 ได้ ให้เขียนใหม่ค่ะ
 - **Surgical:** แตะเฉพาะที่สั่ง · ไม่จัด format/refactor/ลบของข้างๆ ที่ไม่เกี่ยว (เจอให้แค่บอก) · เก็บขยะเฉพาะที่เราสร้างเอง · ทุก diff ต้องโยงถึง request ได้ค่ะ
-- **Verify:** นิยาม done ก่อนทำ (เทสต์ไหนต้องผ่าน) · งานหลายขั้นให้แตก `1. step → verify` · รัน `.venv/bin/python tests/run.py` จนเขียว (307 เทสต์) ก่อนจบค่ะ
+- **Verify:** นิยาม done ก่อนทำ (เทสต์ไหนต้องผ่าน) · งานหลายขั้นให้แตก `1. step → verify` · รัน `.venv/bin/python tests/run.py` จนเขียว (392 เทสต์) ก่อนจบค่ะ
 - **Tradeoff:** งานจิ๋ว (typo, one-liner ชัดๆ) ใช้วิจารณญาณ ไม่ต้องครบพิธีค่ะ
 
 ## วิธีรันงานยาว (สั่งครั้งเดียวจบ)
@@ -22,7 +22,7 @@
 - **ถ้าเปิดไฟล์กลางไม่เจอ (ยังไม่ได้ clone):** หยุดแล้วเตือนพี่ให้ clone ก่อน `git clone git@github.com:Neafong/NoobWiki.git` (repo private ต้องใช้ SSH) · อย่าเดาเนื้อหาเองค่ะ
 
 ## แบรนด์ (Noob) — ที่มาของชื่อแอป
-- **ชื่อแอป: "TaskbarNoob"** (ชื่อที่แสดง) · คง `APP_ID = taskbargroups` ไว้ก่อน (พิน/config ไม่พัง)
+- **ชื่อแอป: "TaskbarNoob"** · รีแบรนด์ภายในเป็น `APP_ID = taskbarnoob` เรียบร้อยใน v0.3.0 (มี Auto-Migration ย้ายพิน/hotkey/env จาก `taskbargroups` อัตโนมัติ)
 - **ความหมาย "Noob" ของผู้ใช้ (ไม่ใช่เชิงลบ):** มือใหม่ = **น้ำไม่เต็มแก้ว** ถ่อมตน ไร้อีโก้ เรียนรู้/Level Up
   ได้ตลอด · ตั้งใจแจกฟรีและเป็น **เกราะกันดราม่า** ถ้ามีบั๊ก · ได้แรงบันดาลใจจาก **เดกุ (My Hero Academia)**
   = "ไอ้กากที่พยายามจนเป็นฮีโร่ที่สุด"
@@ -46,13 +46,16 @@
 - **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12):** repo `github.com/Neafong/TaskbarNoob` (Public) · GPL-3.0-or-later
 - **v0.2.0 ปล่อยขึ้น GitHub แล้ว (2026-11-23):** ครบทั้ง Linux Mint + Windows 11 (portable `TaskbarNoob.exe`, AUMID แยกต่อกลุ่ม/แอป, `.lnk` ผ่าน COM `IShellLinkW`, multi-res `.ico`, Hotkey Win32 + foreground focus + ย้ายคีย์ตามตอนเปลี่ยนชื่อ, ไอคอน MSIX/WindowsApps อัตโนมัติ, ตัวเลือกไอคอนระบบ 2 แหล่ง, Flyout เงามุมโค้ง)
   · โฟลเดอร์ใช้งานจริงบน Win: `D:\Portable\Tool\TaskbarNoob`
-- **งานปัจจุบัน (`v0.3.0` — Full Architecture Refactor บน Linux Mint — เสร็จครบ R0–R4!):**
-  · ✅ **R0 เสร็จแล้ว (2026-11-23):** จัดระเบียบ `docs/` ลง `docs/archive/` + แก้บั๊ก `storage._prune_order()`
-  · ✅ **R1 เสร็จแล้ว (2026-11-23):** แยก `core/platform/{base,linux,win32}` (แตก `win32.py` เป็น 6 โมดูลย่อย) + พับเก็บ `core/macos.py` + ลด `sys.platform` ใน `gui/`
-  · ✅ **R2 เสร็จแล้ว (2026-11-23):** แตก `gui/group_editor.py` → `icon_picker`/`shortcut_grid`/`shortcut_dialog`/`group_editor` และ `gui/main_window.py` → `group_list`/`app`/`main_window`
-  · ✅ **R3 เสร็จแล้ว (2026-11-23):** แตก `core/icons/` (`cache`/`theme`/`appimage`/`steam`) + เลิก circular import ใน `gui/icons.py` + ตัวเลือกไอคอนแยกหมวดบน Mint (`categories`/`apps`/`all`) + Steam `steam://rungameid/<appid>` icon resolver ข้าม OS
-  · ✅ **R4 เสร็จแล้ว (2026-11-23):** ลบ dead code PowerShell + แยก `core/i18n/` + รีแบรนด์ภายใน `taskbargroups` → `taskbarnoob` พร้อม Auto-Migration (panel pins + Cinnamon hotkeys + env/XDG fallback + `.deb` Replaces/Conflicts) + เครดิต `Noob & Jenny` + bump `0.3.0` → **385 เทสต์ ผ่าน 100% บน Mint (skipped=10 Windows-only)**
-  · **ถัดไป:** ทดสอบ build AppImage/deb จริงบน Linux Mint แล้วค่อยทดสอบฝั่ง Windows 11 + ปล่อย Release `v0.3.0` · ดู [`docs/roadmap.md`](docs/roadmap.md)
+- **งานปัจจุบัน (`v0.3.0` — ฝั่ง Linux Mint เสร็จ 100% พร้อมส่งต่อทดสอบฝั่ง Windows 11!):**
+  · ✅ **R0–R4 เสร็จครบ (2026-11-23):** จัดระเบียบเอกสาร · แยก `core/platform/{base,linux,win32}` · แตกไฟล์ยักษ์ `gui/` · แตก `core/icons/` + Steam icon resolver + ตัวเลือกไอคอน 3 หมวด · ลบ dead code PowerShell · แยก `core/i18n/` · รีแบรนด์ `taskbargroups` → `taskbarnoob` พร้อม Auto-Migration · เครดิต `Noob & Jenny` · bump `0.3.0`
+  · ✅ **Live-Test Polish บน Linux Mint เสร็จครบ (2026-11-23 – 2026-11-24):**
+    - ไอคอนแอปเนียนทุกระดับ (`app_window_icon()` mipmap + `taskbarnoob.svg` scalable)
+    - ดึงไอคอนจากแอป Electron/Portable `.asar` อัตโนมัติ (`core/icons/portable.py` — เช่น Antigravity)
+    - Flyout ตรึงตรงกึ่งกลางไอคอนที่ปักบน panel จริงผ่าน Cinnamon DBus `pinned_icon_rect()` (ไม่วิ่งตามเมาส์)
+    - รองรับไอคอน Flatpak/Snap + จัดอันดับความละเอียดสูงสุด/SVG สี (เลี่ยง `-symbolic`) + ปุ่ม **"จากแอป..."** (`gui/app_picker.py`) เลือกแอปที่ติดตั้งไว้ได้เลยทั้ง Linux & Windows
+    - **9 ภาษาติดมากับตัวแอป:** ไทย · English · 日本語 · 简体中文 · 한국어 · Español · Deutsch · Français · Português (Brasil)
+  · ✅ **เทสต์ & แพ็กเกจ Linux Mint:** **392 เทสต์ ผ่าน 100% (`skipped=10` Windows-only)** · AppImage deploy ที่ `/home/noob/AppImage/Tool/TaskbarNoob-x86_64.AppImage` + `.deb` ที่ `dist/taskbarnoob_0.3.0_amd64.deb`
+  · **ถัดไป:** ทดสอบ & build ฝั่ง **Windows 11** (ดู Handoff ท้าย `docs/WORKLOG.md`) แล้วปล่อย GitHub Release `v0.3.0` · ดู [`docs/roadmap.md`](docs/roadmap.md)
 - **ยังเทสต์บนเครื่องนี้ไม่ได้:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่น (hotkey/pin = Cinnamon-only)
 
 ## หมายเหตุเทคนิคสำคัญ (แก้โค้ดตรงส่วนนี้ ต้องอ่านก่อน!)
@@ -79,9 +82,9 @@
   · checkbox ในแถบไอคอนกลุ่มของ `GroupEditor` (โชว์ค่าที่มีผลจริง, บันทึกเป็น bool ชัดเจน) · ปิด=ปุ่มจัตุรัส · เปิด=กว้างตาม `QFontMetrics` (`LABEL_MAX_WIDTH=168`)
 - **B1 (ลากในกริดไอค่อนหาย):** Qt `clearOrRemove()` หลัง MoveAction ลบแถวที่ถูกเลือก → **แก้: `self.clearSelection()` ใน `dropEvent`**
 - **F22:** ไฮไลท์ช่องกริดทำ custom (Qt IconMode ไม่มี drop indicator — มี FIXME ในซอร์ส Qt)
-- **i18n:** `core/i18n.py` dict TH/EN built-in + overlay `config/lang/<code>.json` · `settings.json` key `language`
-  · asset ภาษา: `packaging/lang/` (ตัวอย่าง `ja.json`) · ชื่อแสดงอ่านจาก key `_lang_name` (fallback = code)
-  · **เพิ่ม key ใหม่ต้องแก้ `ja.json` ด้วย** ไม่งั้นเทสต์ `test_ja_asset_full_translation` fail
+- **i18n:** `core/i18n/` dict TH/EN built-in + 7 ภาษาแพ็กติดมากับตัวแอปใน `packaging/lang/` (`ja`, `zh_CN`, `ko`, `es`, `de`, `fr`, `pt_BR` รวมเป็น 9 ภาษา) + overlay `config/lang/<code>.json` · `settings.json` key `language`
+  · ชื่อแสดงอ่านจาก key `_lang_name` (fallback = code)
+  · **เพิ่ม key ใหม่ต้องแก้ทุกไฟล์ใน `packaging/lang/*.json` ด้วย** ไม่งั้นเทสต์ `test_all_bundled_lang_assets_full_translation` fail
 - **Windows: ปัก taskbar อัตโนมัติ = เป็นไปไม่ได้** (Win10 21H2 → Win11 ปิดหมด · เอกสาร MS:
   *"programmatic pinning by an application is not permitted"*) · ทดสอบแล้วหมด:
   `copy2` ไม่มีผล · Shell COM verb ถูกถอด · `IPinnedList3::Modify` (วิธีที่ Chromium/Firefox
@@ -116,53 +119,53 @@
 - **โปรเจกต์ (ทำงาน):** `/mnt/Backup/TaskbarNoob` = source หลัก (SSH remote · `core.fileMode false` · มี `.venv` + `lib/libxcb-cursor.so.0`)
 - **AppImage ที่ใช้จริง/เทสต์ = ที่เดียว:** `/home/noob/AppImage/Tool/TaskbarNoob-x86_64.AppImage`
   → หลัง `bash packaging/build_appimage.sh` **คัดลอกไฟล์ไปทับที่นี่เสมอ** · **อย่าเทสต์จาก `dist/` ตรง ๆ**
-- **config จริง (portable):** `/home/noob/AppImage/Tool/config/` (อยู่ข้าง AppImage) — groups: Game · Production · Tool
-  · รันจากซอร์สให้ชี้มาที่นี่: `TASKBARGROUPS_CONFIG=$HOME/AppImage/Tool/config`
+- **config จริง (portable):** `/home/noob/AppImage/Tool/config/` (อยู่ข้าง AppImage) — groups: Tool · Game · Browser · Production
+  · รันจากซอร์สให้ชี้มาที่นี่: `TASKBARNOOB_CONFIG=$HOME/AppImage/Tool/config`
 - **build output:** `<repo>/dist/` = ที่พักผลลัพธ์ชั่วคราว (gitignored) — ไม่ใช่ที่ใช้ประจำ
 - **โฟลเดอร์เก่า (สำรอง):** `/mnt/Backup/TaskbarGroups/` = **สำรองเท่านั้น** (commit เก่าก่อน v0.2.0 + สำเนา config เก่า) · อย่ารันจากที่นี่
 - **กติกา:** AppImage มีที่เดียว · กลุ่มจริงมีที่เดียว · ถ้าเจอไฟล์ซ้ำที่อื่น = ให้ถือที่ตามข้างบนนี้
 
 ## วิธีรัน / Dev
-- รันแอป: `.venv/bin/python -m taskbargroups`
-- เปิด flyout: `... -m taskbargroups --open "<GroupDir>"` · list: `... --list`
-- เทสต์: `QT_QPA_PLATFORM=offscreen .venv/bin/python tests/run.py` → **375 เทสต์ ผ่าน 100% (skipped=10 Windows-only)**
+- รันแอป: `.venv/bin/python -m taskbarnoob`
+- เปิด flyout: `... -m taskbarnoob --open "<GroupDir>"` · list: `... --list`
+- เทสต์: `QT_QPA_PLATFORM=offscreen .venv/bin/python tests/run.py` → **392 เทสต์ ผ่าน 100% (skipped=10 Windows-only)**
   · (ถ้ารัน `python -m unittest discover -s tests` ผลเทสต์เท่ากันแต่ตอนปิด PySide6 6.12 จะ segfault
     ใน `destroyQCoreApplication()` — บั๊กฝั่ง Qt · `tests/run.py` เรียก `os._exit()` เลี่ยงให้)
 - แพ็ก: `bash packaging/build_appimage.sh` → `dist/TaskbarNoob-x86_64.AppImage`
   · **แล้วคัดลอกไปทับ `~/AppImage/Tool/TaskbarNoob-x86_64.AppImage`** (ที่ใช้จริง — ดูหัวข้อ "ที่เก็บไฟล์")
-- แพ็ก `.deb`: `bash packaging/build_deb.sh` → `dist/taskbargroups_<ver>_amd64.deb`
+- แพ็ก `.deb`: `bash packaging/build_deb.sh` → `dist/taskbarnoob_<ver>_amd64.deb`
 
 ## โครงไฟล์
 ```
 README.md                          (ไทย + อังกฤษ · หน้าแรก repo) · LICENSE (GPL-3.0) · CHANGELOG.md (Keep a Changelog)
 .github/                            FUNDING.yml (Ko-fi) · ISSUE_TEMPLATE/ · PULL_REQUEST_TEMPLATE.md · workflows/tests.yml (CI)
-taskbargroups/
+taskbarnoob/
 ├── __main__.py                     (GUI + CLI --open/--list)
-├── core/  models.py · storage.py · paths.py · launcher.py · desktop.py · hotkeys.py · panel.py
-│          launchers.py + taskbar.py (dispatch ข้าม OS · ชื่อฟังก์ชันเดียวกันทุก OS)
-│          win32.py + win32_com.py (COM IShellLinkW · AUMID · PNG→ICO)
-│          macos.py · win32_hotkey อยู่ฝั่ง gui
-│          settings.py (config/settings.json · ธีม · ภาษา) · i18n.py (TH/EN + config/lang overlay)
-│          icons.py (resolve/cache ไอคอน รวม .AppImage)
-│          archive.py (export/inspect/import config zip · merge/replace · zip-slip guard)
-└── gui/   main_window.py · group_editor.py (ShortcutGrid + _SystemIconDialog) · flyout.py (FlyoutController single-instance)
-           theme.py · settings_dialog.py · icons.py · hotkey_dialog.py · about_dialog.py
-packaging/  entrypoint.py · make_icon.py · render_icon.py (SVG→PNG) · build_appimage.sh · build_deb.sh · slim_bundle.sh
-            lang/ (assets ภาษาให้ผู้ใช้ import เอง — ตัวอย่าง: ja.json) · assets/ (Logo TG.svg + .vectorcraft)
-            appimage/ AppRun · taskbargroups.desktop · taskbargroups.png · taskbargroups.svg · .appdata.xml
+├── core/
+│   ├── models.py · storage.py · paths.py · launcher.py · settings.py · archive.py
+│   ├── i18n/      __init__.py · th.py · en.py (9 ภาษา: TH/EN + 7 JSON ใน packaging/lang/)
+│   ├── icons/     __init__.py · cache.py · theme.py · appimage.py · steam.py · portable.py
+│   └── platform/  __init__.py · base.py
+│       ├── linux/ __init__.py · desktop.py · panel.py · hotkeys.py · migrate.py
+│       └── win32/ __init__.py · com.py · aumid.py · icons.py · shortcuts.py · taskbar.py · launcher.py
+└── gui/
+    ├── app.py · main_window.py · group_list.py · group_editor.py · app_picker.py
+    ├── icon_picker.py · shortcut_grid.py · shortcut_dialog.py · flyout.py
+    └── theme.py · settings_dialog.py · icons.py · hotkey_dialog.py · about_dialog.py · win32_hotkey.py
+packaging/  entrypoint.py · make_icon.py · render_icon.py (SVG→PNG) · build_appimage.sh · build_deb.sh · build_windows.ps1 · slim_bundle.sh
+            lang/ (7 ภาษาแพ็กติดมากับแอป: ja, zh_CN, ko, es, de, fr, pt_BR) · assets/ (Logo TG.svg + .vectorcraft)
+            appimage/ AppRun · taskbarnoob.desktop · taskbarnoob.png · taskbarnoob.svg · .appdata.xml
 tests/  test_* (models · storage · launcher · gui_smoke · desktop · hotkeys · icons · paths
-        flyout · grid_drag · settings · group_editor · i18n · archive)
-docs/   README.md (แผนที่เอกสาร) · roadmap.md (แผนเฟส/งานถัดไป) · WORKLOG.md (ประวัติ) · feedback.md
-        data-model.md · upstream.md · phase18-plan.md · team.md (ทีมโมเดล/แบ่งสายงาน) · screenshots/
+        flyout · grid_drag · settings · group_editor · i18n · archive · migrate · steam · portable)
+docs/   README.md (แผนที่เอกสาร) · roadmap.md (แผนเฟส/งานถัดไป) · WORKLOG.md (ประวัติ + Handoff) · feedback.md
+        data-model.md · upstream.md · team.md · archive/ · screenshots/
 config/ (gitignored) — ข้อมูลกลุ่มจริงแบบ portable
 ```
 
 ## งานถัดไป (Next Actions — v0.3.0)
-1. **R1:** แยก Platform Backend เข้า `core/platform/{base,linux,win32}` + พับเก็บ `core/macos.py` + ลด `sys.platform` ใน `gui/`
-2. **R2:** แตกไฟล์ยักษ์ (`gui/main_window.py`, `gui/group_editor.py`, `core/win32.py`) เป็นโมดูลย่อยหน้าที่เดียว
-3. **R3:** รวม icon pipeline เป็นจุดเดียว (เลิก circular import) + ตัวเลือกไอคอนระบบแบบแยกหมวดบน Mint + Steam `steam://rungameid/<appid>` icon resolver ข้าม OS
-4. **R4:** เก็บกวาด Dead Code / แยก `i18n` + รีแบรนด์ชื่อภายใน `taskbargroups` → `taskbarnoob` พร้อม Auto-Migration + เปลี่ยนเครดิตเป็น `Noob & Jenny`
-5. อย่าลืม: อัปเดต `docs/WORKLOG.md` และรันเทสต์ให้เขียว 100% ทุกเฟสก่อน commit
+1. **ฝั่ง Windows 11:** `git pull origin main` → รัน `python tests/run.py` ให้ผ่านครบ **392/392** (0 skipped)
+2. **Build Windows Portable:** รัน `powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1` + ทดสอบจริงบน Win 11 (ปุ่ม "จากแอป..." + Affinity/MSIX + 9 ภาษา + Steam + AUMID + Hotkeys)
+3. **ปล่อย GitHub Release `v0.3.0`:** แท็ก `v0.3.0` + แนบ `TaskbarNoob-x86_64.AppImage`, `taskbarnoob_0.3.0_amd64.deb`, และ `TaskbarNoob-win64-portable.zip`
 
 ## เอกสารอ้างอิง
 - `docs/README.md` — แผนที่/ดัชนีเอกสาร (รวม `docs/archive/`)
