@@ -41,6 +41,7 @@ if [[ ! -x "$BUNDLE/${APP_ID}" ]]; then
     --collect-submodules taskbarnoob \
     --add-data "$ROOT/packaging/appimage/${APP_ID}.png:taskbarnoob/assets" \
     --add-data "$ROOT/packaging/assets/icons:taskbarnoob/assets/icons" \
+    --add-data "$ROOT/packaging/lang:taskbarnoob/assets/lang" \
     --distpath "$BUILD/pyinstaller/dist" \
     --workpath "$BUILD/pyinstaller/build" \
     --specpath "$BUILD/pyinstaller" \

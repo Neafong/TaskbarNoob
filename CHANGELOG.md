@@ -10,6 +10,9 @@
 
 ### Added
 
+- **ตัวเลือกแอปที่ติดตั้ง ("จากแอป..." / `gui/app_picker.py`)** — ค้นหาและเพิ่มแอปในคลิกเดียว (Linux สแกน `.desktop` ทั้ง `.deb` + Flatpak + Snap / Windows สแกน Start Menu)
+- **9 ภาษาในตัวแอป (`core/i18n/` + `packaging/lang/`)** — แพ็กติดมากับแอปพร้อมใช้งานทันที (`ไทย`, `English`, `日本語`, `简体中文`, `한국어`, `Español`, `Deutsch`, `Français`, `Português (Brasil)`) และยัง Export/Import ทับเองได้เหมือนเดิม
+- **ดึงไอคอนแอป portable / Electron `resources/app.asar` อัตโนมัติ (`core/icons/portable.py`)** — อ่าน `app.asar` ด้วย Python ล้วน (เช่น Antigravity, VS Code tarball)
 - **ตัวเลือกไอคอนระบบแบบแยกหมวดบน Linux Mint (`gui/icon_picker.py`)** — แยก 3 หมวด (`หมวดหมู่และโฟลเดอร์`, `แอปที่ติดตั้ง`, `ไอคอนทั้งหมด`) พร้อมแคชต่อหมวด
 - **Steam `steam://rungameid/<appid>` icon resolver ข้าม OS (`core/icons/steam.py`)** — ดึงไอคอนเกมจาก `librarycache` (รองรับโครงสร้างเก่า/ใหม่, Flatpak Steam, `.desktop` Linux, `.url` Windows + Registry `SteamPath`)
 - **Auto-Migration อัตโนมัติบน Linux Mint (`core/platform/linux/migrate.py`)** — ย้ายการปักหมุด `taskbargroups-*.desktop` → `taskbarnoob-*.desktop` ในตำแหน่งเดิมบน panel, ย้ายฮอตคีย์ Cinnamon `taskbargroups-*` → `taskbarnoob-*`, รองรับ fallback env `TASKBARGROUPS_CONFIG` / `TASKBARGROUPS_NO_PIN` และ `~/.config/taskbargroups`, และใส่ `Replaces:`/`Conflicts: taskbargroups` ใน `.deb`
@@ -29,6 +32,9 @@
 
 ### Fixed
 
+- **flyout ไม่วิ่งตามเมาส์บน Cinnamon** — ถามพิกัด `(x, y, w, h)` จริงของไอคอนกลุ่มที่ปักบน panel ผ่าน Cinnamon DBus (`panel.pinned_icon_rect()`) แล้วล็อก flyout ตรงกลางเหนือไอคอนนั้นเสมอ
+- **ไอคอนแอปขอบหยักบน panel/titlebar** — สร้าง `QIcon` หลายขนาดแบบ mipmap (`16–256px`) ใน `gui/icons.app_window_icon()` + แนบ `taskbarnoob.svg` ลง `hicolor/scalable/apps/`
+- **Flatpak `.desktop` ไม่มีไอคอน + ไอคอนขนาดไม่เท่ากัน (16px vs 24px vs SVG)** — เพิ่มโฟลเดอร์ Flatpak/Snap ใน `core/icons/theme.py` และให้ `find_theme_icon()` เลือก SVG / ความละเอียดสูงสุด (เลี่ยง `-symbolic`) แทนการคืนไฟล์แรกที่เจอ
 - `ConfigStore._prune_order()` เรียงรายชื่อโฟลเดอร์กลุ่มตามชื่อ (แก้ผลลัพธ์ไม่แน่นอนบน Linux ext4)
 
 ## [0.2.0] — 2026-11-23

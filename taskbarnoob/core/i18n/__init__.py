@@ -10,13 +10,36 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ..paths import default_config_dir
+from ..paths import app_dir, bundled_assets_dir, default_config_dir
 
 DEFAULT_LANGUAGE = "th"
 LANG_DIR_NAME = "lang"
 
 from .en import EN
 from .th import TH
+
+
+def bundled_lang_dir() -> Path | None:
+    """โฟลเดอร์ไฟล์ภาษาที่แพ็กติดมากับแอป (bundle หรือ `packaging/lang/` ตอนรันจากซอร์ส)."""
+    bundled = bundled_assets_dir()
+    if bundled is not None:
+        candidate = bundled / LANG_DIR_NAME
+        if candidate.is_dir():
+            return candidate
+    source_dir = app_dir() / "packaging" / LANG_DIR_NAME
+    if source_dir.is_dir():
+        return source_dir
+    return None
+
+
+def _read_lang_json(path: Path) -> dict[str, str]:
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    return {k: v for k, v in raw.items() if isinstance(k, str) and isinstance(v, str)}
 
 
 class I18n:
@@ -39,16 +62,14 @@ class I18n:
         base = dict(TH)
         if self._language == "en":
             base.update(EN)
-        overlay = (self.lang_dir() / f"{self._language}.json")
+        bundled = bundled_lang_dir()
+        if bundled is not None:
+            bundled_file = bundled / f"{self._language}.json"
+            if bundled_file.is_file():
+                base.update(_read_lang_json(bundled_file))
+        overlay = self.lang_dir() / f"{self._language}.json"
         if overlay.is_file():
-            try:
-                user = json.loads(overlay.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                user = {}
-            if isinstance(user, dict):
-                for key, value in user.items():
-                    if isinstance(value, str):
-                        base[key] = value
+            base.update(_read_lang_json(overlay))
         return base
 
     def lang_dir(self) -> Path:
@@ -80,16 +101,24 @@ def setup(language: str | None = None, config_dir: str | Path | None = None) -> 
 
 
 def available_languages(config_dir: str | Path | None = None) -> list[tuple[str, str]]:
-    """รายการภาษา [(code, ชื่อที่แสดง), ...] — ไทย/อังกฤษ + ไฟล์ใน config/lang.
+    """รายการภาษา [(code, ชื่อที่แสดง), ...] — ไทย/อังกฤษ + ภาษาในตัว + ไฟล์ใน config/lang.
 
     ไฟล์ภาษาเพิ่มเติมสามารถฝังชื่อที่แสดงได้ด้วย key พิเศษ `_lang_name`
     เช่น {"_lang_name": "日本語", ...} → dropdown โชว์ "日本語"
     """
     result: list[tuple[str, str]] = [("th", "ไทย"), ("en", "English")]
     seen = {"th", "en"}
-    lang_dir = I18n(config_dir=config_dir).lang_dir()
-    if lang_dir.is_dir():
-        for path in sorted(lang_dir.glob("*.json")):
+    # โหลดไฟล์ภาษาที่แพ็กติดมากับแอปก่อน แล้วค่อยเติม/ทับด้วย config/lang ของผู้ใช้
+    bundled = bundled_lang_dir()
+    if bundled is not None:
+        for path in sorted(bundled.glob("*.json")):
+            code = path.stem
+            if code not in seen:
+                result.append((code, _lang_display_name(path, code)))
+                seen.add(code)
+    user_lang_dir = I18n(config_dir=config_dir).lang_dir()
+    if user_lang_dir.is_dir():
+        for path in sorted(user_lang_dir.glob("*.json")):
             code = path.stem
             if code not in seen:
                 result.append((code, _lang_display_name(path, code)))

@@ -59,28 +59,24 @@ class I18nCoreTests(unittest.TestCase):
     def test_available_languages_lists_builtin_and_user(self) -> None:
         lang = Path(self._tmp.name) / "lang"
         lang.mkdir()
-        (lang / "ja.json").write_text("{}", encoding="utf-8")
+        (lang / "xx.json").write_text("{}", encoding="utf-8")
         codes = [code for code, _ in i18n.available_languages(self._tmp.name)]
-        self.assertEqual(codes, ["th", "en", "ja"])
+        for expected in ("th", "en", "de", "es", "fr", "ja", "ko", "pt_BR", "zh_CN", "xx"):
+            self.assertIn(expected, codes)
 
     def test_available_languages_shows_lang_name(self) -> None:
-        lang = Path(self._tmp.name) / "lang"
-        lang.mkdir()
-        (lang / "ja.json").write_text(
-            json.dumps({"_lang_name": "日本語", "main.add_group": "グループ追加"}, ensure_ascii=False),
-            encoding="utf-8",
-        )
         names = dict(i18n.available_languages(self._tmp.name))
         self.assertEqual(names["ja"], "日本語")
+        self.assertEqual(names["de"], "Deutsch")
         self.assertEqual(names["th"], "ไทย")
         self.assertEqual(names["en"], "English")
 
     def test_available_languages_fallback_to_code_when_invalid(self) -> None:
         lang = Path(self._tmp.name) / "lang"
         lang.mkdir()
-        (lang / "de.json").write_text("[1,2,3]", encoding="utf-8")
+        (lang / "zz.json").write_text("[1,2,3]", encoding="utf-8")
         names = dict(i18n.available_languages(self._tmp.name))
-        self.assertEqual(names["de"], "de")
+        self.assertEqual(names["zz"], "zz")
 
 
 class I18nLanguageDataTests(unittest.TestCase):
@@ -174,23 +170,33 @@ class I18nGuiTests(unittest.TestCase):
 
 
 class LanguageAssetTests(unittest.TestCase):
-    """ตรวจ asset ภาษาใน repo (packaging/lang/<code>.json) — ต้นแบบให้ผู้ใช้ติดตั้งเอง."""
+    """ตรวจ asset ภาษาในตัวทั้งหมด (packaging/lang/<code>.json) ว่ามีคีย์ครบ 100%."""
 
     def setUp(self) -> None:
         self._assets = Path(__file__).resolve().parents[1] / "packaging" / "lang"
 
-    def test_ja_asset_full_translation(self) -> None:
-        path = self._assets / "ja.json"
-        if not path.is_file():
-            self.skipTest("packaging/lang/ja.json ยังไม่สร้าง")
-        data = json.loads(path.read_text(encoding="utf-8"))
-        for key in i18n.TH:
-            self.assertIn(key, data, f"asset ขาดคีย์ {key}")
+    def test_all_bundled_languages_have_full_translation(self) -> None:
+        expected_langs = {
+            "de": "Deutsch",
+            "es": "Español",
+            "fr": "Français",
+            "ja": "日本語",
+            "ko": "한국어",
+            "pt_BR": "Português (Brasil)",
+            "zh_CN": "简体中文",
+        }
         self.assertNotIn("_lang_name", i18n.TH)
-        self.assertEqual(data["_lang_name"], "日本語")
-        self.assertTrue(
-            all(isinstance(v, str) for v in data.values()), "ค่าต้องเป็น str ทั้งหมด"
-        )
+        for code, display_name in expected_langs.items():
+            path = self._assets / f"{code}.json"
+            self.assertTrue(path.is_file(), f"ไม่พบไฟล์ภาษา {path}")
+            data = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(data.get("_lang_name"), display_name, f"{code}: _lang_name ไม่ตรง")
+            for key in i18n.TH:
+                self.assertIn(key, data, f"{code}.json ขาดคีย์ {key}")
+            self.assertTrue(
+                all(isinstance(v, str) for v in data.values()),
+                f"{code}.json: ค่าต้องเป็น str ทั้งหมด",
+            )
 
 
 if __name__ == "__main__":

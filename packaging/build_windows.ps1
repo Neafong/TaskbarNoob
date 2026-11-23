@@ -42,6 +42,7 @@ $pyArgs = @(
     "--collect-submodules", "taskbarnoob",
     "--add-data", "$ICON;taskbarnoob/assets",
     "--add-data", "$ROOT\packaging\assets\icons;taskbarnoob/assets/icons",
+    "--add-data", "$ROOT\packaging\lang;taskbarnoob/assets/lang",
     "--distpath", "$BUILD\dist",
     "--workpath", "$BUILD\build",
     "--specpath", "$BUILD",

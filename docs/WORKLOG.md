@@ -60,3 +60,10 @@
 - **Bump เป็น `v0.3.0`** + อัปเดต `CHANGELOG.md`, `README.md`, `AGENTS.md`, `docs/roadmap.md`
 - **เทสต์:** เพิ่ม `tests/test_linux_migration.py` + env/config fallback ใน `tests/test_paths.py` → **385 เทสต์ ผ่าน 100% (`OK (skipped=10)`)** + `compileall` ผ่าน
 - **ต่อไป:** ทดสอบ build AppImage/deb จริงบน Linux Mint แล้วค่อยส่งไม้ต่อทดสอบฝั่ง Windows 11!
+
+## 2026-11-24 — v0.3.0 Live-Test Polish บน Linux Mint `[เสร็จ]`
+- **ไอคอนแอปขอบเนียน (`gui/icons.app_window_icon`):** สร้าง `QIcon` หลายขนาดแบบ mipmap (16–256px) + แนบ `taskbarnoob.svg` ลง `hicolor/scalable/apps/` ใน AppImage/`.deb`
+- **ดึงไอคอนแอป portable / Electron `app.asar` อัตโนมัติ (`core/icons/portable.py`):** อ่าน `resources/app.asar` ด้วย Python ล้วน (แก้ปัญหา Antigravity และแอป Electron/VS Code tarball ไม่มีไอคอน)
+- **ล็อกตำแหน่ง flyout เหนือไอคอนบน Cinnamon (`panel.pinned_icon_rect`):** ถามพิกัด `(x, y, w, h)` จริงของไอคอนที่ปักจาก Cinnamon DBus แล้วตรึง flyout ตรงกลางเหนือไอคอนนั้นเสมอ ไม่วิ่งตามเมาส์อีกต่อไป
+- **รองรับ Flatpak/Snap + เลือกไอคอนความละเอียดสูงสุด/SVG + ปุ่ม "จากแอป..." (`gui/app_picker.py`):** แก้ Zen Browser (Flatpak) ไม่มีไอคอน และ Chrome/Firefox/Brave ขนาดไม่เท่ากัน (16px/24px) + เพิ่มไดอะล็อกค้นหา/เพิ่มแอปที่ติดตั้งในคลิกเดียว (Linux `.desktop`/Flatpak/Snap + Windows Start Menu)
+- **9 ภาษาในตัวแอป (`core/i18n/` + `packaging/lang/`):** แพ็ก 9 ภาษา (`th`, `en`, `ja`, `zh_CN`, `ko`, `es`, `de`, `fr`, `pt_BR`) ติดมากับ AppImage/`.deb`/Windows `.exe` พร้อมเทสต์เช็กครบทุกคีย์ 100% → **392 เทสต์ ผ่าน 100% (`OK (skipped=10)`)**
