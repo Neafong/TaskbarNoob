@@ -30,6 +30,7 @@ from .cache import (
     is_image_file,
     safe_stem,
 )
+from .portable import icon_from_asar, icon_from_portable_app
 from .steam import (
     extract_steam_appid,
     find_steam_game_icon,
@@ -80,7 +81,7 @@ def icon_from_executable(target: str | os.PathLike[str]) -> Path | None:
                         if icon:
                             return icon
                     break
-    return None
+    return icon_from_portable_app(candidate)
 
 
 def icon_from_desktop_file(path: str | os.PathLike[str]) -> Path | None:
@@ -149,6 +150,8 @@ def resolve_icon_source(target: str | os.PathLike[str] | None) -> Path | None:
         return candidate
     if is_appimage(candidate):
         return _extract_appimage_icon(candidate)
+    if candidate.is_file():
+        return icon_from_portable_app(candidate)
     return None
 
 

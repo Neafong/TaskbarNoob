@@ -205,6 +205,65 @@ class ScanThemeIconsTests(unittest.TestCase):
         )
 
 
+class PortableAppIconTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    @staticmethod
+    def _write_fake_asar(asar_path: Path, files_map: dict[str, bytes]) -> None:
+        import json
+        import struct
+
+        tree: dict = {"files": {}}
+        payload = bytearray()
+        for name, data in files_map.items():
+            tree["files"][name] = {"size": len(data), "offset": str(len(payload))}
+            payload.extend(data)
+        raw_json = json.dumps(tree).encode("utf-8")
+        # Chromium Pickle: align to 4 bytes
+        pad = (4 - (len(raw_json) % 4)) % 4
+        json_padded = raw_json + b"\x00" * pad
+        inner_size = 4 + len(json_padded)
+        outer_size = 4 + inner_size
+        header = struct.pack("<IIII", 4, outer_size, inner_size, len(raw_json))
+        asar_path.parent.mkdir(parents=True, exist_ok=True)
+        asar_path.write_bytes(header + json_padded + bytes(payload))
+
+    def test_extracts_icon_from_electron_app_asar(self) -> None:
+        from taskbarnoob.core.icons import portable as portable_mod
+
+        app_dir = self.root / "Antigravity"
+        exe = app_dir / "antigravity"
+        app_dir.mkdir()
+        exe.write_bytes(b"\x7fELF")
+        self._write_fake_asar(
+            app_dir / "resources" / "app.asar",
+            {
+                "trayTemplate.png": b"\x89PNG" + b"t" * 20,
+                "icon.png": b"\x89PNG\r\n\x1a\nREAL_ICON_DATA",
+            },
+        )
+        cache = self.root / "asar-cache"
+        with mock.patch.object(portable_mod, "_asar_cache_dir", return_value=cache):
+            result = icons.resolve_icon_source(exe)
+        self.assertIsNotNone(result)
+        self.assertEqual(result.read_bytes(), b"\x89PNG\r\n\x1a\nREAL_ICON_DATA")
+
+    def test_finds_loose_portable_icon(self) -> None:
+        app_dir = self.root / "MyCode"
+        exe = app_dir / "code"
+        linux_res = app_dir / "resources" / "app" / "resources" / "linux"
+        linux_res.mkdir(parents=True)
+        exe.write_bytes(b"\x7fELF")
+        icon = linux_res / "code.png"
+        icon.write_bytes(b"\x89PNG")
+        self.assertEqual(icons.resolve_icon_source(exe), icon)
+
+
 class CacheTests(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
