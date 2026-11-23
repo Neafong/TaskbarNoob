@@ -39,6 +39,32 @@ class ThemeIconTests(unittest.TestCase):
     def test_missing_returns_none(self) -> None:
         self.assertIsNone(icons.find_theme_icon("nope", [self.theme]))
 
+    def test_prefers_highest_resolution_and_svg_over_tiny_icons(self) -> None:
+        tiny = self.theme / "hicolor" / "16x16" / "apps"
+        big = self.theme / "hicolor" / "256x256" / "apps"
+        tiny.mkdir(parents=True)
+        big.mkdir(parents=True)
+        (tiny / "firefox.png").write_bytes(b"tiny")
+        big_png = big / "firefox.png"
+        big_png.write_bytes(b"big-png-data")
+        self.assertEqual(icons.find_theme_icon("firefox", [self.theme]), big_png)
+
+        scalable = self.theme / "hicolor" / "scalable" / "apps"
+        scalable.mkdir(parents=True)
+        svg = scalable / "firefox.svg"
+        svg.write_text("<svg/>")
+        self.assertEqual(icons.find_theme_icon("firefox", [self.theme]), svg)
+
+    def test_avoids_symbolic_when_color_icon_exists(self) -> None:
+        sym = self.theme / "hicolor" / "symbolic" / "apps"
+        color = self.theme / "hicolor" / "128x128" / "apps"
+        sym.mkdir(parents=True)
+        color.mkdir(parents=True)
+        (sym / "zen.svg").write_text("<svg/>")
+        color_png = color / "zen.png"
+        color_png.write_bytes(b"color")
+        self.assertEqual(icons.find_theme_icon("zen", [self.theme]), color_png)
+
 
 class DesktopFileTests(unittest.TestCase):
     def setUp(self) -> None:

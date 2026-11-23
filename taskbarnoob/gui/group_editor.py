@@ -7,7 +7,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from PySide6.QtCore import QFileInfo, QSize, Qt, QTimer
+from PySide6.QtCore import QFileInfo, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import QColor, QIcon, QPalette
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -43,6 +43,7 @@ from taskbarnoob.core.platform.linux.desktop import shortcut_from_path
 from taskbarnoob.core.settings import Settings
 from taskbarnoob.core.storage import ConfigStore
 
+from .app_picker import AppPickerDialog
 from .button_icons import themed_icon
 from .dialogs import show_warning
 from .icon_picker import (
@@ -227,15 +228,19 @@ class GroupEditor(QDialog):
 
         item_buttons = QHBoxLayout()
         add_button = QPushButton(tr("editor.add"))
+        from_apps_button = QPushButton(tr("editor.add_from_apps"))
+        from_apps_button.setToolTip(tr("editor.add_from_apps_tip"))
         edit_button = QPushButton(tr("main.edit"))
         remove_button = QPushButton(tr("main.delete"))
         _apply_button_icon(add_button, "add", "➕")
         _apply_button_icon(edit_button, "edit", "📝")
         _apply_button_icon(remove_button, "delete", "🗑️")
         add_button.clicked.connect(self._add_item)
+        from_apps_button.clicked.connect(self._add_from_apps)
         edit_button.clicked.connect(self._edit_item)
         remove_button.clicked.connect(self._remove_item)
         item_buttons.addWidget(add_button)
+        item_buttons.addWidget(from_apps_button)
         item_buttons.addWidget(edit_button)
         item_buttons.addWidget(remove_button)
         item_buttons.addStretch(1)
@@ -471,6 +476,15 @@ class GroupEditor(QDialog):
 
     def _selected_item(self) -> QListWidgetItem | None:
         return self.items_list.currentItem()
+
+    def _add_from_apps(self) -> None:
+        try:
+            cache_dir = self.store.cache_dir() / _PROVIDER_ICON_CACHE_DIRNAME
+            dialog = AppPickerDialog(self, cache_dir=cache_dir)
+            if dialog.exec() == QDialog.Accepted and dialog.selected_path():
+                self._on_urls_dropped([QUrl.fromLocalFile(dialog.selected_path())])
+        except Exception as exc:
+            print(f"_add_from_apps error: {exc}", file=sys.stderr)
 
     def _add_item(self) -> None:
         dialog = ShortcutDialog(self)

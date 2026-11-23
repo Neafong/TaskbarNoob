@@ -333,6 +333,40 @@ class WindowsProviderIconTests(unittest.TestCase):
         self.assertNotIn("group_editor", src)
         self.assertNotIn("icon_picker", src)
 
+    def test_app_picker_scans_desktop_skips_nodisplay_and_filters(self) -> None:
+        import sys
+
+        from taskbarnoob.gui.app_picker import AppPickerDialog
+
+        if sys.platform == "win32":
+            self.skipTest("Linux AppPickerDialog test")
+        apps = Path(self._tmp.name) / "applications"
+        apps.mkdir()
+        zen = apps / "app.zen_browser.zen.desktop"
+        zen.write_text(
+            "[Desktop Entry]\nType=Application\nName=Zen Browser\nIcon=zen\nExec=zen\n",
+            encoding="utf-8",
+        )
+        (apps / "hidden.desktop").write_text(
+            "[Desktop Entry]\nType=Application\nName=Hidden App\nNoDisplay=true\nExec=x\n",
+            encoding="utf-8",
+        )
+        (apps / "taskbarnoob-game.desktop").write_text(
+            "[Desktop Entry]\nType=Application\nName=Game\nExec=x\n",
+            encoding="utf-8",
+        )
+
+        dlg = AppPickerDialog(desktop_dirs=[apps])
+        self.assertEqual(dlg.list_widget.count(), 1)
+        self.assertEqual(dlg.list_widget.item(0).text(), "Zen Browser")
+        dlg.search.setText("nope")
+        self.assertEqual(dlg.list_widget.count(), 0)
+        dlg.search.setText("zen")
+        self.assertEqual(dlg.list_widget.count(), 1)
+        dlg.list_widget.setCurrentRow(0)
+        dlg.accept()
+        self.assertEqual(dlg.selected_path(), str(zen))
+
     def test_auto_icon_uses_provider_for_exe(self) -> None:
         from unittest import mock
 
