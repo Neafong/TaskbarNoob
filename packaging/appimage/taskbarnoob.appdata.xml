@@ -6,8 +6,8 @@
   <developer id="io.github.neafong">
     <name>Noob &amp; Jenny</name>
   </developer>
-  <metadata_license>MIT</metadata_license>
-  <project_license>MIT</project_license>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
   <description>
     <p>
       TaskbarNoob ช่วยรวบรวม shortcut เป็นกลุ่ม แล้วเปิดใช้งานได้ง่าย ๆ จาก panel

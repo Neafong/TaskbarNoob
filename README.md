@@ -4,13 +4,14 @@
 [![Downloads](https://img.shields.io/github/downloads/Neafong/TaskbarNoob/total?style=flat-square&color=brightgreen)](https://github.com/Neafong/TaskbarNoob/releases)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg?style=flat-square)](LICENSE)
 [![Platform: Linux Mint (Cinnamon)](https://img.shields.io/badge/platform-Linux%20Mint%20(Cinnamon)-green.svg?style=flat-square)](#)
-[![Platform: Windows alpha](https://img.shields.io/badge/platform-Windows%20(alpha)-yellow.svg?style=flat-square)](#)
+[![Platform: Windows 11](https://img.shields.io/badge/platform-Windows%2011%20(portable)-blue.svg?style=flat-square)](#)
+[![Languages: 9](https://img.shields.io/badge/languages-9%20built--in-purple.svg?style=flat-square)](#)
 [![tests](https://github.com/Neafong/TaskbarNoob/actions/workflows/tests.yml/badge.svg)](https://github.com/Neafong/TaskbarNoob/actions)
 
 > **รวบรวมทางลัด เรื่อง shortcut เราช่วยจัด** · *Gather your shortcuts, we do the rest.*
 
 จัดกลุ่ม shortcut ของคุณให้เป็นระเบียบ แล้วกดครั้งเดียวเปิดทั้งกลุ่มได้เลย
-ทำสำหรับ **Linux Mint (Cinnamon)** เป็นหลัก · **Windows** = portable alpha · **macOS** = มีโค้ดแต่ยังไม่ทดสอบ
+รองรับ **Linux Mint (Cinnamon)** และ **Windows 11 (Portable)** · แจกฟรี เปิดซอร์ส
 
 ชื่อ "Noob" ของเราไม่ได้หมายถึงแย่ — แต่หมายถึง **น้ำไม่เต็มแก้ว** ถ่อมตน ไม่มีอีโก้
 เรียนรู้และเก่งขึ้นได้เรื่อย ๆ · แจกฟรี ทำด้วยใจ ❤️
@@ -29,27 +30,25 @@
 
 ## ฟีเจอร์เด่น / Features
 
-- 🗂️ จัดกลุ่ม shortcut เป็นการ์ด แต่ละกลุ่มมี grid ของไอคอน (ลากจัดลำดับได้)
-- 📌 ปักหมุดกลุ่มลง **panel (Cinnamon Grouped Window List)** กดแล้วเปิด flyout
-- ⌨️ ตั้ง **ปุ่มลัด (hotkey)** เปิดกลุ่มได้ทันที
+- 🗂️ จัดกลุ่ม shortcut เป็นการ์ด แต่ละกลุ่มมี grid ของไอคอน (ลากจัดลำดับได้ + ชื่อใต้ไอคอนตั้งแยกต่อกลุ่มได้)
+- 📱 เพิ่มแอปง่ายในคลิกเดียวด้วยปุ่ม **"จากแอป..."** (Linux `.desktop`/Flatpak/Snap และ Windows Start Menu/MSIX)
+- 🖼️ ดึงไอคอนอัตโนมัติครบทั้ง **AppImage**, แอป Electron/Portable (`.asar`), **Steam** (`steam://rungameid/`), Flatpak/Snap และ Windows **MSIX** พร้อมตัวเลือกไอคอนระบบแบบแยกหมวด
+- 📌 ปักหมุดกลุ่มลง **Cinnamon panel** (Flyout ตรึงตรงกึ่งกลางไอคอนจริงบน panel) และสร้าง `.lnk` แยก **AUMID** ต่อกลุ่มบน Windows 11
+- ⌨️ ตั้ง **ปุ่มลัด (hotkey)** เปิดกลุ่มแบบ Focus Mode กลางจอ (ปรับขนาดไอคอนได้)
 - 🎨 ธีม auto / light / dark · ปรับความโปร่งใสและขนาดไอคอน
-- 💾 **Portable** — config อยู่ในโฟลเดอร์แอป (`config/`)
-- 🌐 ภาษา **ไทย / English** + เพิ่มภาษาใหม่เองได้ผ่านไฟล์ JSON
+- 💾 **Portable** — config อยู่ในโฟลเดอร์แอป (`config/`) ย้ายเครื่องได้ทันที
+- 🌐 **9 ภาษาในตัว** (ไทย · English · 日本語 · 简体中文 · 한국어 · Español · Deutsch · Français · Português) + ส่งออก/นำเข้า JSON เพิ่มภาษาเองได้
 - 📦 สำรอง/กู้คืน config ทั้งชุดเป็นไฟล์ `.zip`
 
-> ฟีเจอร์ hotkey และการปักหมุด panel รองรับ **Cinnamon เท่านั้น**
+> ฟีเจอร์ปักหมุดอัตโนมัติและ global hotkey บน Linux รองรับ **Cinnamon** เป็นหลัก
 
 ## แพลตฟอร์มที่รองรับ / Supported platforms
 
 | ระบบ | สถานะ |
 | :--- | :--- |
-| **Linux Mint (Cinnamon)** | ✅ รองรับหลัก — ทดสอบแล้ว |
-| **Windows** | 🟡 portable **alpha** — โค้ดพร้อม กำลังทดสอบบนเครื่องจริง |
-| **macOS** | ⚪ **ยังไม่รับประกัน** — มีโค้ดรองรับ (`core/macos.py`) แต่ยังไม่ทดสอบ |
-
-> **หมายเหตุ macOS:** เรามีโค้ดรองรับ macOS เขียนไว้แล้ว (launcher `.command` + ปัก Dock แบบ best-effort)
-> แต่ยังไม่เคยรันบนเครื่องจริง (ทีมไม่มีเครื่อง Mac) จึง **ไม่เปิดให้ดาวน์โหลด build สำหรับ macOS**
-> หากใครสะดวก fork ไป build/ทดสอบเอง ยินดีรับ PR ค่ะ
+| **Linux Mint (Cinnamon)** | ✅ รองรับหลัก — AppImage & `.deb` |
+| **Windows 11** | ✅ Portable (`TaskbarNoob.exe`) — COM `.lnk` + AUMID แยกต่อกลุ่ม + Win32 Hotkey |
+| **macOS** | ⚪ ยังไม่รองรับในรุ่นปัจจุบัน (ทีมไม่มีเครื่อง Mac สำหรับทดสอบ) |
 
 ## ดาวน์โหลด & ติดตั้ง / Download & Install
 
@@ -57,16 +56,20 @@
 
 เลือกจากหน้า **Releases** ของ repo:
 
-**AppImage** (ไม่ต้องติดตั้ง)
+**Linux — AppImage** (ไม่ต้องติดตั้ง)
 ```bash
 chmod +x TaskbarNoob-x86_64.AppImage
 ./TaskbarNoob-x86_64.AppImage
 ```
 
-**`.deb`** (Debian/Ubuntu/Mint)
+**Linux — `.deb`** (Debian/Ubuntu/Mint)
 ```bash
 sudo apt install ./taskbarnoob_<version>_amd64.deb
 ```
+
+**Windows 11 — Portable `.zip`**
+- แตกไฟล์แล้วรัน `TaskbarNoob.exe` ได้ทันที (เก็บ config แบบ portable ในโฟลเดอร์ `config/` ข้างตัวแอป)
+- กดปุ่มโฟลเดอร์ที่กลุ่มเพื่อเปิด `config/shortcuts/` แล้วลากไฟล์ `.lnk` ไปปักบน Taskbar ได้เลย
 
 ## รันจากซอร์ส / Run from source
 
@@ -85,31 +88,43 @@ CLI:
 ## Build แพ็กเกจ / Build packages
 
 ```bash
+# Linux
 bash packaging/build_appimage.sh   # -> dist/TaskbarNoob-x86_64.AppImage
 bash packaging/build_deb.sh        # -> dist/taskbarnoob_<ver>_amd64.deb
+
+# Windows (PowerShell)
+powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1
 ```
 
 ## ทดสอบ / Tests
 
 ```bash
-.venv/bin/python tests/run.py      # 307 tests
+.venv/bin/python tests/run.py      # 392 tests
 ```
 
-## การเพิ่มภาษา / Adding a language
+## ภาษา & การเพิ่มภาษาใหม่ / Languages
 
-1. Settings → **ส่งออกภาษา** เพื่อได้ไฟล์ JSON ต้นแบบ
-2. แปลค่า (value) เป็นภาษาของคุณ · เปิดดู asset ตัวอย่างได้ที่ [`packaging/lang/ja.json`](packaging/lang/ja.json) (ญี่ปุ่น)
+ตัวแอปมาพร้อม **9 ภาษาในตัว** เลือกเปลี่ยนได้ทันทีจาก **Settings**:
+ไทย · English · 日本語 · 简体中文 · 한국어 · Español · Deutsch · Français · Português (Brasil)
+
+อยากเพิ่มภาษาอื่นเองก็ทำได้ง่าย ๆ:
+1. Settings → **ส่งออกภาษา** เพื่อได้ไฟล์ JSON ต้นแบบ (หรือดูตัวอย่างใน [`packaging/lang/`](packaging/lang/))
+2. แปลค่า (value) เป็นภาษาของคุณ
 3. Settings → **นำเข้าภาษา** เลือกไฟล์ที่แปล → เลือกใช้จากช่องภาษาได้เลย
 
 ## โครงสร้างโปรเจกต์ (ย่อ) / Project layout
 
 ```
 taskbarnoob/
-├── core/   ตรรกะล้วน (ไม่พึ่ง Qt) — storage · icons · launcher · hotkeys · archive · i18n
-└── gui/    ส่วน Qt/PySide6 — main_window · group_editor · flyout · settings_dialog …
-packaging/  build scripts · assets (โลโก้) · lang (asset ภาษา) · appimage/
-tests/      unittest ชุดทดสอบ
-docs/       เอกสารออกแบบ + worklog
+├── core/
+│   ├── platform/   backend แยกตาม OS (linux/ · win32/)
+│   ├── icons/      pipeline ดึง/แคชไอคอน (theme · appimage · portable · steam)
+│   ├── i18n/       ระบบภาษา (TH/EN + bundled JSON + user overlay)
+│   └── ...         models · storage · paths · launcher · settings · archive
+└── gui/            ส่วน Qt/PySide6 (main_window · group_editor · app_picker · flyout …)
+packaging/          build scripts · assets (โลโก้) · lang (7 ภาษาแพ็กติดแอป) · appimage/
+tests/              unittest ชุดทดสอบ (392 tests)
+docs/               เอกสารออกแบบ + worklog + roadmap
 ```
 
 ## เครดิต & สนับสนุน / Credits & Support
@@ -120,10 +135,10 @@ docs/       เอกสารออกแบบ + worklog
 
 ## Roadmap
 
-- [x] **Linux Mint (Cinnamon)** — จัดกลุ่ม shortcut · ปักหมุด panel · hotkey · ไทย/อังกฤษ · สำรอง/กู้คืน config
-- [~] **Windows** — portable alpha (โค้ดพร้อม · กำลังทดสอบบนเครื่องจริง)
-- [~] **macOS** — มีโค้ดรองรับ แต่ยังไม่ทดสอบ (รอเครื่อง Mac)
-- [ ] ฟีเจอร์เพิ่มเติมตามฟีดแบ็กผู้ใช้
+- [x] **Linux Mint (Cinnamon)** — จัดกลุ่ม shortcut · ปักหมุด panel · Flyout ตรึงตำแหน่ง · hotkey · Auto-Migration จาก `taskbargroups`
+- [x] **Windows 11** — portable `.exe` · COM `.lnk` + AUMID · Win32 Hotkey · ปุ่ม "จากแอป..." (Start Menu & MSIX)
+- [x] **9 ภาษาในตัว** + ส่งออก/นำเข้าภาษา + สำรอง/กู้คืน config `.zip`
+- [ ] ฟีเจอร์เพิ่มเติมตามฟีดแบ็กผู้ใช้ (Wayland / multi-monitor / DE อื่น ๆ)
 
 ## License
 
