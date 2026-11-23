@@ -1365,5 +1365,5 @@ tag พร้อมแล้ว (HEAD) · เหลือ: ทดสอบ Windo
      - **R1:** แยก `core/platform/{base,linux,win32}` ชัดเจน + พับเก็บ `core/macos.py` ออกไปก่อน
      - **R2:** ย่อยไฟล์ยักษ์ (`main_window.py` 1,199 บรรทัด, `group_editor.py` 1,151 บรรทัด, `win32.py` 802 บรรทัด) เป็นโมดูลเล็กที่ทำหน้าที่เดียว
      - **R3:** รวม icon pipeline เป็นจุดเดียว (เลิก circular import `gui/icons` ↔ `group_editor`) + เพิ่มตัวเลือกไอคอนระบบแบบแยกหมวดบน Mint + เพิ่ม **Steam `steam://rungameid/<appid>` icon resolver** ทั้ง Linux (`.desktop` + `~/.local/share/Steam/appcache/librarycache`) และ Windows (`.url` + Registry `SteamPath`)
-     - **R4:** เก็บกวาด Dead Code / PowerShell เก่า / `i18n.py` + **เปลี่ยนเครดิต `Noob & Pickle` → `Noob & Jenny` (เจนนี่)** ทุกจุด (Settings, About dialog, i18n, `.appdata.xml`, `README.md`)
+     - **R4:** เก็บกวาด Dead Code / PowerShell เก่า / `i18n.py` + **รีแบรนด์ชื่อภายใน `taskbargroups` → `taskbarnoob` ให้หมดทุกจุด** (โฟลเดอร์ Python, `.deb` เป็น `taskbarnoob_0.3.0_amd64.deb` พร้อม `Replaces`/`Conflicts`, `APP_ID`, `.desktop`, hotkey slot, AUMID, env พร้อม migration กันของเก่าพัง) + **เปลี่ยนเครดิต `Noob & Pickle` → `Noob & Jenny` (เจนนี่)** ทุกจุด (Settings, About dialog, i18n, `.appdata.xml`, `README.md`)
    - **กติกา:** รื้อบน **Linux Mint ก่อน** ให้เขียว 100% แล้วค่อยนำโครงสร้างเดียวกันมาปรับฝั่ง **Windows** ค่ะ

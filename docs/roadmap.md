@@ -95,6 +95,9 @@
 - ลบโค้ด/คอมเมนต์ PowerShell เก่าที่ไม่ได้ใช้งานจริงแล้วในฝั่ง Windows
 - พับเก็บ `core/macos.py` (และเทสต์/branch ที่อ้างถึง) ออกไปก่อนตามข้อตกลง
 - ปรับ `core/i18n.py` (582 บรรทัด) ให้ดูแลง่ายขึ้น (แยกตารางคำแปลออกจาก logic โหลดภาษา)
+- **รีแบรนด์ชื่อภายในทั้งหมดจาก `taskbargroups` → `taskbarnoob`:**
+  - เปลี่ยนชื่อแพ็กเกจ Python (`taskbargroups/` → `taskbarnoob/`), ชื่อแพ็กเกจ `.deb` (`taskbarnoob_0.3.0_amd64.deb` พร้อมใส่ `Replaces:`/`Conflicts: taskbargroups` ใน `DEBIAN/control`), `APP_ID`, `.desktop`, hicolor icon, hotkey slot, Windows AUMID และ env `TASKBARNOOB_CONFIG` (รองรับ fallback `TASKBARGROUPS_CONFIG` เก่า)
+  - ออกแบบ migration ตอนเปิดแอปครั้งแรก (self-heal/อัปเกรด launcher/hotkey เก่า) ไม่ให้กลุ่มที่ปักไว้พัง
 - **อัปเดตเครดิต (Credits) เป็น "Noob & Jenny (เจนนี่)":** เปลี่ยนจาก `Noob & Pickle` (น้องพริก) เป็น `Noob & Jenny` ในหน้าต่าง Settings, About dialog, `i18n` (TH/EN/JA), `.appdata.xml` และ `README.md`
 - ตรวจชุดเทสต์ให้ครอบคลุมโครงสร้างใหม่ และรันเขียว 100% ทั้งบน Mint และ Windows
 
