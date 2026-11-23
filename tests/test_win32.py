@@ -307,6 +307,27 @@ class PngToIcoTests(unittest.TestCase):
             self.assertNotEqual(ico.read_bytes(), b"old")
             self.assertEqual(ico.read_bytes()[:6], struct.pack("<HHH", 0, 1, 1))
 
+    def test_resize_rgba_area_premultiplied_no_dark_fringe(self) -> None:
+        """ย่อขอบวงกลมสีขาวบนพื้นโปร่งใส (0,0,0,0) ต้องไม่ติดขอบดำ และมี alpha ไล่ระดับเนียน."""
+        src_w = src_h = 64
+        pixels = bytearray(src_w * src_h * 4)
+        for y in range(src_h):
+            for x in range(src_w):
+                dx = x - 31.5
+                dy = y - 31.5
+                if dx * dx + dy * dy <= 28.0 * 28.0:
+                    idx = (y * src_w + x) * 4
+                    pixels[idx : idx + 4] = bytes((255, 255, 255, 255))
+        out = win32._resize_rgba(pixels, src_w, src_h, 16, 16)
+        edge_pixels = []
+        for i in range(0, len(out), 4):
+            r, g, b, a = out[i], out[i + 1], out[i + 2], out[i + 3]
+            if 0 < a < 255:
+                edge_pixels.append((r, g, b, a))
+                # Premultiplied alpha: ขอบต้องยังคงเป็นสีขาวบริสุทธิ์ ไม่มีขอบดำปน
+                self.assertEqual((r, g, b), (255, 255, 255))
+        self.assertGreater(len(edge_pixels), 10)
+
 
 class ComLnkTests(unittest.TestCase):
     """เทสต์ COM จริง — รันได้เฉพาะ Windows (บน Linux ไม่มี COM)."""

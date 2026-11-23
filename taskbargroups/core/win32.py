@@ -306,38 +306,85 @@ def _png_encode(w: int, h: int, pixels: bytearray) -> bytes:
 def _resize_rgba(
     pixels: bytearray, src_w: int, src_h: int, dst_w: int, dst_h: int
 ) -> bytearray:
-    """ย่อ/ขยาย RGBA pixels ด้วย bilinear interpolation."""
+    """ย่อ/ขยาย RGBA pixels ด้วย premultiplied-alpha area filter (ลดขอบหยักบนไอคอนวงกลม)."""
     if src_w == dst_w and src_h == dst_h:
         return bytearray(pixels)
     result = bytearray(dst_w * dst_h * 4)
     x_ratio = src_w / dst_w
     y_ratio = src_h / dst_h
+
+    # ย่อขนาด → area/box filter แบบ premultiplied alpha (เฉลี่ยทุกพิกเซลในพื้นที่จริง)
+    if dst_w <= src_w and dst_h <= src_h:
+        import math
+
+        for dy in range(dst_h):
+            sy0 = dy * y_ratio
+            sy1 = (dy + 1) * y_ratio
+            iy0 = int(sy0)
+            iy1 = min(src_h, math.ceil(sy1))
+            y_weights = [
+                (sy, min(sy + 1.0, sy1) - max(float(sy), sy0))
+                for sy in range(iy0, iy1)
+            ]
+            row_dst = dy * dst_w
+            for dx in range(dst_w):
+                sx0 = dx * x_ratio
+                sx1 = (dx + 1) * x_ratio
+                ix0 = int(sx0)
+                ix1 = min(src_w, math.ceil(sx1))
+                r_sum = g_sum = b_sum = a_sum = w_sum = 0.0
+                for sy, wy in y_weights:
+                    row_src = sy * src_w
+                    for sx in range(ix0, ix1):
+                        wx = min(sx + 1.0, sx1) - max(float(sx), sx0)
+                        w = wx * wy
+                        idx = (row_src + sx) * 4
+                        a = pixels[idx + 3]
+                        wa = w * a
+                        r_sum += pixels[idx] * wa
+                        g_sum += pixels[idx + 1] * wa
+                        b_sum += pixels[idx + 2] * wa
+                        a_sum += wa
+                        w_sum += w
+                out_idx = (row_dst + dx) * 4
+                if a_sum > 0.0 and w_sum > 0.0:
+                    result[out_idx] = min(255, int(r_sum / a_sum + 0.5))
+                    result[out_idx + 1] = min(255, int(g_sum / a_sum + 0.5))
+                    result[out_idx + 2] = min(255, int(b_sum / a_sum + 0.5))
+                    result[out_idx + 3] = min(255, int(a_sum / w_sum + 0.5))
+        return result
+
+    # ขยายขนาด → bilinear แบบ premultiplied alpha
     for dy in range(dst_h):
+        src_y = (dy + 0.5) * y_ratio - 0.5
+        y0 = max(0, int(src_y))
+        y1 = min(src_h - 1, y0 + 1)
+        fy = max(0.0, src_y - y0)
         for dx in range(dst_w):
             src_x = (dx + 0.5) * x_ratio - 0.5
-            src_y = (dy + 0.5) * y_ratio - 0.5
             x0 = max(0, int(src_x))
-            y0 = max(0, int(src_y))
             x1 = min(src_w - 1, x0 + 1)
-            y1 = min(src_h - 1, y0 + 1)
-            fx = src_x - x0
-            fy = src_y - y0
-            if fx < 0:
-                fx = 0
-            if fy < 0:
-                fy = 0
-            for c in range(4):
-                v00 = pixels[(y0 * src_w + x0) * 4 + c]
-                v10 = pixels[(y0 * src_w + x1) * 4 + c]
-                v01 = pixels[(y1 * src_w + x0) * 4 + c]
-                v11 = pixels[(y1 * src_w + x1) * 4 + c]
-                val = (
-                    v00 * (1 - fx) * (1 - fy)
-                    + v10 * fx * (1 - fy)
-                    + v01 * (1 - fx) * fy
-                    + v11 * fx * fy
-                )
-                result[(dy * dst_w + dx) * 4 + c] = int(val + 0.5)
+            fx = max(0.0, src_x - x0)
+            weights = (
+                ((y0 * src_w + x0) * 4, (1.0 - fx) * (1.0 - fy)),
+                ((y0 * src_w + x1) * 4, fx * (1.0 - fy)),
+                ((y1 * src_w + x0) * 4, (1.0 - fx) * fy),
+                ((y1 * src_w + x1) * 4, fx * fy),
+            )
+            r_sum = g_sum = b_sum = a_sum = 0.0
+            for idx, w in weights:
+                a = pixels[idx + 3]
+                wa = w * a
+                r_sum += pixels[idx] * wa
+                g_sum += pixels[idx + 1] * wa
+                b_sum += pixels[idx + 2] * wa
+                a_sum += wa
+            out_idx = (dy * dst_w + dx) * 4
+            if a_sum > 0.0:
+                result[out_idx] = min(255, int(r_sum / a_sum + 0.5))
+                result[out_idx + 1] = min(255, int(g_sum / a_sum + 0.5))
+                result[out_idx + 2] = min(255, int(b_sum / a_sum + 0.5))
+                result[out_idx + 3] = min(255, int(a_sum + 0.5))
     return result
 
 
