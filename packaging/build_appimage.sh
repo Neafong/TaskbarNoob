@@ -51,6 +51,7 @@ rm -rf "$APPDIR"
 mkdir -p "$APPDIR/usr/bin" \
          "$APPDIR/usr/share/applications" \
          "$APPDIR/usr/share/icons/hicolor/256x256/apps" \
+         "$APPDIR/usr/share/icons/hicolor/scalable/apps" \
          "$APPDIR/usr/share/metainfo"
 cp -a "$BUILD/pyinstaller/dist/${APP_ID}/." "$APPDIR/usr/bin/"
 cp "$ROOT/packaging/appimage/AppRun" "$APPDIR/AppRun"
@@ -60,6 +61,9 @@ cp "$ROOT/packaging/appimage/${APP_ID}.desktop" "$APPDIR/usr/share/applications/
 cp "$ROOT/packaging/appimage/${APP_ID}.png" "$APPDIR/${APP_ID}.png"
 cp "$ROOT/packaging/appimage/${APP_ID}.png" "$APPDIR/.DirIcon"
 cp "$ROOT/packaging/appimage/${APP_ID}.png" "$APPDIR/usr/share/icons/hicolor/256x256/apps/"
+if [[ -f "$SVG_ICON" ]]; then
+  cp "$SVG_ICON" "$APPDIR/usr/share/icons/hicolor/scalable/apps/${APP_ID}.svg"
+fi
 cp "$ROOT/packaging/appimage/${APP_ID}.appdata.xml" "$APPDIR/usr/share/metainfo/"
 
 # รวม libxcb-cursor (Qt 6.6+ ต้องใช้; เครื่องที่ไม่มีจะเปิด xcb plugin ไม่ได้)

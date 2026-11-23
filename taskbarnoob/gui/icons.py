@@ -14,7 +14,10 @@ from PySide6.QtWidgets import QFileIconProvider
 
 from taskbarnoob.core import icons as core_icons
 from taskbarnoob.core.models import Group, Shortcut
+from taskbarnoob.core.paths import app_icon_path
 from taskbarnoob.core.storage import ConfigStore
+
+_APP_ICON_SIZES = (16, 22, 24, 32, 48, 64, 128, 256)
 
 _provider = QFileIconProvider()
 _FALLBACK = "application-x-executable"
@@ -25,6 +28,41 @@ _PROVIDER_ICON_CACHE_DIRNAME = core_icons.PROVIDER_ICON_CACHE_DIRNAME
 _PROVIDER_SUFFIXES = frozenset(
     {".exe", ".lnk", ".bat", ".cmd", ".app", ".command"}
 )
+
+
+def _smooth_scaled_pixmap(source: QPixmap, size: int) -> QPixmap:
+    """ย่อ QPixmap แบบ step-halving (mipmap) เพื่อไม่ให้ขอบวงกลมหยักเมื่อย่อมากกว่า 2 เท่า."""
+    from PySide6.QtCore import Qt
+
+    cur = source
+    while cur.width() > size * 2 and cur.height() > size * 2:
+        cur = cur.scaled(
+            cur.width() // 2,
+            cur.height() // 2,
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation,
+        )
+    if cur.width() == size and cur.height() == size:
+        return cur
+    return cur.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+
+
+def app_window_icon(path: Path | None = None) -> QIcon:
+    """สร้าง QIcon หลายขนาด (16–256px) ให้ X11/Cinnamon/Windows เลือกขนาดที่คมเนียนที่สุด.
+
+    ถ้าส่ง `QIcon(str(png_256))` ตรงๆ Qt จะส่งเฉพาะ 256x256 ใน `_NET_WM_ICON`
+    แล้ว panel/titlebar ย่อรวดเดียว 8–10 เท่า → ขอบวงกลมหยัก.
+    """
+    target = path if path is not None else app_icon_path()
+    if target is None or not target.is_file():
+        return QIcon()
+    base = QPixmap(str(target))
+    if base.isNull():
+        return QIcon(str(target))
+    icon = QIcon()
+    for size in _APP_ICON_SIZES:
+        icon.addPixmap(_smooth_scaled_pixmap(base, size))
+    return icon
 
 
 def _from_file(path: Path) -> QIcon | None:

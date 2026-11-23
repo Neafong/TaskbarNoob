@@ -14,8 +14,9 @@ from PySide6.QtWidgets import (
 )
 
 from taskbarnoob.core.i18n import tr
-from taskbarnoob.core.paths import app_icon_path
 from taskbarnoob.core.settings import Settings
+
+from .icons import app_window_icon
 
 try:  # เวอร์ชันมาจากแพ็กเกจ (single source of truth)
     from taskbarnoob import __version__ as APP_VERSION
@@ -33,10 +34,10 @@ class AboutDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(8)
 
-        icon_path = app_icon_path()
-        if icon_path is not None:
+        icon = app_window_icon()
+        if not icon.isNull():
             logo = QLabel()
-            logo.setPixmap(QPixmap(str(icon_path)).scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            logo.setPixmap(icon.pixmap(64, 64))
             logo.setAlignment(Qt.AlignCenter)
             layout.addWidget(logo)
 
@@ -89,8 +90,8 @@ class AboutDialog(QDialog):
         buttons.accepted.connect(self.accept)
         layout.addWidget(buttons)
 
-        icon = QIcon(str(icon_path)) if icon_path is not None else QIcon()
-        self.setWindowIcon(icon)
+        if not icon.isNull():
+            self.setWindowIcon(icon)
 
     def _open_donate(self) -> None:
         if self.donate_url:

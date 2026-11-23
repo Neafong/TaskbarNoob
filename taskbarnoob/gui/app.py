@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import sys
 
-from PySide6.QtGui import QCursor, QIcon
+from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import QApplication
 
 from taskbarnoob.core.i18n import setup
-from taskbarnoob.core.paths import app_icon_path
 from taskbarnoob.core.platform import get_backend
 from taskbarnoob.core.platform.linux.hotkeys import hotkey_slot
 from taskbarnoob.core.settings import Settings
 from taskbarnoob.core.storage import ConfigStore
 
 from .flyout import FlyoutController
+from .icons import app_window_icon
 from .theme import apply_theme, resolve_theme
 
 
@@ -32,9 +32,9 @@ def run(
     app.setApplicationName("TaskbarNoob")
     app.setApplicationDisplayName("TaskbarNoob")
     app.setDesktopFileName("taskbarnoob")
-    icon_path = app_icon_path()
-    if icon_path is not None:
-        app.setWindowIcon(QIcon(str(icon_path)))
+    icon = app_window_icon()
+    if not icon.isNull():
+        app.setWindowIcon(icon)
     settings = Settings()
     setup(settings.get_language())
     apply_theme(app, resolve_theme(settings.get_theme(), app))

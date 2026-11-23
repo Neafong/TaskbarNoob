@@ -56,6 +56,7 @@ mkdir -p "$STAGE/DEBIAN" \
          "$STAGE/usr/lib/${APP_ID}" \
          "$STAGE/usr/share/applications" \
          "$STAGE/usr/share/icons/hicolor/256x256/apps" \
+         "$STAGE/usr/share/icons/hicolor/scalable/apps" \
          "$STAGE/usr/share/metainfo"
 cp -a "$BUNDLE/." "$STAGE/usr/lib/${APP_ID}/"
 
@@ -67,6 +68,9 @@ chmod +x "$STAGE/usr/bin/${APP_ID}"
 
 cp "$ROOT/packaging/appimage/${APP_ID}.desktop" "$STAGE/usr/share/applications/"
 cp "$ROOT/packaging/appimage/${APP_ID}.png" "$STAGE/usr/share/icons/hicolor/256x256/apps/"
+if [[ -f "$SVG_ICON" ]]; then
+  cp "$SVG_ICON" "$STAGE/usr/share/icons/hicolor/scalable/apps/${APP_ID}.svg"
+fi
 cp "$ROOT/packaging/appimage/${APP_ID}.appdata.xml" "$STAGE/usr/share/metainfo/"
 
 SIZE="$(du -sk "$STAGE/usr" | cut -f1)"
