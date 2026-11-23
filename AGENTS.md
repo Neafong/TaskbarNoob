@@ -48,8 +48,9 @@
   · โฟลเดอร์ใช้งานจริงบน Win: `D:\Portable\Tool\TaskbarNoob`
 - **งานปัจจุบัน (`v0.3.0` — Full Architecture Refactor บน Linux Mint):**
   · ✅ **R0 เสร็จแล้ว (2026-11-23):** จัดระเบียบ `docs/` ลง `docs/archive/` + แก้บั๊ก `storage._prune_order()`
-  · ✅ **R1 เสร็จแล้ว (2026-11-23):** แยก `core/platform/{base,linux,win32}` (แตก `win32.py` เป็น 6 โมดูลย่อย) + พับเก็บ `core/macos.py` + ลด `sys.platform` ใน `gui/` → **367 เทสต์ ผ่าน 100% บน Mint (skipped=10 Windows-only)**
-  · **ถัดไป:** `R2` (แตกไฟล์ยักษ์ `main_window.py`, `group_editor.py`) → `R3` (icon pipeline เดียว + ตัวเลือกไอคอนแยกหมวด Mint + Steam icon resolver) → `R4` (เก็บกวาด + รีแบรนด์ `taskbargroups` → `taskbarnoob` พร้อม Auto-Migration + เครดิต `Noob & Jenny`) · ดู [`docs/roadmap.md`](docs/roadmap.md)
+  · ✅ **R1 เสร็จแล้ว (2026-11-23):** แยก `core/platform/{base,linux,win32}` (แตก `win32.py` เป็น 6 โมดูลย่อย) + พับเก็บ `core/macos.py` + ลด `sys.platform` ใน `gui/`
+  · ✅ **R2 เสร็จแล้ว (2026-11-23):** แตก `gui/group_editor.py` → `icon_picker`/`shortcut_grid`/`shortcut_dialog`/`group_editor` และ `gui/main_window.py` → `group_list`/`app`/`main_window` → **367 เทสต์ ผ่าน 100% บน Mint (skipped=10 Windows-only)**
+  · **ถัดไป:** `R3` (icon pipeline เดียว + ตัวเลือกไอคอนแยกหมวด Mint + Steam icon resolver) → `R4` (เก็บกวาด + รีแบรนด์ `taskbargroups` → `taskbarnoob` พร้อม Auto-Migration + เครดิต `Noob & Jenny`) · ดู [`docs/roadmap.md`](docs/roadmap.md)
 - **ยังเทสต์บนเครื่องนี้ไม่ได้:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่น (hotkey/pin = Cinnamon-only)
 
 ## หมายเหตุเทคนิคสำคัญ (แก้โค้ดตรงส่วนนี้ ต้องอ่านก่อน!)

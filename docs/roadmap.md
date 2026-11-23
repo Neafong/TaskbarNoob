@@ -74,7 +74,7 @@
 - ลด `if sys.platform == ...` ในฝั่ง `gui/` (เดิมกระจายกว่า 40 จุด เฉพาะ `main_window.py` มี 17 จุด) ให้เหลือเฉพาะจุดที่จำเป็นจริง
 - **พับเก็บ `core/macos.py` ออกไปก่อน** (ยังไม่มีเครื่อง Mac สำหรับพัฒนาและทดสอบจริง — ค่อยเพิ่มกลับมาเมื่อพร้อม)
 
-### R2 — แตกไฟล์ยักษ์ให้เล็กและมีหน้าที่เดียว (Modular GUI & Core)
+### R2 — แตกไฟล์ยักษ์ให้เล็กและมีหน้าที่เดียว (Modular GUI & Core) ✅ เสร็จ (2026-11-23)
 - **ไฟล์ไหนย่อยได้ให้ย่อย** — ไม่ปล่อยให้มีไฟล์ 1,000+ บรรทัดที่รวมทุกอย่างไว้ด้วยกัน:
   - แตก `gui/group_editor.py` (1,151 บรรทัด) → `shortcut_grid.py`, `shortcut_dialog.py`, `icon_picker.py`, `group_editor.py`
   - แตก `gui/main_window.py` (1,199 บรรทัด) → แยก `group_list.py` (`GroupListWidget` + delegate), logic การ sync/persist ออกจากตัวหน้าต่างหลัก

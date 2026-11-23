@@ -1,19 +1,15 @@
-"""หน้าต่างแก้ไข/สร้างกลุ่ม (Phase 2 MVP)."""
+"""หน้าต่างแก้ไข/สร้างกลุ่ม (GroupEditor)."""
 
 from __future__ import annotations
 
-import hashlib
 import os
 import sys
 import tempfile
 from pathlib import Path
-from typing import Iterable
 
-from PySide6.QtCore import QFileInfo, QPoint, QRect, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QIcon, QPainter, QPalette, QPen, QPixmap
+from PySide6.QtCore import QFileInfo, QSize, Qt, QTimer
+from PySide6.QtGui import QColor, QIcon, QPalette
 from PySide6.QtWidgets import (
-    QAbstractItemView,
-    QApplication,
     QCheckBox,
     QColorDialog,
     QComboBox,
@@ -25,20 +21,15 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QListWidget,
     QListWidgetItem,
-    QListView,
-    QMessageBox,
     QPushButton,
     QSlider,
     QSpinBox,
-    QStyledItemDelegate,
     QVBoxLayout,
     QWidget,
 )
 
 from taskbargroups.core import icons as core_icons
-from taskbargroups.core.platform.linux.desktop import shortcut_from_path
 from taskbargroups.core.i18n import tr
 from taskbargroups.core.models import (
     MAX_ICON_SIZE,
@@ -48,22 +39,45 @@ from taskbargroups.core.models import (
     Shortcut,
     is_hex_color,
 )
+from taskbargroups.core.platform.linux.desktop import shortcut_from_path
 from taskbargroups.core.settings import Settings
 from taskbargroups.core.storage import ConfigStore
+
 from .button_icons import themed_icon
-from .dialogs import show_information, show_warning
-from .icons import (
-    _from_file,
-    extract_dll_icon_png,
-    extract_os_icon_png,
-    list_dll_icons,
+from .dialogs import show_warning
+from .icon_picker import (
+    _ICON_DISPLAY_LIMIT,
+    _ICON_SCAN_LIMIT,
+    _ICON_SUFFIXES,
+    _PROVIDER_ICON_CACHE_DIRNAME,
+    _PROVIDER_ICON_SUFFIXES,
+    SystemIconDialog,
+    _SystemIconDialog,
+    _cached_provider_png,
+    _is_noise_shortcut,
+    _iter_windows_shortcuts,
+    _provider_png,
+    _windows_shortcut_dirs,
+    _windows_system_icon_dlls,
 )
+from .icons import _from_file
+from .shortcut_dialog import (
+    _FALLBACK_GRID_ICON,
+    _ICON_FILTER,
+    ShortcutDialog,
+    _style_dialog_buttons,
+)
+from .shortcut_grid import ShortcutGrid, _DropHighlightDelegate
 from .theme import app_color, app_text_color
 
-_FALLBACK_GRID_ICON = "application-x-executable"
-
-# ขนาดพรีวิวไอคอนกลุ่ม (คงที่ — ไม่ตามสไลเดอร์ขนาดไอคอน)
+DEFAULT_CUSTOM_COLOR = "#3a3a3a"
 _GROUP_ICON_PREVIEW = 32
+
+_ITEM_BUTTON_ICONS = {
+    "add": ("plus-fill.svg",),
+    "edit": ("pencil-simple-fill.svg",),
+    "delete": ("trash-fill.svg",),
+}
 
 
 def _normalize_hex(value: str) -> str:
@@ -73,22 +87,6 @@ def _normalize_hex(value: str) -> str:
         return "#" + "".join(ch * 2 for ch in value[1:].lower())
     return value.lower()
 
-_ICON_SUFFIXES = {".png", ".svg", ".xpm", ".jpg", ".jpeg"}
-_ICON_SCAN_LIMIT = 4000
-_ICON_DISPLAY_LIMIT = 1000
-
-# นามสกุลที่ OS (Windows) เก็บไอคอนไว้ในไฟล์เอง — ดึงผ่าน QFileIconProvider
-_PROVIDER_ICON_SUFFIXES = frozenset(
-    {".exe", ".lnk", ".bat", ".cmd", ".msc", ".cpl", ".scr", ".url"}
-)
-_PROVIDER_ICON_CACHE_DIRNAME = "provider-icons-v3"
-
-_ITEM_BUTTON_ICONS = {
-    "add": ("plus-fill.svg",),
-    "edit": ("pencil-simple-fill.svg",),
-    "delete": ("trash-fill.svg",),
-}
-
 
 def _apply_button_icon(button: QPushButton, kind: str, fallback: str) -> None:
     names = _ITEM_BUTTON_ICONS.get(kind)
@@ -97,714 +95,6 @@ def _apply_button_icon(button: QPushButton, kind: str, fallback: str) -> None:
         button.setText(f"{fallback} {button.text()}")
     else:
         button.setIcon(icon)
-
-
-def _style_dialog_buttons(box: QDialogButtonBox) -> None:
-    """ปุ่ม OK/Cancel ของ dialog: ใช้ข้อความตามภาษา + ไอคอน SVG ของเรา."""
-    ok_button = box.button(QDialogButtonBox.Ok)
-    if ok_button is not None:
-        ok_button.setText(tr("dialog.ok"))
-        icon = themed_icon("check-fill.svg", app_text_color())
-        if not icon.isNull():
-            ok_button.setIcon(icon)
-    cancel_button = box.button(QDialogButtonBox.Cancel)
-    if cancel_button is not None:
-        cancel_button.setText(tr("dialog.cancel"))
-        icon = themed_icon("x-fill.svg", app_text_color())
-        if not icon.isNull():
-            cancel_button.setIcon(icon)
-
-
-def _provider_png(source: Path, dest: Path, size: int = 256) -> Path | None:
-    """สกัดไอคอนที่ฝังในไฟล์ของ OS (.exe/.lnk/.dll) ออกมาเป็น PNG.
-
-    ใช้ shell API บน Windows (ความละเอียดสูง ไม่มีลูกศร shortcut) — คืน path
-    PNG ที่บันทึกสำเร็จ หรือ None ถ้าดึงไม่ได้.
-    """
-    return extract_os_icon_png(source, dest, size)
-
-
-def _cached_provider_png(source: Path, base: Path, size: int = 256) -> Path | None:
-    """สกัดไอคอนจากไฟล์ OS แล้วแคชเป็น PNG (ข้ามถ้าแคชยังใหม่กว่าไฟล์ต้นทาง)."""
-    try:
-        mtime = source.stat().st_mtime
-    except OSError:
-        return None
-    digest = hashlib.sha1(
-        f"{source}|{int(mtime)}".encode("utf-8")
-    ).hexdigest()[:16]
-    dest = base / f"{digest}.png"
-    if dest.is_file():
-        try:
-            if dest.stat().st_mtime >= mtime:
-                return dest
-        except OSError:
-            pass
-    return _provider_png(source, dest, size)
-
-
-def _windows_shortcut_dirs() -> list[Path]:
-    """โฟลเดอร์ Start Menu ของผู้ใช้ + ทั้งเครื่อง (Windows)."""
-    dirs: list[Path] = []
-    for env_name in ("ProgramData", "APPDATA"):
-        root = os.environ.get(env_name)
-        if not root:
-            continue
-        dirs.append(
-            Path(root) / "Microsoft" / "Windows" / "Start Menu" / "Programs"
-        )
-    out: list[Path] = []
-    for d in dirs:
-        try:
-            if d.is_dir():
-                out.append(d)
-        except OSError:
-            continue
-    return out
-
-
-def _iter_windows_shortcuts(dirs: Iterable[Path]):
-    """เดินหาไฟล์ .lnk ทุกไฟล์ในโฟลเดอร์ Start Menu (ไม่รวมตัวโมดูลเองซ้ำ)."""
-    seen: set[str] = set()
-    for base in dirs:
-        try:
-            entries = sorted(base.rglob("*.lnk"))
-        except OSError:
-            continue
-        for path in entries:
-            key = path.name.lower()
-            if key in seen:
-                continue
-            seen.add(key)
-            yield path
-
-
-_NOISE_SHORTCUT_WORDS = (
-    "uninstall",
-    "remove ",
-    "readme",
-    "manual",
-    "license",
-    "release notes",
-    "ถอนการติดตั้ง",
-    "คู่มือ",
-)
-
-
-def _is_noise_shortcut(name: str) -> bool:
-    """กรองทางลัดที่ไม่ใช่ตัวแอปจริง (เช่น Uninstall, Readme, Manual)."""
-    low = name.strip().lower()
-    if not low:
-        return True
-    if any(word in low for word in _NOISE_SHORTCUT_WORDS):
-        return True
-    return low.endswith((" help", " docs", " documentation"))
-
-
-def _windows_system_icon_dlls() -> list[Path]:
-    """ไฟล์ DLL ไอคอนระบบมาตรฐานของ Windows (imageres.dll, shell32.dll)."""
-    sys32 = Path(os.environ.get("SystemRoot") or r"C:\Windows") / "System32"
-    return [
-        p
-        for name in ("imageres.dll", "shell32.dll")
-        if (p := sys32 / name).is_file()
-    ]
-
-
-class _SystemIconDialog(QDialog):
-    """สังเกรายชื่อไอคอนจากชุดธีมของระบบ แล้วให้เลือก/ค้นหาไอคอนได้."""
-
-    def __init__(
-        self, parent: QWidget | None = None, cache_dir: Path | None = None
-    ) -> None:
-        super().__init__(parent)
-        self.setWindowTitle(tr("system_icon.title"))
-        self.resize(560, 480)
-        self._path: str | None = None
-        self._names: dict[str, str] = {}
-        self._dll_entries: list[tuple[str, Path, int, QIcon]] = []
-        self._apps_scanned = False
-        self._cache_dir = cache_dir
-
-        layout = QVBoxLayout(self)
-        self.source_combo: QComboBox | None = None
-        if sys.platform == "win32":
-            self.source_combo = QComboBox()
-            self.source_combo.addItem(tr("system_icon.source_system"), "system")
-            self.source_combo.addItem(tr("system_icon.source_apps"), "apps")
-            self.source_combo.currentIndexChanged.connect(self._on_source_changed)
-            layout.addWidget(self.source_combo)
-        self.search = QLineEdit()
-        self.search.setPlaceholderText(tr("system_icon.search_placeholder"))
-        self.search.textChanged.connect(self._apply_filter)
-        layout.addWidget(self.search)
-
-        self.grid = QListWidget()
-        self.grid.setViewMode(QListView.IconMode)
-        self.grid.setIconSize(QSize(40, 40))
-        self.grid.setGridSize(QSize(64, 64))
-        self.grid.setResizeMode(QListView.Adjust)
-        self.grid.setMovement(QListView.Static)
-        self.grid.setWordWrap(False)
-        self.grid.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.grid.itemDoubleClicked.connect(lambda _item: self.accept())
-        self.grid.itemActivated.connect(lambda _item: self.accept())
-        layout.addWidget(self.grid, 1)
-
-        row = QHBoxLayout()
-        self.count_label = QLabel()
-        choose = QPushButton(tr("system_icon.choose"))
-        choose.setDefault(True)
-        choose.clicked.connect(self.accept)
-        row.addWidget(self.count_label)
-        row.addStretch(1)
-        row.addWidget(choose)
-        layout.addLayout(row)
-
-        self._scan()
-        self._apply_filter("")
-
-    def selected_path(self) -> str | None:
-        return self._path
-
-    def _effective_cache_dir(self) -> Path:
-        if self._cache_dir is not None:
-            return self._cache_dir
-        return Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
-
-    def done(self, result: int) -> None:
-        if result == QDialog.Accepted and self.grid.currentItem() is not None:
-            data = self.grid.currentItem().data(Qt.UserRole)
-            if isinstance(data, tuple) and len(data) == 3 and data[0] == "dll":
-                _, dll_str, idx = data
-                dll_path = Path(dll_str)
-                dest = self._effective_cache_dir() / f"{dll_path.stem}_{idx}.png"
-                png = extract_dll_icon_png(dll_path, idx, dest, size=256)
-                self._path = str(png) if png is not None else None
-            else:
-                self._path = data
-        super().done(result)
-
-    def _on_source_changed(self) -> None:
-        if (
-            self.source_combo is not None
-            and self.source_combo.currentData() == "apps"
-            and not self._apps_scanned
-        ):
-            self._scan_windows()
-        self._apply_filter(self.search.text())
-
-    def _scan(self) -> None:
-        if sys.platform == "win32":
-            self._scan_windows_dlls()
-        else:
-            self._scan_linux()
-
-    def _scan_windows_dlls(self) -> None:
-        """Windows: ดึงไอคอนระบบจาก imageres.dll + shell32.dll."""
-        self._dll_entries.clear()
-        for dll in _windows_system_icon_dlls():
-            stem = dll.stem.lower()
-            for idx, icon in list_dll_icons(dll):
-                self._dll_entries.append((f"{stem} #{idx}", dll, idx, icon))
-
-    def _scan_windows(self) -> None:
-        """Windows: สกัดไอคอนแอปจาก .lnk ใน Start Menu (กรอง Uninstall/Manual ออก)."""
-        self._apps_scanned = True
-        cache = self._effective_cache_dir()
-        for lnk in _iter_windows_shortcuts(_windows_shortcut_dirs()):
-            if len(self._names) >= _ICON_SCAN_LIMIT:
-                return
-            name = lnk.stem
-            if not name or name in self._names or _is_noise_shortcut(name):
-                continue
-            png = _cached_provider_png(lnk, cache)
-            if png is not None:
-                self._names[name] = str(png)
-
-    def _scan_linux(self) -> None:
-        bases = dict.fromkeys(
-            [Path(p) for p in QIcon.themeSearchPaths()]
-            + [Path("/usr/share/icons")]
-        )
-        for base in bases:
-            if not base.is_dir() or len(self._names) >= _ICON_SCAN_LIMIT:
-                continue
-            for theme in base.iterdir():
-                if not theme.is_dir():
-                    continue
-                for size_dir in theme.iterdir():
-                    if not size_dir.is_dir():
-                        continue
-                    try:
-                        size = int(size_dir.name.split("x")[0])
-                    except (ValueError, IndexError):
-                        size = 0
-                    for category in size_dir.iterdir():
-                        if not category.is_dir():
-                            continue
-                        for icon_file in category.iterdir():
-                            if icon_file.suffix.lower() not in _ICON_SUFFIXES:
-                                continue
-                            self._best_icon(icon_file, size)
-                            if len(self._names) >= _ICON_SCAN_LIMIT:
-                                return
-
-    def _best_icon(self, icon_file: Path, size: int) -> None:
-        name = icon_file.stem
-        if not name:
-            return
-        current = self._names.get(name)
-        if current is None or self._priority(icon_file, size) > self._priority(
-            Path(current), 0
-        ):
-            self._names[name] = str(icon_file)
-
-    @staticmethod
-    def _priority(icon_file: Path, size: int) -> int:
-        score = 0
-        if icon_file.suffix.lower() == ".svg":
-            score += 100000
-        score += size
-        if icon_file.parent.name.startswith("apps"):
-            score += 50
-        return score
-
-    def _apply_filter(self, text: str) -> None:
-        needle = text.strip().lower()
-        self.grid.clear()
-        shown = 0
-        capped = False
-        if self.source_combo is not None and self.source_combo.currentData() == "system":
-            for label, dll_path, idx, icon in self._dll_entries:
-                if needle and needle not in label.lower():
-                    continue
-                if shown >= _ICON_DISPLAY_LIMIT:
-                    capped = True
-                    break
-                item = QListWidgetItem(icon, label)
-                item.setData(Qt.UserRole, ("dll", str(dll_path), idx))
-                item.setTextAlignment(Qt.AlignHCenter | Qt.AlignBottom)
-                item.setToolTip(label)
-                self.grid.addItem(item)
-                shown += 1
-        else:
-            for name in sorted(self._names):
-                if needle and needle not in name.lower():
-                    continue
-                if shown >= _ICON_DISPLAY_LIMIT:
-                    capped = True
-                    break
-                item = QListWidgetItem(QIcon(self._names[name]), name)
-                item.setData(Qt.UserRole, self._names[name])
-                item.setTextAlignment(Qt.AlignHCenter | Qt.AlignBottom)
-                item.setToolTip(name)
-                self.grid.addItem(item)
-                shown += 1
-        if needle:
-            self.count_label.setText(tr("system_icon.count", n=shown))
-        elif capped:
-            self.count_label.setText(tr("system_icon.count_capped", n=shown))
-        else:
-            self.count_label.setText(tr("system_icon.count", n=shown))
-
-
-class _DropHighlightDelegate(QStyledItemDelegate):
-    """วาดไฮไลท์ทับช่องกริดเป้าหมายตอนลาก (ให้ตรงกับตำแหน่งที่จะวางจริง)."""
-
-    def __init__(self, grid: "ShortcutGrid") -> None:
-        super().__init__(grid)
-        self._grid = grid
-
-    def paint(self, painter, option, index) -> None:
-        if index.row() == self._grid.drop_highlight_row:
-            painter.save()
-            painter.setRenderHint(QPainter.Antialiasing, True)
-            color = option.palette.highlight().color()
-            fill = QColor(color)
-            fill.setAlpha(50)  # โปร่งแสงขึ้น นุ่มกว่า
-            pen = QPen(color)
-            pen.setWidth(2)
-            painter.setBrush(fill)
-            painter.setPen(pen)
-            cell = QRect(QPoint(0, 0), self._grid.gridSize())
-            cell.moveCenter(option.rect.center())
-            cell = cell.intersected(self._grid.viewport().rect())
-            painter.drawRoundedRect(cell.adjusted(2, 2, -2, -2), 10, 10)
-            painter.restore()
-        super().paint(painter, option, index)
-
-
-class ShortcutGrid(QListWidget):
-    """QListWidget โหมด grid: ลากสลับลำดับได้ + รับไฟล์ที่ลากมาจากข้างนอก.
-
-    Qt ไม่รองรับ drop indicator ของ InternalMove ใน IconMode อย่างถูกต้อง
-    (มี FIXME ในซอร์ส Qt) จึงคำนวณตำแหน่งวางเองจากพิกัดเมาส์ และวาดไฮไลท์ช่อง
-    เป้าหมายเองให้ตรงกับตำแหน่งที่จะวางจริง.
-    """
-
-    urlsDropped = Signal(list)
-    orderChanged = Signal()
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setViewMode(QListView.IconMode)
-        self.setIconSize(QSize(64, 64))
-        self.setGridSize(QSize(112, 108))
-        self.setResizeMode(QListView.Adjust)
-        self.setMovement(QListView.Snap)
-        self.setWordWrap(True)
-        self.setSpacing(2)
-        self.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.setDragDropMode(QAbstractItemView.InternalMove)
-        self.setDefaultDropAction(Qt.MoveAction)
-        self.setAcceptDrops(True)
-        self.setDropIndicatorShown(False)
-        self.setMouseTracking(True)
-        self.setItemDelegate(_DropHighlightDelegate(self))
-        self._drag_source_row: int | None = None
-        self._drop_row: int | None = None
-        self._hover_row: int = -1
-
-    @property
-    def drop_highlight_row(self) -> int:
-        """ช่องคู่สลับที่จะโชว์ไฮไลท์ (ไอเทมที่ลากจะลงช่องนี้พอดี)."""
-        if self._drop_row is None or self.count() == 0:
-            return -1
-        return min(self._drop_row, self.count() - 1)
-
-    def startDrag(self, supported_actions) -> None:
-        self._drag_source_row = self.currentRow()
-        self._set_drop_row(None)
-        QApplication.setOverrideCursor(Qt.SizeAllCursor)
-        try:
-            super().startDrag(supported_actions)
-        finally:
-            QApplication.restoreOverrideCursor()
-            self._drag_source_row = None
-            self._set_drop_row(None)
-
-    def dragEnterEvent(self, event) -> None:
-        if event.source() is self:
-            event.setDropAction(Qt.MoveAction)
-            event.accept()
-            return
-        event.acceptProposedAction()
-
-    def dragMoveEvent(self, event) -> None:
-        if event.source() is self:
-            partner = self._partner_row(event.position().toPoint())
-            self._set_drop_row(partner if partner is not None else self.count())
-            event.setDropAction(Qt.MoveAction)
-            event.accept()
-            return
-        # ลากไฟล์จากข้างนอก (ต่อท้ายเสมอ) → โชว์ช่องสุดท้าย
-        self._set_drop_row(self.count())
-        event.acceptProposedAction()
-
-    def dragLeaveEvent(self, event) -> None:
-        self._set_drop_row(None)
-        super().dragLeaveEvent(event)
-
-    def clear(self) -> None:
-        self._hover_row = -1
-        super().clear()
-
-    def mouseMoveEvent(self, event) -> None:
-        hovered = self.itemAt(event.position().toPoint())
-        row = self.row(hovered) if hovered is not None else -1
-        if row != self._hover_row:
-            self._hover_row = row
-            self.viewport().update()
-        super().mouseMoveEvent(event)
-
-    def leaveEvent(self, event) -> None:
-        if self._hover_row != -1:
-            self._hover_row = -1
-            self.viewport().update()
-        super().leaveEvent(event)
-
-    def _hover_cell(self, row: int) -> QRect:
-        """กรอบไฮไลท์ hover: ขนาดคงที่จาก gridSize (เท่ากันทุกช่อง).
-
-        ห้ามใช้ visualRect ตรง ๆ — ความกว้างมันยืดหดตามความยาวข้อความใต้ไอคอน.
-        ชิดขอบ viewport ให้เลื่อนกรอบหนี (ไม่ตัดทิ้ง) กรอบจะได้เต็มเท่ากันทุกแถว.
-        """
-        item_rect = self.visualRect(self.model().index(row, 0))
-        cell = QRect(QPoint(0, 0), self.gridSize())
-        cell.moveCenter(item_rect.center())
-        area = self.viewport().rect()
-        if cell.width() <= area.width():
-            if cell.left() < area.left():
-                cell.moveLeft(area.left())
-            elif cell.right() > area.right():
-                cell.moveRight(area.right())
-        else:
-            cell = cell.intersected(area)
-        if cell.height() <= area.height():
-            if cell.top() < area.top():
-                cell.moveTop(area.top())
-            elif cell.bottom() > area.bottom():
-                cell.moveBottom(area.bottom())
-        else:
-            cell = cell.intersected(area)
-        return cell
-
-    def paintEvent(self, event) -> None:
-        super().paintEvent(event)
-        if 0 <= self._hover_row < self.count():
-            painter = QPainter(self.viewport())
-            painter.setRenderHint(QPainter.Antialiasing, True)
-            painter.setPen(Qt.NoPen)
-            color = self.palette().color(QPalette.ColorRole.Highlight)
-            color.setAlpha(45)  # ไฮไลท์ช่องโปร่งแสง (accent เดียวกับหน้าหลัก)
-            painter.setBrush(color)
-            cell = self._hover_cell(self._hover_row)
-            painter.drawRoundedRect(cell.adjusted(2, 2, -2, -2), 10, 10)
-            painter.end()
-
-    def dropEvent(self, event) -> None:
-        partner = self._partner_row(event.position().toPoint())
-        self._set_drop_row(None)
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-            self.urlsDropped.emit(list(event.mimeData().urls()))
-            return
-        source = self._drag_source_row
-        if source is None:
-            source = self.currentRow()
-        if source is None or source < 0:
-            event.ignore()
-            return
-        # ปล่อยที่ว่าง = ย้ายไปท้ายสุด · ปล่อยบนไอเทม = สลับที่กัน
-        self._move_item(source, partner if partner is not None else self.count())
-        self.clearSelection()
-        event.acceptProposedAction()
-        self.orderChanged.emit()
-
-    def _set_drop_row(self, row: int | None) -> None:
-        if row != self._drop_row:
-            self._drop_row = row
-            self.viewport().update()
-
-    def _partner_row(self, pos: QPoint) -> int | None:
-        """แถวไอเทมใต้เมาส์ (คู่สลับ) — None ถ้าปล่อยที่ว่างท้ายสุด.
-
-        ช่องว่างระหว่างเซลล์ใช้เซลล์ใกล้สุด (ไม่ใช่ท้ายสุด) ไม่งั้น stroke
-        กระโดดไปช่องสุดท้ายทั้งที่เมาส์ยังลากไม่ถึง.
-        """
-        count = self.count()
-        if count == 0:
-            return None
-        index = self.indexAt(pos)
-        if index.isValid():
-            return index.row()
-        last = self.visualRect(self.model().index(count - 1, 0))
-        last_cell = QRect(QPoint(0, 0), self.gridSize())
-        last_cell.moveCenter(last.center())
-        if pos.y() > last_cell.bottom() or (
-            last_cell.top() <= pos.y() <= last_cell.bottom()
-            and pos.x() > last_cell.right()
-        ):
-            return None
-        best_row = 0
-        best_dist = None
-        for row in range(count):
-            center = self.visualRect(self.model().index(row, 0)).center()
-            dist = abs(center.x() - pos.x()) + abs(center.y() - pos.y())
-            if best_dist is None or dist < best_dist:
-                best_dist = dist
-                best_row = row
-        return best_row
-
-    def _move_item(self, source: int, target: int) -> None:
-        """สลับไอเทมช่อง source กับช่อง target (target == count คือย้ายไปท้ายสุด)."""
-        count = self.count()
-        if count == 0 or source < 0 or source >= count:
-            return
-        if target >= count:
-            if source == count - 1:
-                return
-            item = self.takeItem(source)
-            if item is None:
-                return
-            self.insertItem(self.count(), item)
-            self.setCurrentItem(item)
-            return
-        if target == source or target < 0:
-            return
-        moving = self.takeItem(source)
-        if moving is None:
-            return
-        # ถอดทั้งคู่ออกก่อน แล้วเสียบกลับคนละช่อง — ลำดับเสียบต้องตามทิศ
-        # (เสียบช่องเล็กก่อน ไม่งั้นดัชนีเลื่อนแล้วกลายเป็นหมุน 3 ตัว)
-        if source < target:
-            other = self.takeItem(target - 1)
-            self.insertItem(source, other)
-            self.insertItem(target, moving)
-        else:
-            other = self.takeItem(target)
-            self.insertItem(target, moving)
-            self.insertItem(source, other)
-        self.setCurrentItem(moving)
-
-DEFAULT_CUSTOM_COLOR = "#3a3a3a"
-_ICON_FILTER = "รูปภาพ (*.png *.svg *.jpg *.jpeg *.ico *.bmp *.xpm);;ทุกไฟล์ (*)"
-
-
-class ShortcutDialog(QDialog):
-    def __init__(self, parent: QWidget | None = None, shortcut: Shortcut | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle(tr("shortcut.title"))
-        self.resize(460, 260)
-        self._shortcut = shortcut or Shortcut(name="", target="")
-        self._icon_source: str | None = None
-
-        form = QFormLayout(self)
-
-        self.name_edit = QLineEdit(self._shortcut.name)
-        self.name_edit.setMaxLength(27)
-        form.addRow(tr("shortcut.display_name"), self.name_edit)
-
-        target_row = QHBoxLayout()
-        self.target_edit = QLineEdit(self._shortcut.target)
-        self.target_edit.textChanged.connect(self._on_target_changed)
-        target_browse = QPushButton(tr("shortcut.browse"))
-        target_browse.clicked.connect(self._browse_target)
-        target_row.addWidget(self.target_edit)
-        target_row.addWidget(target_browse)
-        target_widget = QWidget()
-        target_widget.setLayout(target_row)
-        form.addRow(tr("shortcut.target"), target_widget)
-
-        cwd_row = QHBoxLayout()
-        self.cwd_edit = QLineEdit(self._shortcut.working_dir or "")
-        cwd_browse = QPushButton(tr("shortcut.browse"))
-        cwd_browse.clicked.connect(self._browse_cwd)
-        cwd_row.addWidget(self.cwd_edit)
-        cwd_row.addWidget(cwd_browse)
-        cwd_widget = QWidget()
-        cwd_widget.setLayout(cwd_row)
-        form.addRow(tr("shortcut.working_dir"), cwd_widget)
-
-        self.args_edit = QLineEdit(self._shortcut.arguments)
-        form.addRow(tr("shortcut.arguments"), self.args_edit)
-
-        icon_row = QHBoxLayout()
-        self.icon_preview = QLabel()
-        self.icon_preview.setFixedSize(48, 48)
-        self.icon_preview.setAlignment(Qt.AlignCenter)
-        pick_icon = QPushButton(tr("shortcut.pick_file"))
-        pick_icon.clicked.connect(self._pick_icon)
-        auto_icon = QPushButton(tr("shortcut.auto_icon"))
-        auto_icon.setToolTip(core_icons.platform_note())
-        auto_icon.clicked.connect(self._auto_icon)
-        icon_row.addWidget(self.icon_preview)
-        icon_row.addWidget(pick_icon)
-        icon_row.addWidget(auto_icon)
-        icon_widget = QWidget()
-        icon_widget.setLayout(icon_row)
-        # ไม่มีคำว่า "ไอคอน" — โชว์รูปไอคอนแทน
-        form.addRow(icon_widget)
-        self._update_icon_preview()
-
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self
-        )
-        _style_dialog_buttons(buttons)
-        buttons.accepted.connect(self._on_accept)
-        buttons.rejected.connect(self.reject)
-        form.addRow(buttons)
-
-    def _browse_target(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, tr("shortcut.pick_target_dialog"))
-        if path:
-            self.target_edit.setText(path)
-            if not self.name_edit.text().strip():
-                self.name_edit.setText(Path(path).stem)
-
-    def _browse_cwd(self) -> None:
-        path = QFileDialog.getExistingDirectory(self, tr("shortcut.pick_cwd_dialog"))
-        if path:
-            self.cwd_edit.setText(path)
-
-    def _on_target_changed(self) -> None:
-        if self._icon_source is None:
-            self._update_icon_preview()
-
-    def _update_icon_preview(self) -> None:
-        """โชว์รูปไอคอนปัจจุบัน (48px) แทนข้อความ."""
-        pixmap: QPixmap | None = None
-        for candidate in (
-            Path(self._icon_source) if self._icon_source else None,
-            Path(self._shortcut.icon) if self._shortcut.icon else None,
-        ):
-            if candidate is not None and candidate.is_file():
-                loaded = QPixmap(str(candidate))
-                if not loaded.isNull():
-                    pixmap = loaded
-                    break
-        if pixmap is None:
-            auto = core_icons.resolve_icon_source(self.target_edit.text().strip() or None)
-            if auto is not None and auto.is_file():
-                loaded = QPixmap(str(auto))
-                if not loaded.isNull():
-                    pixmap = loaded
-        if pixmap is None:
-            pixmap = QIcon.fromTheme(_FALLBACK_GRID_ICON).pixmap(48, 48)
-        if pixmap is not None and not pixmap.isNull():
-            self.icon_preview.setPixmap(
-                pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            )
-        else:
-            self.icon_preview.clear()
-
-    def _pick_icon(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self, tr("shortcut.pick_icon_dialog"), "", _ICON_FILTER
-        )
-        if path:
-            self._icon_source = path
-            self._update_icon_preview()
-
-    def _auto_icon(self) -> None:
-        target = self.target_edit.text().strip()
-        source = core_icons.resolve_icon_source(target)
-        if source is None and target and Path(target).suffix.lower() in _PROVIDER_ICON_SUFFIXES:
-            # Windows: สกัดไอคอนที่ฝังในไฟล์ (.exe/.lnk/...) ผ่าน OS
-            cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
-            source = _cached_provider_png(Path(target), cache)
-        if source is None and target and os.access(target, os.X_OK):
-            source = core_icons.icon_from_executable(target)
-        if source is None:
-            show_information(
-                self,
-                tr("shortcut.no_icon_title"),
-                tr("shortcut.no_icon_body"),
-            )
-            return
-        self._icon_source = str(source)
-        self._update_icon_preview()
-
-    def _on_accept(self) -> None:
-        if not self.target_edit.text().strip():
-            show_warning(
-                self, tr("err.generic"), tr("shortcut.missing_target")
-            )
-            return
-        self.accept()
-
-    def result_shortcut(self) -> Shortcut:
-        return Shortcut(
-            name=self.name_edit.text().strip(),
-            target=self.target_edit.text().strip(),
-            working_dir=self.cwd_edit.text().strip() or None,
-            arguments=self.args_edit.text(),
-            icon=self._shortcut.icon,
-        )
-
-    def icon_source(self) -> str | None:
-        return self._icon_source
 
 
 class GroupEditor(QDialog):
@@ -881,7 +171,10 @@ class GroupEditor(QDialog):
         self.opacity_spin.setSuffix(" %")
         self.opacity_spin.setValue(self.opacity_slider.value())
         self._link_slider_spin(self.opacity_slider, self.opacity_spin)
-        form.addRow(tr("editor.opacity"), self._slider_spin_row(self.opacity_slider, self.opacity_spin))
+        form.addRow(
+            tr("editor.opacity"),
+            self._slider_spin_row(self.opacity_slider, self.opacity_spin),
+        )
 
         self.icon_size_slider = QSlider(Qt.Horizontal)
         self.icon_size_slider.setRange(MIN_ICON_SIZE, MAX_ICON_SIZE)
@@ -895,16 +188,13 @@ class GroupEditor(QDialog):
         self._link_slider_spin(self.icon_size_slider, self.icon_size_spin)
         self.icon_size_slider.valueChanged.connect(self._refresh_icon_ui)
         form.addRow(
-            tr("editor.icon_size"), self._slider_spin_row(self.icon_size_slider, self.icon_size_spin)
+            tr("editor.icon_size"),
+            self._slider_spin_row(self.icon_size_slider, self.icon_size_spin),
         )
 
         icon_row = QHBoxLayout()
         self.icon_preview = QLabel()
-        # พรีวิวไอคอนกลุ่มขนาดคงที่ — ไม่ขยายตามสไลเดอร์ขนาดไอคอน
-        # (สไลเดอร์คุมแค่ไอคอนในกริดด้านล่างเพื่อบอกขนาด Layout)
-        self.icon_preview.setFixedSize(
-            _GROUP_ICON_PREVIEW, _GROUP_ICON_PREVIEW
-        )
+        self.icon_preview.setFixedSize(_GROUP_ICON_PREVIEW, _GROUP_ICON_PREVIEW)
         self.icon_preview.setAlignment(Qt.AlignCenter)
         icon_button = QPushButton(tr("editor.pick_icon"))
         icon_button.setToolTip(tr("editor.pick_icon_tip"))
@@ -1005,7 +295,9 @@ class GroupEditor(QDialog):
     def _refresh_icon_ui(self) -> None:
         size = self.icon_size_slider.value()
         try:
-            pixmap = self._preview_icon().pixmap(_GROUP_ICON_PREVIEW, _GROUP_ICON_PREVIEW)
+            pixmap = self._preview_icon().pixmap(
+                _GROUP_ICON_PREVIEW, _GROUP_ICON_PREVIEW
+            )
         except Exception:
             pixmap = None
         if pixmap is not None and not pixmap.isNull():
@@ -1049,7 +341,9 @@ class GroupEditor(QDialog):
             self.color_hex.setText(self._custom_color)
 
     def _pick_color(self) -> None:
-        color = QColorDialog.getColor(QColor(self._custom_color), self, tr("editor.pick_color"))
+        color = QColorDialog.getColor(
+            QColor(self._custom_color), self, tr("editor.pick_color")
+        )
         if color.isValid():
             self._custom_color = color.name()
             self._update_color_ui(from_swatch=True)
@@ -1066,19 +360,17 @@ class GroupEditor(QDialog):
                 self._icon_source = path
                 self._refresh_icon_ui()
         except Exception as exc:
-            import sys as _sys
-            print(f"_pick_icon error: {exc}", file=_sys.stderr)
+            print(f"_pick_icon error: {exc}", file=sys.stderr)
 
     def _pick_system_icon(self) -> None:
         try:
             cache_dir = self.store.cache_dir() / _PROVIDER_ICON_CACHE_DIRNAME
-            dialog = _SystemIconDialog(self, cache_dir=cache_dir)
+            dialog = SystemIconDialog(self, cache_dir=cache_dir)
             if dialog.exec() == QDialog.Accepted and dialog.selected_path():
                 self._icon_source = dialog.selected_path()
                 self._refresh_icon_ui()
         except Exception as exc:
-            import sys as _sys
-            print(f"_pick_system_icon error: {exc}", file=_sys.stderr)
+            print(f"_pick_system_icon error: {exc}", file=sys.stderr)
 
     def _reload_items(self) -> None:
         self.items_list.clear()
@@ -1110,8 +402,10 @@ class GroupEditor(QDialog):
                 if not icon.isNull():
                     return icon
         if item.target and Path(item.target).exists():
-            # Windows: .url/.lnk ไม่ใช่ image → ใช้ shell API สกัดไอคอน
-            if sys.platform == "win32" and Path(item.target).suffix.lower() in _PROVIDER_ICON_SUFFIXES:
+            if (
+                sys.platform == "win32"
+                and Path(item.target).suffix.lower() in _PROVIDER_ICON_SUFFIXES
+            ):
                 cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
                 png = _cached_provider_png(Path(item.target), cache)
                 if png is not None:
@@ -1120,7 +414,9 @@ class GroupEditor(QDialog):
                         return icon
             provider = QFileIconProvider()
             return provider.icon(QFileInfo(item.target))
-        theme = core_icons.find_theme_icon(Path(item.target).stem) if item.target else None
+        theme = (
+            core_icons.find_theme_icon(Path(item.target).stem) if item.target else None
+        )
         if theme:
             icon = QIcon(str(theme))
             if not icon.isNull():
@@ -1140,12 +436,18 @@ class GroupEditor(QDialog):
             source = core_icons.resolve_icon_source(path)
             if source is None and os.access(path, os.X_OK):
                 source = core_icons.icon_from_executable(path)
-            # .ico → สกัดเป็น .png (Qt โหลด .ico ได้แค่ขนาดเดียว → ไอค่อนเล็ก)
-            if source is not None and Path(source).suffix.lower() == ".ico" and sys.platform == "win32":
+            if (
+                source is not None
+                and Path(source).suffix.lower() == ".ico"
+                and sys.platform == "win32"
+            ):
                 cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
                 source = _cached_provider_png(Path(source), cache) or source
-            # Windows: .lnk/.url ไม่ใช่ image → ใช้ shell API สกัดไอคอน
-            if source is None and sys.platform == "win32" and Path(path).suffix.lower() in _PROVIDER_ICON_SUFFIXES:
+            if (
+                source is None
+                and sys.platform == "win32"
+                and Path(path).suffix.lower() in _PROVIDER_ICON_SUFFIXES
+            ):
                 cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
                 source = _cached_provider_png(Path(path), cache)
             if source is not None:
@@ -1237,4 +539,32 @@ class GroupEditor(QDialog):
 
     def pending_icons(self) -> dict[int, str]:
         live = {id(item) for item in self._group.items}
-        return {key: value for key, value in self._pending_icons.items() if key in live}
+        return {
+            key: value for key, value in self._pending_icons.items() if key in live
+        }
+
+
+__all__ = [
+    "DEFAULT_CUSTOM_COLOR",
+    "GroupEditor",
+    "ShortcutDialog",
+    "ShortcutGrid",
+    "SystemIconDialog",
+    "_DropHighlightDelegate",
+    "_ICON_DISPLAY_LIMIT",
+    "_ICON_FILTER",
+    "_ICON_SCAN_LIMIT",
+    "_ICON_SUFFIXES",
+    "_PROVIDER_ICON_CACHE_DIRNAME",
+    "_PROVIDER_ICON_SUFFIXES",
+    "_SystemIconDialog",
+    "_apply_button_icon",
+    "_cached_provider_png",
+    "_is_noise_shortcut",
+    "_iter_windows_shortcuts",
+    "_normalize_hex",
+    "_provider_png",
+    "_style_dialog_buttons",
+    "_windows_shortcut_dirs",
+    "_windows_system_icon_dlls",
+]

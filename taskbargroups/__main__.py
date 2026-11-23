@@ -56,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     try:
-        from taskbargroups.gui.main_window import run
+        from taskbargroups.gui.app import run
     except ImportError as exc:
         print("ต้องติดตั้ง PySide6 ก่อน:", exc, file=sys.stderr)
         print("  python -m pip install PySide6", file=sys.stderr)

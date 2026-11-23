@@ -166,7 +166,7 @@ class WindowsProviderIconTests(unittest.TestCase):
     def test_scan_windows_populates_from_start_menu(self) -> None:
         from unittest import mock
 
-        from taskbargroups.gui import group_editor
+        from taskbargroups.gui import icon_picker
 
         menu = os.path.join(self._tmp.name, "menu")
         sub = os.path.join(menu, "sub")
@@ -179,9 +179,9 @@ class WindowsProviderIconTests(unittest.TestCase):
 
         dialog = self._display_dialog()
         with mock.patch.object(
-            group_editor, "_windows_shortcut_dirs", return_value=[Path(menu)]
+            icon_picker, "_windows_shortcut_dirs", return_value=[Path(menu)]
         ), mock.patch.object(
-            group_editor, "_cached_provider_png", return_value=Path(png)
+            icon_picker, "_cached_provider_png", return_value=Path(png)
         ):
             dialog._scan_windows()
         self.assertEqual(
@@ -192,7 +192,7 @@ class WindowsProviderIconTests(unittest.TestCase):
     def test_scan_windows_filters_noise_shortcuts(self) -> None:
         from unittest import mock
 
-        from taskbargroups.gui import group_editor
+        from taskbargroups.gui import icon_picker
 
         menu = os.path.join(self._tmp.name, "menu")
         os.makedirs(menu)
@@ -209,9 +209,9 @@ class WindowsProviderIconTests(unittest.TestCase):
 
         dialog = self._display_dialog()
         with mock.patch.object(
-            group_editor, "_windows_shortcut_dirs", return_value=[Path(menu)]
+            icon_picker, "_windows_shortcut_dirs", return_value=[Path(menu)]
         ), mock.patch.object(
-            group_editor, "_cached_provider_png", return_value=Path(png)
+            icon_picker, "_cached_provider_png", return_value=Path(png)
         ):
             dialog._scan_windows()
         self.assertEqual(sorted(dialog._names), ["Affinity", "Chrome"])
@@ -222,7 +222,7 @@ class WindowsProviderIconTests(unittest.TestCase):
 
         from PySide6.QtGui import QIcon, QPixmap
 
-        from taskbargroups.gui import group_editor
+        from taskbargroups.gui import icon_picker
 
         fake_dll = Path(self._tmp.name) / "imageres.dll"
         fake_dll.write_bytes(b"")
@@ -230,13 +230,13 @@ class WindowsProviderIconTests(unittest.TestCase):
         out_png.write_bytes(b"png")
 
         with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
-            group_editor, "_windows_system_icon_dlls", return_value=[fake_dll]
+            icon_picker, "_windows_system_icon_dlls", return_value=[fake_dll]
         ), mock.patch.object(
-            group_editor, "list_dll_icons", return_value=[(3, QIcon(QPixmap(16, 16)))]
+            icon_picker, "list_dll_icons", return_value=[(3, QIcon(QPixmap(16, 16)))]
         ), mock.patch.object(
-            group_editor, "extract_dll_icon_png", return_value=out_png
+            icon_picker, "extract_dll_icon_png", return_value=out_png
         ) as extract_fn:
-            dialog = group_editor._SystemIconDialog(cache_dir=Path(self._tmp.name))
+            dialog = icon_picker.SystemIconDialog(cache_dir=Path(self._tmp.name))
             self.assertIsNotNone(dialog.source_combo)
             self.assertEqual(dialog.source_combo.currentData(), "system")
             self.assertEqual(dialog.grid.count(), 1)
@@ -277,7 +277,7 @@ class WindowsProviderIconTests(unittest.TestCase):
     def test_cached_provider_png_reuses_fresh_cache(self) -> None:
         from unittest import mock
 
-        from taskbargroups.gui import group_editor
+        from taskbargroups.gui import icon_picker
 
         source = Path(self._tmp.name) / "app.exe"
         source.write_bytes(b"x")
@@ -290,30 +290,30 @@ class WindowsProviderIconTests(unittest.TestCase):
             dest.write_bytes(b"png")
             return dest
 
-        with mock.patch.object(group_editor, "_provider_png", side_effect=fake_png):
-            first = group_editor._cached_provider_png(source, base)
-            second = group_editor._cached_provider_png(source, base)
+        with mock.patch.object(icon_picker, "_provider_png", side_effect=fake_png):
+            first = icon_picker._cached_provider_png(source, base)
+            second = icon_picker._cached_provider_png(source, base)
         self.assertEqual(first, second)
         self.assertEqual(len(calls), 1)
 
     def test_auto_icon_uses_provider_for_exe(self) -> None:
         from unittest import mock
 
-        from taskbargroups.gui import group_editor
+        from taskbargroups.gui import shortcut_dialog
 
         target = Path(self._tmp.name) / "app.exe"
         target.write_bytes(b"x")
         png = Path(self._tmp.name) / "icon.png"
         png.write_bytes(b"png")
 
-        dialog = group_editor.ShortcutDialog()
+        dialog = shortcut_dialog.ShortcutDialog()
         dialog.target_edit.setText(str(target))
         with mock.patch.object(
-            group_editor.core_icons, "resolve_icon_source", return_value=None
+            shortcut_dialog.core_icons, "resolve_icon_source", return_value=None
         ), mock.patch.object(
-            group_editor, "_cached_provider_png", return_value=png
+            shortcut_dialog, "_cached_provider_png", return_value=png
         ) as provider, mock.patch.object(
-            group_editor, "show_information"
+            shortcut_dialog, "show_information"
         ) as info:
             dialog._auto_icon()
         provider.assert_called_once()

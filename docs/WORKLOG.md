@@ -22,3 +22,14 @@
 - **ลบไฟล์เก่าซ้ำซ้อน:** `core/taskbar.py`, `core/launchers.py`, `core/win32.py`
 - **เทสต์:** อัปเดต imports + เพิ่ม `test_backend_capabilities` → **367 เทสต์ ผ่าน 100% (`OK (skipped=10)`)**
 - **ต่อไป:** เฟส **R2** — แตกไฟล์ยักษ์ (`gui/group_editor.py`, `gui/main_window.py`) เป็นโมดูลย่อยหน้าที่เดียว
+
+## 2026-11-23 — R2: แตกไฟล์ยักษ์ GUI เป็นโมดูลย่อยหน้าที่เดียว `[เสร็จ]`
+- **แตก `gui/group_editor.py` (1,240 → 570 บรรทัด):**
+  - `gui/icon_picker.py` (327 บรรทัด) — `SystemIconDialog` (`_SystemIconDialog`) + Windows DLL/Start Menu helpers
+  - `gui/shortcut_grid.py` (237 บรรทัด) — `_DropHighlightDelegate` + `ShortcutGrid`
+  - `gui/shortcut_dialog.py` (212 บรรทัด) — `ShortcutDialog` + `_style_dialog_buttons`
+- **แตก `gui/main_window.py` (1,193 → 759 บรรทัด):**
+  - `gui/group_list.py` (353 บรรทัด) — `_RowDropHighlightDelegate` + `GroupListWidget` + `PINNED_ROLE` + `_style_menu`
+  - `gui/app.py` (93 บรรทัด) — `run()`, `_run_flyout()`, `_register_saved_win_hotkeys()` + อัปเดต `__main__.py` เรียก `gui.app.run`
+- **เทสต์:** อัปเดต mock target ใน `tests/test_group_editor.py` → **367 เทสต์ ผ่าน 100% (`OK (skipped=10)`)** + `compileall` ผ่าน
+- **ต่อไป:** เฟส **R3** — รวม Icon Pipeline เดียว + ตัวเลือกไอคอนระบบแยกหมวดบน Linux Mint + Steam `steam://rungameid/<appid>` icon resolver ข้าม OS

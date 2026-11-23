@@ -5,28 +5,22 @@ from __future__ import annotations
 import os
 import sys
 
-from PySide6.QtCore import QPointF, QRect, QRectF, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QCursor, QIcon, QPainter, QPainterPath, QPalette, QPen
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtWidgets import (
-    QAbstractItemView,
     QApplication,
     QDialog,
     QHBoxLayout,
-    QListWidget,
     QListWidgetItem,
-    QListView,
     QMainWindow,
     QMenu,
     QMessageBox,
     QPushButton,
-    QStyledItemDelegate,
     QVBoxLayout,
     QWidget,
 )
 
 from taskbargroups.core import icons as core_icons
-from taskbargroups.core.i18n import setup, tr
-from taskbargroups.core.paths import app_icon_path
+from taskbargroups.core.i18n import tr
 from taskbargroups.core.platform import (
     HotkeyError,
     PinError,
@@ -54,28 +48,23 @@ from taskbargroups.core.storage import ConfigStore, StorageError, safe_dir_name
 from taskbargroups.gui.win32_hotkey import registry as win_registry
 
 from .about_dialog import AboutDialog
-from .button_icons import themed_icon, tinted_icon_pixmap
+from .app import _register_saved_win_hotkeys, _run_flyout, run
+from .button_icons import themed_icon
 from .dialogs import show_information, show_question, show_warning
-from .flyout import FlyoutController, FlyoutWindow
+from .flyout import FlyoutWindow
 from .group_editor import GroupEditor
+from .group_list import (
+    PINNED_ROLE,
+    GroupListWidget,
+    _RowDropHighlightDelegate,
+    _style_menu,
+)
 from .hotkey_dialog import HotkeyDialog
 from .icons import cache_provider_icon, group_icon
 from .settings_dialog import SettingsDialog
-from .theme import app_text_color, apply_theme, resolve_theme
+from .theme import app_text_color
 
 ICON_SIZE = QSize(32, 32)
-
-PINNED_ROLE = Qt.UserRole + 1
-
-
-def _style_menu(menu: QMenu) -> QMenu:
-    """เมนูร่วม: ให้ padding แนวตั้งพอดี ไม่ติดขอบ (เฟือง + คลิกขวากลุ่ม)."""
-    menu.setStyleSheet(
-        "QMenu { padding: 6px 4px; }"
-        "QMenu::item { padding: 8px 22px; }"
-    )
-    return menu
-
 
 _NAV_BUTTON_ICONS = {
     "main.add_group": "plus-fill.svg",
@@ -90,352 +79,6 @@ def _apply_nav_icon(button: QPushButton, kind: str) -> None:
     icon = themed_icon(kind, app_text_color())
     if not icon.isNull():
         button.setIcon(icon)
-
-
-class _RowDropHighlightDelegate(QStyledItemDelegate):
-    """วาดไฮไลท์คู่สลับตอนลาก — วาดรองพื้นก่อนเนื้อหา (stroke จะได้ไม่ทับไอคอน)."""
-
-    def __init__(self, rows: "GroupListWidget") -> None:
-        super().__init__(rows)
-        self._rows = rows
-
-    def paint(self, painter, option, index) -> None:
-        if index.row() == self._rows.drop_highlight_row:
-            painter.save()
-            painter.setRenderHint(QPainter.Antialiasing, True)
-            color = option.palette.highlight().color()
-            fill = QColor(color)
-            fill.setAlpha(50)
-            pen = QPen(color)
-            pen.setWidth(2)
-            painter.setBrush(fill)
-            painter.setPen(pen)
-            item = self._rows.item(index.row())
-            if item is not None:
-                painter.drawRoundedRect(self._rows._drop_cell(item), 6, 6)
-            painter.restore()
-        super().paint(painter, option, index)
-
-
-class GroupListWidget(QListWidget):
-    """ลิสต์กลุ่ม: ลากสลับลำดับได้ + ปุ่มสถานะ (รูปตา เปิด/ปิด) ท้ายสุดของแต่ละแถว."""
-
-    pinClicked = Signal(str)
-    orderChanged = Signal()
-    contextMenuRequested = Signal(object)
-
-    PIN_WIDTH = 28
-    PIN_RIGHT_MARGIN = 8
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setDragDropMode(QAbstractItemView.InternalMove)
-        self.setDragEnabled(True)
-        self.setAcceptDrops(True)
-        # วาดไฮไลท์คู่สลับเอง (แบบเดียวกับกริด) — ไม่ใช้เส้นแทรกของ Qt
-        self.setDropIndicatorShown(False)
-        self.setDefaultDropAction(Qt.MoveAction)
-        self.setMovement(QListView.Snap)
-        self.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.setMouseTracking(True)
-        # ระยะห่างระหว่างแถว 2px — stroke คู่สลับจะได้มีที่หายใจ ไม่เบียดแถวข้าง ๆ
-        self.setSpacing(2)
-        # padding รอบเนื้อหาแถว — ไอคอนมีที่หายใจ เหลือร่อง ~1px จาก stroke
-        self.setStyleSheet("QListWidget::item { padding: 3px 2px 3px 0px; }")
-        self.setItemDelegate(_RowDropHighlightDelegate(self))
-        self._hover: tuple[QListWidgetItem | None, bool] = (None, False)
-        self._press_pin: QListWidgetItem | None = None
-        self._row_hover: int = -1
-        self._drag_source_row: int | None = None
-        self._drop_row: int | None = None
-
-    def clear(self) -> None:
-        self._hover = (None, False)
-        self._press_pin = None
-        self._row_hover = -1
-        self._drop_row = None
-        super().clear()
-
-    @property
-    def drop_highlight_row(self) -> int:
-        """แถวคู่สลับที่จะโชว์ไฮไลท์ (ไอเทมที่ลากจะลงแถวนี้พอดี)."""
-        if self._drop_row is None or self.count() == 0:
-            return -1
-        return min(self._drop_row, self.count() - 1)
-
-    def dropEvent(self, event) -> None:
-        partner = self._partner_row(event.position().toPoint())
-        self._set_drop_row(None)
-        if event.source() is not None and event.source() is not self:
-            event.ignore()
-            return
-        source = self._drag_source_row
-        if source is None:
-            source = self.currentRow()
-        if source is None or source < 0:
-            event.ignore()
-            return
-        # ปล่อยที่ว่าง = ย้ายไปท้ายสุด · ปล่อยบนแถว = สลับที่กัน (แบบเดียวกับกริด)
-        self._swap_rows(source, partner if partner is not None else self.count())
-        self.clearSelection()
-        event.acceptProposedAction()
-        self.orderChanged.emit()
-
-    def _set_drop_row(self, row: int | None) -> None:
-        if row != self._drop_row:
-            self._drop_row = row
-            self.viewport().update()
-
-    def _drop_cell(self, item: QListWidgetItem) -> QRect:
-        """กรอบ stroke คู่สลับ: เกาะขอบแถว (วาดใต้เนื้อหาผ่าน delegate)."""
-        return self.visualItemRect(item).adjusted(1, 1, -1, -1)
-
-    def _partner_row(self, pos) -> int | None:
-        """แถวใต้เมาส์ (คู่สลับ) — None ถ้าปล่อยที่ว่างท้ายสุด."""
-        item = self.itemAt(pos)
-        return self.row(item) if item is not None else None
-
-    def _swap_rows(self, source: int, target: int) -> None:
-        """สลับแถว source กับ target (target == count คือย้ายไปท้ายสุด)."""
-        count = self.count()
-        if count == 0 or source < 0 or source >= count:
-            return
-        if target >= count:
-            if source == count - 1:
-                return
-            item = self.takeItem(source)
-            if item is None:
-                return
-            self.insertItem(self.count(), item)
-            self.setCurrentItem(item)
-            return
-        if target == source or target < 0:
-            return
-        moving = self.takeItem(source)
-        if moving is None:
-            return
-        # ถอดทั้งคู่ออกก่อน แล้วเสียบกลับคนละแถว — เสียบแถวเล็กก่อน (ทิศเดียวกับกริด)
-        if source < target:
-            other = self.takeItem(target - 1)
-            self.insertItem(source, other)
-            self.insertItem(target, moving)
-        else:
-            other = self.takeItem(target)
-            self.insertItem(target, moving)
-            self.insertItem(source, other)
-        self.setCurrentItem(moving)
-
-    def startDrag(self, supported_actions) -> None:
-        self._drag_source_row = self.currentRow()
-        self._set_drop_row(None)
-        # รีเซ็ต hover ค้าง (วาดอย่างเดียว ไม่แตะ selection — Qt สร้าง drag จาก
-        # selection ถ้าเคลียร์ก่อนลากจะไม่เริ่ม)
-        self._hover = (None, False)
-        self._row_hover = -1
-        QApplication.setOverrideCursor(Qt.SizeAllCursor)
-        try:
-            super().startDrag(supported_actions)
-        finally:
-            QApplication.restoreOverrideCursor()
-            self._drag_source_row = None
-            self._set_drop_row(None)
-
-    def dragEnterEvent(self, event) -> None:
-        if event.source() is self:
-            event.setDropAction(Qt.MoveAction)
-            event.accept()
-            return
-        super().dragEnterEvent(event)
-
-    def dragMoveEvent(self, event) -> None:
-        if event.source() is self:
-            partner = self._partner_row(event.position().toPoint())
-            self._set_drop_row(partner if partner is not None else self.count())
-            event.setDropAction(Qt.MoveAction)
-            event.accept()
-            return
-        super().dragMoveEvent(event)
-
-    def dragLeaveEvent(self, event) -> None:
-        self._set_drop_row(None)
-        super().dragLeaveEvent(event)
-
-    def pin_rect(self, item: QListWidgetItem) -> QRect:
-        rect = self.visualItemRect(item)
-        left = rect.right() - self.PIN_WIDTH - self.PIN_RIGHT_MARGIN
-        return QRect(left, rect.top(), self.PIN_WIDTH, rect.height())
-
-    def _pin_under(self, pos) -> QListWidgetItem | None:
-        item = self.itemAt(pos)
-        if item is not None and self.pin_rect(item).contains(pos):
-            return item
-        return None
-
-    def mousePressEvent(self, event) -> None:
-        if event.button() == Qt.LeftButton:
-            pos = event.position().toPoint()
-            item = self._pin_under(pos)
-            if item is not None:
-                self._press_pin = item
-                event.accept()
-                return
-        self._press_pin = None
-        super().mousePressEvent(event)
-
-    def mouseReleaseEvent(self, event) -> None:
-        if self._press_pin is not None and event.button() == Qt.LeftButton:
-            pos = event.position().toPoint()
-            item = self._pin_under(pos)
-            pressed, self._press_pin = self._press_pin, None
-            if item is pressed:
-                self.pinClicked.emit(item.data(Qt.UserRole))
-                return
-        self._press_pin = None
-        super().mouseReleaseEvent(event)
-
-    def mouseMoveEvent(self, event) -> None:
-        item = self._pin_under(event.position().toPoint())
-        state = (item, item is not None)
-        if state != self._hover:
-            self._hover = state
-            self.viewport().update()
-        hovered = self.itemAt(event.position().toPoint())
-        row = self.row(hovered) if hovered is not None else -1
-        if row != self._row_hover:
-            self._row_hover = row
-            self.viewport().update()
-        super().mouseMoveEvent(event)
-
-    def leaveEvent(self, event) -> None:
-        if self._hover != (None, False):
-            self._hover = (None, False)
-            self.viewport().update()
-        if self._row_hover != -1:
-            self._row_hover = -1
-            self.viewport().update()
-        super().leaveEvent(event)
-
-    def contextMenuEvent(self, event) -> None:
-        item = self.itemAt(event.pos())
-        if item is None:
-            return
-        self.setCurrentItem(item)
-        self.contextMenuRequested.emit(event.globalPos())
-        event.accept()
-
-    def paintEvent(self, event) -> None:
-        super().paintEvent(event)
-        painter = QPainter(self.viewport())
-        painter.setRenderHint(QPainter.Antialiasing, True)
-        if 0 <= self._row_hover < self.count():
-            row_item = self.item(self._row_hover)
-            if row_item is not None:
-                painter.save()
-                painter.setPen(Qt.NoPen)
-                color = self.palette().color(QPalette.ColorRole.Highlight)
-                color.setAlpha(45)  # ไฮไลท์แถวโปร่งแสง (accent)
-                painter.setBrush(color)
-                rect = self.visualItemRect(row_item)
-                painter.drawRoundedRect(rect.adjusted(1, 3, -1, -3), 6, 6)
-                painter.restore()
-        hovered_item = self._hover[0]
-        for row in range(self.count()):
-            item = self.item(row)
-            pinned = bool(item.data(PINNED_ROLE))
-            self._draw_pin(painter, self.pin_rect(item), item is hovered_item, pinned)
-        painter.end()
-
-    def _draw_pin(self, painter: QPainter, rect: QRect, hovered: bool, pinned: bool) -> None:
-        if hovered:
-            painter.save()
-            painter.setPen(Qt.NoPen)
-            color = self.palette().color(QPalette.ColorRole.Highlight)
-            color.setAlpha(45)  # โปร่งแสงขึ้น ดูนุ่มกว่า
-            painter.setBrush(color)
-            painter.drawRoundedRect(rect.adjusted(1, 5, -1, -5), 6, 6)
-            painter.restore()
-        self._paint_pin_shape(painter, rect, pinned)
-
-    def _status_color(self, pinned: bool) -> QColor:
-        """สีไอค่อนสถานะ (ตา) แบบธีม-aware: พื้นสว่าง→เทาเข้ม · พื้นมืด→ขาว
-        (ไม่ใช้ Highlight เพื่อไม่ให้กลืนกับแถวที่ถูกเลือก · อ่านตอน paint ซึ่ง palette สดเสมอ).
-
-        ฝั่ง Windows ใช้โฟลเดอร์แทนตา → ต้องสื่อสถานะด้วยสีให้เห็นชัดตอนเปิดแอป
-        (ไม่งั้นผู้ใช้ต้องเอาเมาส์ไป hover ก่อนถึงจะรู้ว่าอันไหนลากแล้ว)
-        · ปักแล้ว = สีส้มอุ่นเหมือนโฟลเดอร์ทั่วไป · ยังไม่ปัก = เทาจาง
-        """
-        base = self.palette().color(QPalette.ColorRole.Base)
-        dark = base.lightness() < 128
-        if sys.platform == "win32":
-            # ส้มอุ่น (เหมือนโฟลเดอร์ทั่วไป) = ปักแล้ว · เทาจาง = ยังไม่ปัก
-            return QColor(240, 168, 58) if pinned else QColor(128, 128, 128, 120)
-        color = QColor(255, 255, 255) if dark else QColor(82, 82, 92)
-        if not pinned:
-            color.setAlpha(150)
-        return color
-
-    def _paint_pin_shape(self, painter: QPainter, rect: QRect, pinned: bool) -> None:
-        """วาดไอคอนสถานะของปุ่ม — ต่างกันตาม OS.
-
-        - Linux: ตาเปิด (ปักแล้ว) / ตามิด (ยังไม่ปัก) — กดได้จริงเพราะปัก/ถอนได้
-        - Windows: โฟลเดอร์ — ปุ่มนี้ไม่ได้ปักแต่เปิดโฟลเดอร์ให้ผู้ใช้ลากวาง
-        """
-        color = self._status_color(pinned)
-        if sys.platform == "win32":
-            # โฟลเดอร์เสมอ (ไม่มีสถานะสองทาง) — สีจาง = ยังไม่ได้ลากวาง
-            name = "folder-fill.svg"
-        else:
-            name = "eye-fill.svg" if pinned else "eye-slash-fill.svg"
-        side = max(16, min(rect.width(), rect.height()) - 6)
-        pixmap = tinted_icon_pixmap(name, side, color)
-        if pixmap is not None and not pixmap.isNull():
-            target = QRect(0, 0, side, side)
-            target.moveCenter(rect.center())
-            painter.drawPixmap(target, pixmap)
-            return
-        if sys.platform == "win32":
-            painter.save()
-            painter.setRenderHint(QPainter.Antialiasing, True)
-            size = min(rect.width(), rect.height()) * 0.8
-            folder = QRectF(0, 0, size, size * 0.78)
-            folder.moveCenter(rect.center())
-            path = QPainterPath()
-            path.addRoundedRect(folder, 3, 3)
-            painter.setPen(Qt.NoPen)
-            painter.setBrush(color)
-            painter.drawPath(path)
-            painter.restore()
-            return
-        # fallback: วาดเส้นเอง (กรณีหา asset ไม่เจอ เช่น ใน bundle)
-        painter.save()
-        painter.setRenderHint(QPainter.Antialiasing, True)
-        size = min(rect.width(), rect.height())
-        center = rect.center()
-        cx, cy = center.x(), center.y()
-        eye_w = size * 0.68
-        eye_h = eye_w * 0.6
-        left = cx - eye_w / 2
-        right = cx + eye_w / 2
-        pen = QPen(color)
-        pen.setWidthF(max(1.4, size * 0.08))
-        pen.setCapStyle(Qt.RoundCap)
-        painter.setPen(pen)
-        painter.setBrush(Qt.NoBrush)
-        path = QPainterPath()
-        if pinned:
-            path.moveTo(left, cy)
-            path.quadTo(cx, cy - eye_h, right, cy)
-            path.quadTo(cx, cy + eye_h, left, cy)
-            painter.drawPath(path)
-            painter.setPen(Qt.NoPen)
-            painter.setBrush(color)
-            pupil = size * 0.15
-            painter.drawEllipse(QPointF(cx, cy), pupil, pupil)
-        else:
-            path.moveTo(left, cy - eye_h * 0.35)
-            path.quadTo(cx, cy + eye_h * 0.95, right, cy - eye_h * 0.35)
-            painter.drawPath(path)
-        painter.restore()
 
 
 def _pin_tooltip(group, pinned: bool, dir_name: str = "", stale: bool | None = None) -> str:
@@ -1102,82 +745,15 @@ class MainWindow(QMainWindow):
         self.refresh()
 
 
-def run(
-    argv: list[str] | None = None,
-    open_group: str | None = None,
-    center: bool = False,
-) -> int:
-    backend = get_backend()
-    if open_group:
-        backend.set_group_process_id(open_group)
-    else:
-        backend.set_app_process_id()
-    app = QApplication.instance() or QApplication(sys.argv if argv is None else argv)
-    app.setApplicationName("TaskbarNoob")
-    app.setApplicationDisplayName("TaskbarNoob")
-    app.setDesktopFileName("taskbargroups")
-    icon_path = app_icon_path()
-    if icon_path is not None:
-        app.setWindowIcon(QIcon(str(icon_path)))
-    settings = Settings()
-    setup(settings.get_language())
-    apply_theme(app, resolve_theme(settings.get_theme(), app))
-    if open_group:
-        return _run_flyout(app, open_group, center)
-    window = MainWindow()
-    if backend.supports_win_hotkeys:
-        _register_saved_win_hotkeys(app, window, settings)
-    window.show()
-    return app.exec()
-
-
-def _register_saved_win_hotkeys(app, window, settings) -> None:
-    """ลงทะเบียน hotkey ที่จำไว้ใน settings ใหม่ทุกครั้งที่เปิดแอป (Windows)."""
-    from .win32_hotkey import WinHotkeyFilter
-    
-    # สำคัญ: ใช้ global registry object เดียวกัน — อย่าสร้างใหม่!
-    # HotkeyRegistry.register_slot() จะ unregister/ register เองอยู่แล้ว
-    from taskbargroups.gui.win32_hotkey import registry
-    
-    try:
-        if getattr(sys, "frozen", False):
-            exe_args = [sys.executable]
-        else:
-            exe_args = [sys.executable, "-m", "taskbargroups"]
-        hwnd = int(window.winId())
-    except (TypeError, ValueError):
-        return
-    hotkey_filter = WinHotkeyFilter(registry, exe_args, window)
-    app.installNativeEventFilter(hotkey_filter)
-    # เก็บ reference ไว้ ไม่งั้น Qt/Python GC จะทำลาย filter กลางคัน → hotkey ไม่ทำงาน
-    app._win_hotkey_filter = hotkey_filter
-    store = ConfigStore()
-    try:
-        dir_names = store.list_groups()
-    except Exception:
-        return
-    saved = settings.get_hotkeys()
-    for dir_name in dir_names:
-        slot = hotkey_slot(dir_name)
-        binding = saved.get(slot)
-        if not binding:
-            continue
-        # ไม่ต้อง unregister ที่นี่ — WinHotkeyFilter/register_slot จัดการเองอยู่แล้ว!
-        # ถ้า ID ชนกัน (เปิดแอปหลายครั้งพร้อมกัน) Windows จะปฏิเสธ register เท่านั้น
-        try:
-            registry.register_slot(slot, dir_name, binding, hwnd)
-        except OSError as e:
-            continue  # ID ชน หรือ hotkey เดิมยังอยู่ — ให้ข้ามไป
-
-
-def _run_flyout(app: QApplication, dir_name: str, center: bool = False) -> int:
-    # จับตำแหน่งเมาส์ให้เร็วที่สุด (ก่อน handoff) แล้วส่งไปให้เจ้าของ flyout ตรึงไว้
-    point = QCursor.pos()
-    store = ConfigStore()
-    controller = FlyoutController(app, store)
-    if controller.try_delegate(dir_name, point, center):
-        return 0
-    controller.start_primary(dir_name, point, center)
-    code = app.exec()
-    controller.shutdown()
-    return code
+__all__ = [
+    "GroupListWidget",
+    "ICON_SIZE",
+    "MainWindow",
+    "PINNED_ROLE",
+    "_RowDropHighlightDelegate",
+    "_pin_tooltip",
+    "_register_saved_win_hotkeys",
+    "_run_flyout",
+    "_style_menu",
+    "run",
+]
