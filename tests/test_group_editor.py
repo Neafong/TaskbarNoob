@@ -277,7 +277,7 @@ class WindowsProviderIconTests(unittest.TestCase):
     def test_cached_provider_png_reuses_fresh_cache(self) -> None:
         from unittest import mock
 
-        from taskbargroups.gui import icon_picker
+        from taskbargroups.gui import icons as gui_icons
 
         source = Path(self._tmp.name) / "app.exe"
         source.write_bytes(b"x")
@@ -290,11 +290,48 @@ class WindowsProviderIconTests(unittest.TestCase):
             dest.write_bytes(b"png")
             return dest
 
-        with mock.patch.object(icon_picker, "_provider_png", side_effect=fake_png):
-            first = icon_picker._cached_provider_png(source, base)
-            second = icon_picker._cached_provider_png(source, base)
+        with mock.patch.object(gui_icons, "_provider_png", side_effect=fake_png):
+            first = gui_icons.cached_provider_png(source, base)
+            second = gui_icons.cached_provider_png(source, base)
         self.assertEqual(first, second)
         self.assertEqual(len(calls), 1)
+
+    def test_linux_icon_picker_switches_categories(self) -> None:
+        import sys
+        from unittest import mock
+
+        from taskbargroups.gui import icon_picker
+
+        if sys.platform == "win32":
+            self.skipTest("Linux categorized icon picker test")
+        root = Path(self._tmp.name) / "icons"
+        theme = root / "TestTheme"
+        (theme / "48x48" / "categories").mkdir(parents=True)
+        (theme / "48x48" / "apps").mkdir(parents=True)
+        (theme / "48x48" / "categories" / "cat-games.png").write_bytes(b"png")
+        (theme / "48x48" / "apps" / "app-steam.png").write_bytes(b"png")
+
+        with mock.patch.object(
+            icon_picker.SystemIconDialog, "_linux_search_dirs", return_value=[root]
+        ):
+            dlg = icon_picker.SystemIconDialog()
+            self.assertEqual(dlg.source_combo.count(), 3)
+            self.assertEqual(dlg.source_combo.currentData(), "categories")
+            self.assertEqual(list(dlg._names.keys()), ["cat-games"])
+            dlg.source_combo.setCurrentIndex(1)
+            self.assertEqual(dlg.source_combo.currentData(), "apps")
+            self.assertEqual(list(dlg._names.keys()), ["app-steam"])
+            dlg.source_combo.setCurrentIndex(2)
+            self.assertEqual(dlg.source_combo.currentData(), "all")
+            self.assertEqual(sorted(dlg._names.keys()), ["app-steam", "cat-games"])
+            dlg.close()
+
+    def test_gui_icons_has_no_circular_import_to_group_editor(self) -> None:
+        from taskbargroups.gui import icons as gui_icons
+
+        src = Path(gui_icons.__file__).read_text(encoding="utf-8")
+        self.assertNotIn("group_editor", src)
+        self.assertNotIn("icon_picker", src)
 
     def test_auto_icon_uses_provider_for_exe(self) -> None:
         from unittest import mock

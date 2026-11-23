@@ -1,8 +1,7 @@
-"""หน้าต่างเลือกไอคอนจากระบบ (Linux Freedesktop themes / Windows DLL + Start Menu)."""
+"""หน้าต่างเลือกไอคอนจากระบบ (Linux Freedesktop themes แยกหมวด / Windows DLL + Start Menu)."""
 
 from __future__ import annotations
 
-import hashlib
 import os
 import sys
 import tempfile
@@ -26,18 +25,23 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from taskbargroups.core import icons as core_icons
 from taskbargroups.core.i18n import tr
 
-from .icons import extract_dll_icon_png, extract_os_icon_png, list_dll_icons
+from .icons import (
+    _PROVIDER_ICON_CACHE_DIRNAME,
+    _cached_provider_png,
+    _provider_png,
+    extract_dll_icon_png,
+    list_dll_icons,
+)
 
-_ICON_SUFFIXES = {".png", ".svg", ".xpm", ".jpg", ".jpeg"}
 _ICON_SCAN_LIMIT = 4000
 _ICON_DISPLAY_LIMIT = 1000
 
 _PROVIDER_ICON_SUFFIXES = frozenset(
     {".exe", ".lnk", ".bat", ".cmd", ".msc", ".cpl", ".scr", ".url"}
 )
-_PROVIDER_ICON_CACHE_DIRNAME = "provider-icons-v3"
 
 _NOISE_SHORTCUT_WORDS = (
     "uninstall",
@@ -49,28 +53,6 @@ _NOISE_SHORTCUT_WORDS = (
     "ถอนการติดตั้ง",
     "คู่มือ",
 )
-
-
-def _provider_png(source: Path, dest: Path, size: int = 256) -> Path | None:
-    """สกัดไอคอนที่ฝังในไฟล์ของ OS (.exe/.lnk/.dll) ออกมาเป็น PNG."""
-    return extract_os_icon_png(source, dest, size)
-
-
-def _cached_provider_png(source: Path, base: Path, size: int = 256) -> Path | None:
-    """สกัดไอคอนจากไฟล์ OS แล้วแคชเป็น PNG (ข้ามถ้าแคชยังใหม่กว่าไฟล์ต้นทาง)."""
-    try:
-        mtime = source.stat().st_mtime
-    except OSError:
-        return None
-    digest = hashlib.sha1(f"{source}|{int(mtime)}".encode("utf-8")).hexdigest()[:16]
-    dest = base / f"{digest}.png"
-    if dest.is_file():
-        try:
-            if dest.stat().st_mtime >= mtime:
-                return dest
-        except OSError:
-            pass
-    return _provider_png(source, dest, size)
 
 
 def _windows_shortcut_dirs() -> list[Path]:
@@ -138,18 +120,23 @@ class SystemIconDialog(QDialog):
         self.resize(560, 480)
         self._path: str | None = None
         self._names: dict[str, str] = {}
+        self._linux_cache: dict[str, dict[str, str]] = {}
         self._dll_entries: list[tuple[str, Path, int, QIcon]] = []
         self._apps_scanned = False
         self._cache_dir = cache_dir
 
         layout = QVBoxLayout(self)
-        self.source_combo: QComboBox | None = None
+        self.source_combo = QComboBox()
         if sys.platform == "win32":
-            self.source_combo = QComboBox()
             self.source_combo.addItem(tr("system_icon.source_system"), "system")
             self.source_combo.addItem(tr("system_icon.source_apps"), "apps")
-            self.source_combo.currentIndexChanged.connect(self._on_source_changed)
-            layout.addWidget(self.source_combo)
+        else:
+            self.source_combo.addItem(tr("system_icon.linux_categories"), "categories")
+            self.source_combo.addItem(tr("system_icon.linux_apps"), "apps")
+            self.source_combo.addItem(tr("system_icon.linux_all"), "all")
+        self.source_combo.currentIndexChanged.connect(self._on_source_changed)
+        layout.addWidget(self.source_combo)
+
         self.search = QLineEdit()
         self.search.setPlaceholderText(tr("system_icon.search_placeholder"))
         self.search.textChanged.connect(self._apply_filter)
@@ -202,19 +189,19 @@ class SystemIconDialog(QDialog):
         super().done(result)
 
     def _on_source_changed(self) -> None:
-        if (
-            self.source_combo is not None
-            and self.source_combo.currentData() == "apps"
-            and not self._apps_scanned
-        ):
-            self._scan_windows()
+        mode = self.source_combo.currentData()
+        if sys.platform == "win32":
+            if mode == "apps" and not self._apps_scanned:
+                self._scan_windows()
+        else:
+            self._scan_linux(str(mode or "categories"))
         self._apply_filter(self.search.text())
 
     def _scan(self) -> None:
         if sys.platform == "win32":
             self._scan_windows_dlls()
         else:
-            self._scan_linux()
+            self._scan_linux(str(self.source_combo.currentData() or "categories"))
 
     def _scan_windows_dlls(self) -> None:
         """Windows: ดึงไอคอนระบบจาก imageres.dll + shell32.dll."""
@@ -238,59 +225,32 @@ class SystemIconDialog(QDialog):
             if png is not None:
                 self._names[name] = str(png)
 
-    def _scan_linux(self) -> None:
-        bases = dict.fromkeys(
-            [Path(p) for p in QIcon.themeSearchPaths()] + [Path("/usr/share/icons")]
+    def _linux_search_dirs(self) -> list[Path]:
+        return list(
+            dict.fromkeys(
+                [Path(p) for p in QIcon.themeSearchPaths()]
+                + core_icons.theme_search_dirs()
+            )
         )
-        for base in bases:
-            if not base.is_dir() or len(self._names) >= _ICON_SCAN_LIMIT:
-                continue
-            for theme in base.iterdir():
-                if not theme.is_dir():
-                    continue
-                for size_dir in theme.iterdir():
-                    if not size_dir.is_dir():
-                        continue
-                    try:
-                        size = int(size_dir.name.split("x")[0])
-                    except (ValueError, IndexError):
-                        size = 0
-                    for category in size_dir.iterdir():
-                        if not category.is_dir():
-                            continue
-                        for icon_file in category.iterdir():
-                            if icon_file.suffix.lower() not in _ICON_SUFFIXES:
-                                continue
-                            self._best_icon(icon_file, size)
-                            if len(self._names) >= _ICON_SCAN_LIMIT:
-                                return
 
-    def _best_icon(self, icon_file: Path, size: int) -> None:
-        name = icon_file.stem
-        if not name:
-            return
-        current = self._names.get(name)
-        if current is None or self._priority(icon_file, size) > self._priority(
-            Path(current), 0
-        ):
-            self._names[name] = str(icon_file)
-
-    @staticmethod
-    def _priority(icon_file: Path, size: int) -> int:
-        score = 0
-        if icon_file.suffix.lower() == ".svg":
-            score += 100000
-        score += size
-        if icon_file.parent.name.startswith("apps"):
-            score += 50
-        return score
+    def _scan_linux(self, category: str = "categories") -> None:
+        cached = self._linux_cache.get(category)
+        if cached is None:
+            scanned = core_icons.scan_theme_icons(
+                search_dirs=self._linux_search_dirs(),
+                category=category,
+                limit=_ICON_SCAN_LIMIT,
+            )
+            cached = {name: str(path) for name, path in scanned.items()}
+            self._linux_cache[category] = cached
+        self._names = cached
 
     def _apply_filter(self, text: str) -> None:
         needle = text.strip().lower()
         self.grid.clear()
         shown = 0
         capped = False
-        if self.source_combo is not None and self.source_combo.currentData() == "system":
+        if sys.platform == "win32" and self.source_combo.currentData() == "system":
             for label, dll_path, idx, icon in self._dll_entries:
                 if needle and needle not in label.lower():
                     continue
@@ -325,3 +285,16 @@ class SystemIconDialog(QDialog):
 
 
 _SystemIconDialog = SystemIconDialog
+
+__all__ = [
+    "SystemIconDialog",
+    "_PROVIDER_ICON_CACHE_DIRNAME",
+    "_PROVIDER_ICON_SUFFIXES",
+    "_SystemIconDialog",
+    "_cached_provider_png",
+    "_is_noise_shortcut",
+    "_iter_windows_shortcuts",
+    "_provider_png",
+    "_windows_shortcut_dirs",
+    "_windows_system_icon_dlls",
+]

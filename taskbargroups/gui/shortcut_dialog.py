@@ -26,11 +26,8 @@ from taskbargroups.core.models import Shortcut
 
 from .button_icons import themed_icon
 from .dialogs import show_information, show_warning
-from .icon_picker import (
-    _PROVIDER_ICON_CACHE_DIRNAME,
-    _PROVIDER_ICON_SUFFIXES,
-    _cached_provider_png,
-)
+from .icon_picker import _PROVIDER_ICON_SUFFIXES
+from .icons import _PROVIDER_ICON_CACHE_DIRNAME, _cached_provider_png
 from .theme import app_text_color
 
 _FALLBACK_GRID_ICON = "application-x-executable"

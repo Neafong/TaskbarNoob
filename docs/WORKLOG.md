@@ -33,3 +33,15 @@
   - `gui/app.py` (93 บรรทัด) — `run()`, `_run_flyout()`, `_register_saved_win_hotkeys()` + อัปเดต `__main__.py` เรียก `gui.app.run`
 - **เทสต์:** อัปเดต mock target ใน `tests/test_group_editor.py` → **367 เทสต์ ผ่าน 100% (`OK (skipped=10)`)** + `compileall` ผ่าน
 - **ต่อไป:** เฟส **R3** — รวม Icon Pipeline เดียว + ตัวเลือกไอคอนระบบแยกหมวดบน Linux Mint + Steam `steam://rungameid/<appid>` icon resolver ข้าม OS
+
+## 2026-11-23 — R3: รวม Icon Pipeline เดียว + แยกหมวด Mint + Steam Icon Resolver `[เสร็จ]`
+- **แตก `core/icons.py` เป็นแพ็กเกจ `core/icons/`:**
+  - `cache.py` — `ICONS_DIR_NAME`, `PROVIDER_ICON_CACHE_DIRNAME` (แหล่งเดียวจบ), `IMAGE_SUFFIXES`, `IconError`, `cache_icon`
+  - `theme.py` — `theme_search_dirs`, `desktop_search_dirs`, `find_theme_icon` + `scan_theme_icons(category="categories"|"apps"|"all")`
+  - `appimage.py` — `is_appimage`, `icon_from_appimage`, `_extract_appimage_icon`
+  - `steam.py` — **Steam `steam://rungameid/<appid>` icon resolver ข้าม OS** (รองรับ `.desktop` Linux, `.url` Windows, raw `steam://`, โครงสร้าง `librarycache` ทั้งเก่า `<appid>_icon.jpg` และใหม่ `<appid>/`, รวมถึง Flatpak Steam และ Windows Registry `SteamPath`)
+  - `__init__.py` — facade รวม `resolve_icon_source`, `icon_from_desktop_file`, `icon_from_executable`, `cache_shortcut_icon`
+- **เลิก circular import ใน `gui/icons.py`:** ย้าย `cached_provider_png` (`_cached_provider_png`, `_provider_png`) เข้า `gui/icons.py` โดยตรง — ไม่มี `from .group_editor import ...` และไม่มีค่าคงที่ซ้ำอีกต่อไป
+- **ตัวเลือกไอคอนระบบแบบแยกหมวดบน Linux Mint (`gui/icon_picker.py`):** เพิ่ม `QComboBox` 3 หมวด (`หมวดหมู่และโฟลเดอร์` [default], `แอปที่ติดตั้ง`, `ไอคอนทั้งหมด`) พร้อมแคชต่อหมวด + เพิ่ม i18n keys ครบ TH/EN/`ja.json`
+- **เทสต์:** เพิ่ม `tests/test_steam_icons.py` + `ScanThemeIconsTests` + `test_linux_icon_picker_switches_categories` + `test_gui_icons_has_no_circular_import_to_group_editor` → **381 เทสต์ ผ่าน 100% (`OK (skipped=10)`)** + `compileall` ผ่าน
+- **ต่อไป:** เฟส **R4** — ลบ dead code PowerShell, แยก `core/i18n/`, รีแบรนด์ `taskbargroups` → `taskbarnoob` พร้อม Auto-Migration, อัปเดตเครดิต `Noob & Jenny`, และ bump เป็น `v0.3.0`

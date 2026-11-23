@@ -138,9 +138,11 @@ class AppImageTests(unittest.TestCase):
             )
             return subprocess.CompletedProcess(cmd, 0)
 
+        from taskbargroups.core.icons import appimage as appimage_mod
+
         patches = (
-            mock.patch.object(icons, "_appimage_cache_dir", return_value=cache),
-            mock.patch.object(icons.subprocess, "run", side_effect=fake_run),
+            mock.patch.object(appimage_mod, "_appimage_cache_dir", return_value=cache),
+            mock.patch.object(appimage_mod.subprocess, "run", side_effect=fake_run),
         )
         with patches[0], patches[1]:
             result = icons.resolve_icon_source(str(appimage))
@@ -148,19 +150,59 @@ class AppImageTests(unittest.TestCase):
         self.assertEqual(result.read_bytes(), b"real-icon")
 
     def test_extract_returns_none_when_extract_fails(self) -> None:
+        from taskbargroups.core.icons import appimage as appimage_mod
+
         appimage = self._fake_appimage()
-        with mock.patch.object(icons.subprocess, "run", side_effect=OSError("no exec")):
+        with mock.patch.object(
+            appimage_mod.subprocess, "run", side_effect=OSError("no exec")
+        ):
             self.assertIsNone(icons.icon_from_appimage(appimage))
 
     def test_clean_env_strips_appimage_vars(self) -> None:
+        from taskbargroups.core.icons import appimage as appimage_mod
+
         with mock.patch.dict(
-            icons.os.environ,
+            appimage_mod.os.environ,
             {"APPDIR": "/x", "LD_LIBRARY_PATH": "/y", "KEEP_ME": "1"},
         ):
             env = icons._clean_appimage_env()
         self.assertNotIn("APPDIR", env)
         self.assertNotIn("LD_LIBRARY_PATH", env)
         self.assertEqual(env.get("KEEP_ME"), "1")
+
+
+class ScanThemeIconsTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+        theme = self.root / "Mint-Y"
+        (theme / "48x48" / "categories").mkdir(parents=True)
+        (theme / "48x48" / "places").mkdir(parents=True)
+        (theme / "48x48" / "apps").mkdir(parents=True)
+        (theme / "scalable" / "apps").mkdir(parents=True)
+        (theme / "48x48" / "categories" / "applications-games.png").write_bytes(b"p")
+        (theme / "48x48" / "places" / "folder-music.png").write_bytes(b"p")
+        (theme / "48x48" / "apps" / "firefox.png").write_bytes(b"p")
+        (theme / "scalable" / "apps" / "firefox.svg").write_text("<svg/>")
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def test_categories_filters_categories_and_places(self) -> None:
+        found = icons.scan_theme_icons([self.root], category="categories")
+        self.assertEqual(set(found.keys()), {"applications-games", "folder-music"})
+
+    def test_apps_filters_apps_and_prefers_svg(self) -> None:
+        found = icons.scan_theme_icons([self.root], category="apps")
+        self.assertEqual(set(found.keys()), {"firefox"})
+        self.assertEqual(found["firefox"].suffix, ".svg")
+
+    def test_all_includes_everything(self) -> None:
+        found = icons.scan_theme_icons([self.root], category="all")
+        self.assertEqual(
+            set(found.keys()),
+            {"applications-games", "folder-music", "firefox"},
+        )
 
 
 class CacheTests(unittest.TestCase):

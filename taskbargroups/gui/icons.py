@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import sys
 import tempfile
@@ -17,7 +18,7 @@ from taskbargroups.core.storage import ConfigStore
 
 _provider = QFileIconProvider()
 _FALLBACK = "application-x-executable"
-_PROVIDER_ICON_CACHE_DIRNAME = "provider-icons-v3"
+_PROVIDER_ICON_CACHE_DIRNAME = core_icons.PROVIDER_ICON_CACHE_DIRNAME
 
 # นามสกุลที่ให้ QFileIconProvider ดึงไอคอนระบบให้ (Windows/macOS)
 # — core ดึงให้ไม่ได้ (ไม่ใช่ไฟล์รูป) แต่ Qt อ่านไอคอนฝังของ OS ได้
@@ -213,6 +214,13 @@ def _shell_icon_png(source: Path, dest: Path, size: int) -> Path | None:
     elif source.suffix.lower() == ".url":
         resolved = _url_icon_source(source)
         if resolved is None or not Path(resolved).is_file():
+            steam_img = core_icons.icon_from_steam_shortcut(source)
+            if steam_img is not None and steam_img.is_file():
+                pixmap = QPixmap(str(steam_img))
+                if not pixmap.isNull():
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    if pixmap.save(str(dest), "PNG"):
+                        return dest
             return None
         icon_path, index = resolved, 0
     # แอป MSIX/WindowsApps (เช่น Affinity) เป็น 0-byte AppExecutionAlias
@@ -260,6 +268,31 @@ def extract_os_icon_png(source: Path, dest: Path, size: int = 256) -> Path | Non
     return dest
 
 
+def _provider_png(source: Path, dest: Path, size: int = 256) -> Path | None:
+    """สกัดไอคอนที่ฝังในไฟล์ของ OS (.exe/.lnk/.dll) ออกมาเป็น PNG."""
+    return extract_os_icon_png(source, dest, size)
+
+
+def cached_provider_png(source: Path, base: Path, size: int = 256) -> Path | None:
+    """สกัดไอคอนจากไฟล์ OS แล้วแคชเป็น PNG (ข้ามถ้าแคชยังใหม่กว่าไฟล์ต้นทาง)."""
+    try:
+        mtime = source.stat().st_mtime
+    except OSError:
+        return None
+    digest = hashlib.sha1(f"{source}|{int(mtime)}".encode("utf-8")).hexdigest()[:16]
+    dest = base / f"{digest}.png"
+    if dest.is_file():
+        try:
+            if dest.stat().st_mtime >= mtime:
+                return dest
+        except OSError:
+            pass
+    return _provider_png(source, dest, size)
+
+
+_cached_provider_png = cached_provider_png
+
+
 def shortcut_icon(shortcut: Shortcut, store: ConfigStore, dir_name: str) -> QIcon:
     cached = store.resolve_relative(dir_name, shortcut.icon)
     if cached is not None:
@@ -271,19 +304,23 @@ def shortcut_icon(shortcut: Shortcut, store: ConfigStore, dir_name: str) -> QIco
         icon = _from_file(Path(target))
         if icon is not None and not icon.isNull():
             return icon
-        # Windows: .url/.lnk → สกัดไอคอนผ่าน shell API
-        if sys.platform == "win32" and Path(target).suffix.lower() in (".url", ".lnk") and Path(target).is_file():
+        # Windows: .url/.lnk → สกัดไอคอนผ่าน shell API (หรือ Steam librarycache)
+        if (
+            sys.platform == "win32"
+            and Path(target).suffix.lower() in (".url", ".lnk")
+            and Path(target).is_file()
+        ):
             cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
-            # Need to import _cached_provider_png from group_editor
-            try:
-                from .group_editor import _cached_provider_png
-                png = _cached_provider_png(Path(target), cache)
-                if png is not None:
-                    icon = _from_file(png)
-                    if icon is not None and not icon.isNull():
-                        return icon
-            except Exception:
-                pass
+            png = cached_provider_png(Path(target), cache)
+            if png is not None:
+                icon = _from_file(png)
+                if icon is not None and not icon.isNull():
+                    return icon
+        resolved = core_icons.resolve_icon_source(target)
+        if resolved is not None:
+            icon = _from_file(resolved)
+            if icon is not None and not icon.isNull():
+                return icon
         icon = _provider_icon(target)
         if icon is not None:
             return icon

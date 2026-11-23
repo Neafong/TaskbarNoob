@@ -48,19 +48,20 @@ from .dialogs import show_warning
 from .icon_picker import (
     _ICON_DISPLAY_LIMIT,
     _ICON_SCAN_LIMIT,
-    _ICON_SUFFIXES,
-    _PROVIDER_ICON_CACHE_DIRNAME,
     _PROVIDER_ICON_SUFFIXES,
     SystemIconDialog,
     _SystemIconDialog,
-    _cached_provider_png,
     _is_noise_shortcut,
     _iter_windows_shortcuts,
-    _provider_png,
     _windows_shortcut_dirs,
     _windows_system_icon_dlls,
 )
-from .icons import _from_file
+from .icons import (
+    _PROVIDER_ICON_CACHE_DIRNAME,
+    _cached_provider_png,
+    _from_file,
+    _provider_png,
+)
 from .shortcut_dialog import (
     _FALLBACK_GRID_ICON,
     _ICON_FILTER,
@@ -554,7 +555,6 @@ __all__ = [
     "_ICON_DISPLAY_LIMIT",
     "_ICON_FILTER",
     "_ICON_SCAN_LIMIT",
-    "_ICON_SUFFIXES",
     "_PROVIDER_ICON_CACHE_DIRNAME",
     "_PROVIDER_ICON_SUFFIXES",
     "_SystemIconDialog",

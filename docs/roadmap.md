@@ -80,7 +80,7 @@
   - แตก `gui/main_window.py` (1,199 บรรทัด) → แยก `group_list.py` (`GroupListWidget` + delegate), logic การ sync/persist ออกจากตัวหน้าต่างหลัก
   - ตรวจไฟล์อื่นใน `core/` และ `gui/` ที่มีหลายหน้าที่ปนกันให้ย่อยตามความเหมาะสม
 
-### R3 — รวมระบบไอคอนเป็น Pipeline เดียว + รองรับ Steam ข้าม OS
+### R3 — รวมระบบไอคอนเป็น Pipeline เดียว + รองรับ Steam ข้าม OS ✅ เสร็จ (2026-11-23)
 - รวมโค้ดดึง/แคชไอคอนที่กระจายอยู่ 3 ไฟล์ (`core/icons.py`, `gui/icons.py`, `gui/group_editor.py`) ให้เป็น pipeline เดียวที่ชัดเจน
 - ลบ circular lazy import (`gui/icons.py` → `from .group_editor import _cached_provider_png`) และค่าคงที่ `_PROVIDER_ICON_CACHE_DIRNAME` ที่ประกาศซ้ำ
 - เพิ่ม **ตัวเลือกไอคอนจากระบบแบบแยกหมวดบน Linux Mint (`icon_picker.py`)** ให้เหมือนฝั่ง Windows — ใช้โครงสร้างหมวดของ Freedesktop (`/usr/share/icons/<theme>/`):
