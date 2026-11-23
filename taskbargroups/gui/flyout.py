@@ -307,9 +307,12 @@ class FlyoutWindow(QWidget):
             import subprocess
 
             if sys.platform == "win32":
-                # เลือกไฟล์ค้างไว้ใน Explorer
+                # แยก "/select," ออกเป็นคนละอาร์กิวเมนต์ — ถ้ารวมกันแล้ว path มีช่องว่าง
+                # Python จะห่อ "" คลุม "/select,..." จน explorer.exe เปิด Documents แทน
                 subprocess.Popen(
-                    ["explorer", f"/select,{path}"], env=env, start_new_session=True
+                    ["explorer", "/select,", str(path)],
+                    env=env,
+                    start_new_session=True,
                 )
             elif sys.platform == "darwin":
                 subprocess.Popen(

@@ -156,7 +156,7 @@ class FlyoutWindowTests(unittest.TestCase):
         try:
             item = Shortcut(name="s", target=str(target))
             cases = [
-                ("win32", ["explorer", f"/select,{target}"]),
+                ("win32", ["explorer", "/select,", str(target)]),
                 ("darwin", ["open", "-R", str(target)]),
                 ("linux", ["xdg-open", str(target.parent)]),
             ]
