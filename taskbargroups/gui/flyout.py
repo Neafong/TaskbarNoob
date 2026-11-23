@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 from taskbargroups.core.i18n import tr
-from taskbargroups.core.launcher import LaunchError, child_env, launch
+from taskbargroups.core.launcher import LaunchError, launch, reveal_path
 from taskbargroups.core.models import (
     MAX_ICON_SIZE,
     MIN_ICON_SIZE,
@@ -296,43 +296,7 @@ class FlyoutWindow(QWidget):
         menu.deleteLater()
 
     def _reveal(self, item: Shortcut) -> None:
-        path = Path(item.target.strip())
-        if not path.exists():
-            return
-        parent = path.parent
-        if not parent.exists():
-            return
-        env = child_env()
-        try:
-            import subprocess
-
-            if sys.platform == "win32":
-                # แยก "/select," ออกเป็นคนละอาร์กิวเมนต์ — ถ้ารวมกันแล้ว path มีช่องว่าง
-                # Python จะห่อ "" คลุม "/select,..." จน explorer.exe เปิด Documents แทน
-                subprocess.Popen(
-                    ["explorer", "/select,", str(path)],
-                    env=env,
-                    start_new_session=True,
-                )
-            elif sys.platform == "darwin":
-                subprocess.Popen(
-                    ["open", "-R", str(path)], env=env, start_new_session=True
-                )
-            else:
-                subprocess.Popen(
-                    ["xdg-open", str(parent)], env=env, start_new_session=True
-                )
-        except OSError:
-            if sys.platform != "linux":
-                return
-            try:
-                import subprocess
-
-                subprocess.Popen(
-                    ["gio", "open", str(parent)], env=env, start_new_session=True
-                )
-            except OSError:
-                pass
+        reveal_path(Path(item.target.strip()))
 
     def _launch(self, item) -> None:
         try:

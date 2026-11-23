@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from taskbargroups.core.desktop import (
+from taskbargroups.core.platform.linux.desktop import (
     build_desktop_entry,
     build_exec,
     desktop_file_name,

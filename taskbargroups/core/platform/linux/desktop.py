@@ -8,9 +8,9 @@ import stat
 import sys
 from pathlib import Path
 
-from .models import MAX_ITEM_NAME_LEN, Group, Shortcut
-from .paths import app_dir
-from .storage import ConfigStore, safe_dir_name
+from ...models import MAX_ITEM_NAME_LEN, Group, Shortcut
+from ...paths import app_dir
+from ...storage import ConfigStore, safe_dir_name
 
 APP_ID = "taskbargroups"
 FALLBACK_ICON = "applications-utilities"

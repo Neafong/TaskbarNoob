@@ -12,7 +12,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from taskbargroups.core import win32
+from taskbargroups.core.platform import win32
+from taskbargroups.core.platform.win32 import lnk as win32_lnk
+from taskbargroups.core.platform.win32 import pin as win32_pin
 
 
 class LnkNameTests(unittest.TestCase):
@@ -115,14 +117,14 @@ class PinTests(unittest.TestCase):
 
     def test_run_accepts_plain_string(self) -> None:
         """_run ต้องไม่แตก string เป็นรายตัวอักษร."""
-        with mock.patch.object(win32.subprocess, "run") as run:
+        with mock.patch.object(win32_lnk.subprocess, "run") as run:
             run.return_value = mock.Mock(returncode=0, stdout="ok", stderr="")
             win32._run('explorer /select,"C:\\a b\\c.lnk"')
             (args, _kwargs) = run.call_args
             self.assertEqual(args[0], 'explorer /select,"C:\\a b\\c.lnk"')
 
     def test_run_accepts_list(self) -> None:
-        with mock.patch.object(win32.subprocess, "run") as run:
+        with mock.patch.object(win32_lnk.subprocess, "run") as run:
             run.return_value = mock.Mock(returncode=0, stdout="ok", stderr="")
             win32._run(["powershell", "-Command", "x"])
             (args, _kwargs) = run.call_args
@@ -166,9 +168,9 @@ class RepointPinnedTests(unittest.TestCase):
                 return win32.aumid("555") if Path(path) == stale else None
 
             with mock.patch.object(
-                win32, "taskbar_pinned_dir", return_value=pinned
+                win32_pin, "taskbar_pinned_dir", return_value=pinned
             ), mock.patch.object(
-                win32, "read_lnk_aumid", side_effect=fake_aumid
+                win32_pin, "read_lnk_aumid", side_effect=fake_aumid
             ):
                 self.assertTrue(win32.repoint_pinned("555", new_lnk))
             self.assertEqual(stale.read_bytes(), b"new")
@@ -182,9 +184,9 @@ class RepointPinnedTests(unittest.TestCase):
             new_lnk = Path(tmp) / "Game.lnk"
             new_lnk.write_bytes(b"new")
             with mock.patch.object(
-                win32, "taskbar_pinned_dir", return_value=pinned
+                win32_pin, "taskbar_pinned_dir", return_value=pinned
             ), mock.patch.object(
-                win32, "read_lnk_aumid", return_value="tjackenpacken.taskbarGroup.menu.Browser"
+                win32_pin, "read_lnk_aumid", return_value="tjackenpacken.taskbarGroup.menu.Browser"
             ):
                 self.assertFalse(win32.repoint_pinned("555", new_lnk))
             self.assertEqual(theirs.read_bytes(), b"theirs")  # ไม่แตะของคนอื่น
@@ -196,8 +198,8 @@ class RepointPinnedTests(unittest.TestCase):
             new_lnk = Path(tmp) / "Game.lnk"
             new_lnk.write_bytes(b"new")
             with mock.patch.object(
-                win32, "taskbar_pinned_dir", return_value=pinned
-            ), mock.patch.object(win32, "read_lnk_aumid", return_value=None):
+                win32_pin, "taskbar_pinned_dir", return_value=pinned
+            ), mock.patch.object(win32_pin, "read_lnk_aumid", return_value=None):
                 self.assertFalse(win32.repoint_pinned("555", new_lnk))
 
 
@@ -334,7 +336,7 @@ class ComLnkTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
     def test_roundtrip_keeps_target_and_aumid(self) -> None:
-        from taskbargroups.core import win32_com
+        from taskbargroups.core.platform.win32 import com as win32_com
 
         with tempfile.TemporaryDirectory() as tmp:
             link = Path(tmp) / "Game.lnk"
@@ -352,7 +354,7 @@ class ComLnkTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
     def test_write_without_aumid_is_allowed(self) -> None:
-        from taskbargroups.core import win32_com
+        from taskbargroups.core.platform.win32 import com as win32_com
 
         with tempfile.TemporaryDirectory() as tmp:
             link = Path(tmp) / "Plain.lnk"
@@ -363,7 +365,7 @@ class ComLnkTests(unittest.TestCase):
     @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
     def test_read_icon_location_roundtrip(self) -> None:
         """IconLocation ต้องอ่านกลับได้ — ใช้ resolve ไอคอนจริงของ .lnk."""
-        from taskbargroups.core import win32_com
+        from taskbargroups.core.platform.win32 import com as win32_com
 
         with tempfile.TemporaryDirectory() as tmp:
             link = Path(tmp) / "Game.lnk"
@@ -378,7 +380,7 @@ class ComLnkTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
     def test_read_icon_location_empty_is_none(self) -> None:
-        from taskbargroups.core import win32_com
+        from taskbargroups.core.platform.win32 import com as win32_com
 
         with tempfile.TemporaryDirectory() as tmp:
             link = Path(tmp) / "Plain.lnk"
@@ -390,7 +392,7 @@ class ComLnkTests(unittest.TestCase):
         """กัน GUID พิมพ์ผิด (เคยพังเพราะขาดเลขฐาน 16 ไป 1 ตัว)."""
         import uuid
 
-        from taskbargroups.core import win32_com
+        from taskbargroups.core.platform.win32 import com as win32_com
 
         for value in (
             win32_com.CLSID_SHELL_LINK,
@@ -403,7 +405,7 @@ class ComLnkTests(unittest.TestCase):
             uuid.UUID(value)  # จะ raise ถ้าผิดรูป
 
     def test_write_outside_windows_raises(self) -> None:
-        from taskbargroups.core import win32_com
+        from taskbargroups.core.platform.win32 import com as win32_com
 
         with mock.patch.object(sys, "platform", "linux"), self.assertRaises(
             win32_com.ComError
@@ -501,7 +503,7 @@ class AppExecLinkTests(unittest.TestCase):
         return struct.pack("<IHH", tag, len(body), 0) + body
 
     def test_parse_valid_app_exec_link(self) -> None:
-        from taskbargroups.core import win32_com
+        from taskbargroups.core.platform.win32 import com as win32_com
 
         buf = self._build_reparse(
             "Canva.Affinity_8a0j1tnjnt4a4",
@@ -517,14 +519,14 @@ class AppExecLinkTests(unittest.TestCase):
         )
 
     def test_parse_rejects_wrong_tag_or_short_data(self) -> None:
-        from taskbargroups.core import win32_com
+        from taskbargroups.core.platform.win32 import com as win32_com
 
         self.assertIsNone(win32_com.parse_app_exec_link_reparse(b"short"))
         bad_tag = self._build_reparse("pkg", "pkg!App", tag=0xA000000C)
         self.assertIsNone(win32_com.parse_app_exec_link_reparse(bad_tag))
 
     def test_shell_icon_uses_appsfolder_for_msix_alias(self) -> None:
-        from taskbargroups.core import win32_com
+        from taskbargroups.core.platform.win32 import com as win32_com
         from taskbargroups.gui import icons as gui_icons
 
         with tempfile.TemporaryDirectory() as tmp:

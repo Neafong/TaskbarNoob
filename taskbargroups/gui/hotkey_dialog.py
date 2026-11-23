@@ -20,8 +20,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from taskbargroups.core import hotkeys
-from taskbargroups.core.desktop import build_exec
+from taskbargroups.core.platform.linux import hotkeys
+from taskbargroups.core.platform.linux.desktop import build_exec
 from taskbargroups.core.i18n import tr
 from taskbargroups.core.models import (
     MAX_FOCUS_SCALE,

@@ -1,8 +1,8 @@
 import unittest
 from unittest import mock
 
-from taskbargroups.core import hotkeys
-from taskbargroups.core.hotkeys import (
+from taskbargroups.core.platform.linux import hotkeys
+from taskbargroups.core.platform.linux.hotkeys import (
     HotkeyError,
     cinnamon_to_display,
     group_hotkeys,

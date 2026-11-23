@@ -198,7 +198,7 @@ class GuiSmokeTests(unittest.TestCase):
     def test_main_window_marks_pinned_rows(self) -> None:
         from unittest import mock
 
-        from taskbargroups.core.desktop import desktop_file_name
+        from taskbargroups.core.platform.linux.desktop import desktop_file_name
         from taskbargroups.gui import main_window
         from taskbargroups.gui.main_window import PINNED_ROLE, MainWindow
 
@@ -212,7 +212,7 @@ class GuiSmokeTests(unittest.TestCase):
     def test_refresh_pinned_icon_regenerates_launcher(self) -> None:
         from unittest import mock
 
-        from taskbargroups.core.desktop import desktop_file_name
+        from taskbargroups.core.platform.linux.desktop import desktop_file_name
         from taskbargroups.gui import main_window
         from taskbargroups.gui.main_window import MainWindow
 
@@ -265,7 +265,8 @@ class GuiSmokeTests(unittest.TestCase):
         เปลี่ยนไม่อัพเดท จนผู้ใช้ต้องมานั่งลบไฟล์เอง."""
         from unittest import mock
 
-        from taskbargroups.core import win32 as core_win32
+        from taskbargroups.core.platform import win32 as core_win32
+        from taskbargroups.core.platform.win32 import ico as win32_ico
         from taskbargroups.gui import main_window
         from taskbargroups.gui.main_window import MainWindow
 
@@ -277,7 +278,7 @@ class GuiSmokeTests(unittest.TestCase):
         with mock.patch.object(core_win32, "reveal_in_explorer") as reveal, mock.patch.object(
             main_window, "show_information"
         ), mock.patch.object(
-            core_win32,
+            win32_ico,
             "png_to_ico",
             side_effect=lambda src, **_kw: Path(src).with_suffix(".ico"),
         ):
@@ -316,7 +317,7 @@ class GuiSmokeTests(unittest.TestCase):
     def test_sync_pinned_launchers_heals_absolute_icon(self) -> None:
         from unittest import mock
 
-        from taskbargroups.core.desktop import desktop_file_name, launcher_id
+        from taskbargroups.core.platform.linux.desktop import desktop_file_name, launcher_id
         from taskbargroups.gui import main_window
         from taskbargroups.gui.main_window import MainWindow
 
@@ -354,7 +355,7 @@ class GuiSmokeTests(unittest.TestCase):
     def test_sync_pinned_launchers_skips_when_already_themed(self) -> None:
         from unittest import mock
 
-        from taskbargroups.core.desktop import desktop_file_name
+        from taskbargroups.core.platform.linux.desktop import desktop_file_name
         from taskbargroups.gui import main_window
         from taskbargroups.gui.main_window import MainWindow
 
@@ -756,7 +757,7 @@ class GuiSmokeTests(unittest.TestCase):
 
         from PySide6.QtWidgets import QMessageBox
 
-        from taskbargroups.core.desktop import desktop_file_name
+        from taskbargroups.core.platform.linux.desktop import desktop_file_name
         from taskbargroups.gui import main_window
         from taskbargroups.gui.main_window import MainWindow
 
@@ -797,7 +798,7 @@ class GuiSmokeTests(unittest.TestCase):
     def test_rename_pinned_group_migrates_launcher(self) -> None:
         from unittest import mock
 
-        from taskbargroups.core.desktop import desktop_file_name
+        from taskbargroups.core.platform.linux.desktop import desktop_file_name
         from taskbargroups.gui import main_window
         from taskbargroups.gui.main_window import MainWindow
 
@@ -913,7 +914,7 @@ class GuiSmokeTests(unittest.TestCase):
     def test_refresh_shows_hotkey_inline(self) -> None:
         from unittest import mock
 
-        from taskbargroups.core.hotkeys import hotkey_slot
+        from taskbargroups.core.platform.linux.hotkeys import hotkey_slot
         from taskbargroups.gui import main_window
         from taskbargroups.gui.main_window import MainWindow
 
@@ -1010,14 +1011,14 @@ class WindowsPinTooltipTests(unittest.TestCase):
 
     def test_windows_tips_have_colour_heading(self) -> None:
         """หัวข้อคำแนะนำ/ข้อจำกัดต้องเป็นหนาสีแดง (อ่านออกทั้งธีมสว่างและมืด)"""
-        from taskbargroups.core import taskbar as taskbar_mod
         from taskbargroups.core.models import Group
+        from taskbargroups.gui import main_window
         from taskbargroups.gui.main_window import _pin_tooltip
 
         self.assertIn('<font color="#E5484D">', self._tip("win32", False))
 
         with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
-            taskbar_mod, "stale_pin_label", return_value=True
+            main_window, "stale_pin_label", return_value=True
         ):
             stale = _pin_tooltip(Group(name="Game", items=[]), True, "Game")
         self.assertIn('<font color="#E5484D">', stale)
@@ -1028,12 +1029,12 @@ class WindowsPinTooltipTests(unittest.TestCase):
 
     def test_windows_tips_drop_emoji(self) -> None:
         """อีโมจิต้องอยู่ในบรรทัดหัวข้อเท่านั้น ไม่ลอยคนละบรรทัด (อ่านทันที)"""
-        from taskbargroups.core import taskbar as taskbar_mod
         from taskbargroups.core.models import Group
+        from taskbargroups.gui import main_window
         from taskbargroups.gui.main_window import _pin_tooltip
 
         with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
-            taskbar_mod, "stale_pin_label", return_value=True
+            main_window, "stale_pin_label", return_value=True
         ):
             tips = [
                 self._tip("win32", False),
@@ -1114,7 +1115,7 @@ class FolderIconAssetTests(unittest.TestCase):
 
     def test_rename_group_migrates_win_hotkey(self) -> None:
         """เปลี่ยนชื่อกลุ่มบน Windows → hotkey ต้องย้ายตามไปชื่อใหม่."""
-        from taskbargroups.core.hotkeys import hotkey_slot
+        from taskbargroups.core.platform.linux.hotkeys import hotkey_slot
         from taskbargroups.core.settings import Settings
         from taskbargroups.gui import win32_hotkey
         from taskbargroups.gui.main_window import MainWindow

@@ -341,7 +341,7 @@ class WindowsProviderIconTests(unittest.TestCase):
         (ไม่มี overlay ลูกศร shortcut ปนมา)."""
         from PySide6.QtGui import QImage
 
-        from taskbargroups.core import win32_com
+        from taskbargroups.core.platform.win32 import com as win32_com
         from taskbargroups.gui.icons import extract_os_icon_png
 
         with tempfile.TemporaryDirectory() as tmp:

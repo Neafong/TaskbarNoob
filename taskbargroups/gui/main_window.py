@@ -25,33 +25,30 @@ from PySide6.QtWidgets import (
 )
 
 from taskbargroups.core import icons as core_icons
-from taskbargroups.core.hotkeys import (
+from taskbargroups.core.i18n import setup, tr
+from taskbargroups.core.paths import app_icon_path
+from taskbargroups.core.platform import (
     HotkeyError,
+    PinError,
+    desktop_file_name,
+    get_backend,
+    install_launcher,
+    is_cinnamon,
+    launcher_id,
+    pin_to_panel,
+    pinned_desktop_ids,
+    remove_launcher,
+    stale_pin_label,
+    unpin_from_panel,
+)
+from taskbargroups.core.platform.linux.hotkeys import (
     cinnamon_to_display,
     group_hotkeys,
     hotkey_slot,
-    is_cinnamon,
     unregister_cinnamon_hotkey,
 )
-from taskbargroups.core.launchers import (
-    desktop_file_name,
-    install_launcher,
-    launcher_id,
-    remove_launcher,
-)
-
-from taskbargroups.core.i18n import setup, tr
-from taskbargroups.core.win32 import unregister_hotkey
-from taskbargroups.core.panel import (
-    PinError,
-    reload_grouped_window_applet,
-)
-from taskbargroups.core.taskbar import (
-    pin_to_panel,
-    pinned_desktop_ids,
-    unpin_from_panel,
-)
-from taskbargroups.core.paths import app_icon_path
+from taskbargroups.core.platform.linux.panel import reload_grouped_window_applet
+from taskbargroups.core.platform.win32.hotkey import unregister_hotkey
 from taskbargroups.core.settings import Settings
 from taskbargroups.core.storage import ConfigStore, StorageError, safe_dir_name
 from taskbargroups.gui.win32_hotkey import registry as win_registry
@@ -450,12 +447,10 @@ def _pin_tooltip(group, pinned: bool, dir_name: str = "", stale: bool | None = N
     `stale` = ผลตรวจป้ายชื่อเก่า (คำนวณครั้งเดียวต่อ refresh ได้) — ไม่ส่ง/None
     จะเรียก `stale_pin_label` เอง (พฤติกรรมเดิม)
     """
-    if sys.platform == "win32":
+    if not get_backend().supports_direct_pin:
         if pinned:
             text = tr("main.win_pinned_tip")
             if stale is None:
-                from taskbargroups.core.taskbar import stale_pin_label
-
                 stale = bool(dir_name) and stale_pin_label(dir_name)
             if stale:
                 text += tr("main.win_pin_label_stale")
@@ -516,9 +511,9 @@ class MainWindow(QMainWindow):
         → ตอน boot ไอคอนหาย. ติดตั้งไอคอนเข้า icon theme (บนดิสก์ราก) แล้วชี้
         ด้วยชื่อ ให้ panel หาเจอเสมอ. ทำครั้งเดียวต่อ launcher. (Linux เท่านั้น)
         """
-        if sys.platform != "linux":
+        if not get_backend().supports_direct_pin:
             return
-        from taskbargroups.core.desktop import applications_dir
+        from taskbargroups.core.platform.linux.desktop import applications_dir
 
         pinned_ids = pinned_desktop_ids()
         if not pinned_ids:
@@ -577,9 +572,9 @@ class MainWindow(QMainWindow):
         self.list.clear()
         pinned_ids = pinned_desktop_ids()
         stale_files: dict[str, str] | None = None
-        if sys.platform == "win32":
+        if not get_backend().supports_direct_pin:
             # สแกน User Pinned ครั้งเดียว ใช้ทั้งหา stale ต่อกลุ่ม (เลี่ยง COM ซ้ำ)
-            from taskbargroups.core.taskbar import pinned_aumid_files
+            from taskbargroups.core.platform.win32.pin import pinned_aumid_files
 
             stale_files = pinned_aumid_files()
         dir_names = self.store.list_groups()
@@ -614,7 +609,7 @@ class MainWindow(QMainWindow):
                 item.setData(PINNED_ROLE, is_pinned)
                 stale = None
                 if stale_files is not None and is_pinned:
-                    from taskbargroups.core.taskbar import _win32 as _w32
+                    from taskbargroups.core.platform import win32 as _w32
 
                     filename = stale_files.get(_w32.aumid(dir_name))
                     stale = filename is not None and filename != _w32.lnk_name(dir_name)
@@ -752,9 +747,9 @@ class MainWindow(QMainWindow):
         `--open "<ชื่อเก่า>"` → กดแล้วเปิดกลุ่มที่ไม่มีแล้ว (flyout ว่างเปล่า)
         เราสร้าง pin ใหม่ไม่ได้ แต่เขียนทับไฟล์ของเดิมได้
         """
-        if sys.platform != "win32":
+        if get_backend().supports_direct_pin:
             return
-        from taskbargroups.core.win32 import repoint_pinned, shortcuts_dir
+        from taskbargroups.core.platform.win32 import repoint_pinned, shortcuts_dir
 
         new_lnk = shortcuts_dir() / desktop_file_name(new_dir)
         if not new_lnk.is_file():
@@ -785,9 +780,9 @@ class MainWindow(QMainWindow):
         `force=True` (ตอนเปลี่ยนไอคอน) = ลบ `.lnk` เก่าแล้วสร้างใหม่ + เขียนทับ
         สำเนาบน taskbar/Desktop — ถ้าใช้ของเดิม Windows แคชไอคอนไว้ ไม่อัพเดท.
         """
-        if sys.platform != "win32":
+        if get_backend().supports_direct_pin:
             return
-        from taskbargroups.core.win32 import shortcuts_dir
+        from taskbargroups.core.platform.win32 import shortcuts_dir
 
         path = shortcuts_dir() / desktop_file_name(dir_name)
         pinned = desktop_file_name(dir_name) in pinned_desktop_ids()
@@ -803,7 +798,7 @@ class MainWindow(QMainWindow):
             # อัปเดตสำเนาบน taskbar/Desktop ถ้ามี (Windows ก๊อปไฟล์ตอนลากวาง →
             # สำเนาเก่าชี้ไอคอนเก่า · ต้องเขียนทับถึงจะเห็นไอคอนใหม่)
             try:
-                from taskbargroups.core.win32 import (
+                from taskbargroups.core.platform.win32 import (
                     repoint_desktop_copies,
                     repoint_pinned,
                 )
@@ -814,7 +809,7 @@ class MainWindow(QMainWindow):
                 pass
             # แจ้ง Windows ให้รีเฟรช icon cache (ไม่งั้นยังโชว์ไอคอนเก่าตาม path)
             try:
-                from taskbargroups.core.win32 import notify_icon_changed
+                from taskbargroups.core.platform.win32 import notify_icon_changed
 
                 icon_path = group.icon and self.store.resolve_relative(dir_name, group.icon)
                 if icon_path is not None:
@@ -1010,7 +1005,7 @@ class MainWindow(QMainWindow):
         except StorageError as exc:
             show_warning(self, tr("err.generic"), str(exc))
             return
-        if sys.platform == "win32":
+        if not get_backend().supports_direct_pin:
             self._reveal_launcher_dir(group, dir_name)
             return
         if desktop_id in pinned_desktop_ids():
@@ -1024,7 +1019,7 @@ class MainWindow(QMainWindow):
         เขียนใหม่ทุกครั้ง (ลบไฟล์เก่าก่อนสร้าง) — ถ้าใช้ของเดิม ไอคอนที่เพิ่งเปลี่ยน
         จะไม่อัพเดทบน .lnk (Explorer cache ไฟล์เดิม) จนผู้ใช้ต้องมานั่งลบเอง
         """
-        from taskbargroups.core import win32 as _win32
+        from taskbargroups.core.platform import win32 as _win32
 
         desktop_id = desktop_file_name(dir_name)
         existing = _win32.shortcuts_dir() / desktop_id
@@ -1112,16 +1107,11 @@ def run(
     open_group: str | None = None,
     center: bool = False,
 ) -> int:
-    if sys.platform == "win32":
-        # ตั้ง AUMID ก่อนสร้างหน้าต่างแรกเสมอ:
-        # - โหมด flyout → ตรงกับ .lnk ของกลุ่ม (ปุ่ม taskbar กลุ่มนั้นจะแอ็กทีฟตรงกัน)
-        # - โหมดหน้าต่างหลัก → ใช้ AUMID กลาง (ไม่ให้ Windows จับไปสิงรวมกับ .lnk กลุ่มแรก)
-        from ..core.win32 import set_app_aumid, set_process_aumid
-
-        if open_group:
-            set_process_aumid(open_group)
-        else:
-            set_app_aumid()
+    backend = get_backend()
+    if open_group:
+        backend.set_group_process_id(open_group)
+    else:
+        backend.set_app_process_id()
     app = QApplication.instance() or QApplication(sys.argv if argv is None else argv)
     app.setApplicationName("TaskbarNoob")
     app.setApplicationDisplayName("TaskbarNoob")
@@ -1135,7 +1125,7 @@ def run(
     if open_group:
         return _run_flyout(app, open_group, center)
     window = MainWindow()
-    if sys.platform == "win32":
+    if backend.supports_win_hotkeys:
         _register_saved_win_hotkeys(app, window, settings)
     window.show()
     return app.exec()

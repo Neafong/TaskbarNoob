@@ -5,8 +5,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from taskbargroups.core import panel
-from taskbargroups.core.panel import (
+from taskbargroups.core.platform.linux import panel
+from taskbargroups.core.platform.linux.panel import (
     PinError,
     add_grouped_window_pin,
     add_panel_launcher,

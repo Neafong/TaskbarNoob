@@ -76,8 +76,6 @@ def launch(shortcut: Shortcut) -> None:
 
     if sys.platform == "win32":
         _launch_windows(target, args, cwd)
-    elif sys.platform == "darwin":
-        _launch_macos(target, args, cwd)
     else:
         _launch_linux(target, args, cwd)
 
@@ -140,14 +138,35 @@ def _launch_windows(target: str, args: list[str], cwd: str | None) -> None:
         raise LaunchError(f"เปิด '{target}' ไม่สำเร็จ: {exc}") from exc
 
 
-def _launch_macos(target: str, args: list[str], cwd: str | None) -> None:
-    command = ["open", target]
-    if args:
-        command += ["--args", *args]
+def reveal_path(path: Path) -> None:
+    """เปิด file manager ชี้ไปที่ไฟล์/โฟลเดอร์ (ข้าม OS — Linux / Windows)."""
+    if not path.exists():
+        return
+    parent = path.parent
+    if not parent.exists():
+        return
+    env = child_env()
     try:
-        subprocess.Popen(command, cwd=cwd)
-    except OSError as exc:
-        raise LaunchError(f"เปิด '{target}' ไม่สำเร็จ: {exc}") from exc
+        if sys.platform == "win32":
+            # แยก "/select," ออกเป็นคนละอาร์กิวเมนต์ — กันกรณี path มีช่องว่าง
+            subprocess.Popen(
+                ["explorer", "/select,", str(path)],
+                env=env,
+                start_new_session=True,
+            )
+        else:
+            subprocess.Popen(
+                ["xdg-open", str(parent)], env=env, start_new_session=True
+            )
+    except OSError:
+        if sys.platform != "linux":
+            return
+        try:
+            subprocess.Popen(
+                ["gio", "open", str(parent)], env=env, start_new_session=True
+            )
+        except OSError:
+            pass
 
 
 def launch_all(group: Group) -> list[str]:

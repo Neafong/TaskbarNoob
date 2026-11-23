@@ -10,3 +10,15 @@
   - เริ่ม `docs/WORKLOG.md` และ `docs/feedback.md` ชุดใหม่สำหรับภาค `v0.3.0` ให้สั้นเบา ประหยัด token
   - อัปเดต `docs/README.md`, `docs/team.md`, `docs/roadmap.md` และ `AGENTS.md` ให้สะท้อนสถานะล่าสุด (`v0.2.0` ปล่อยแล้ว, workspace หลักบน Mint `/mnt/Backup/TaskbarNoob`, ทำงานร่วมกับเจนนี่)
 - **ต่อไป:** เฟส **R1** — แยก Platform Backend เข้า `core/platform/{base,linux,win32}` + พับเก็บ `core/macos.py`
+
+## 2026-11-23 — R1: แยก Platform Backend (`core/platform/`) + พับเก็บ macOS `[เสร็จ]`
+- **สร้างแพ็กเกจ `core/platform/`:**
+  - `base.py` — `PlatformBackend` ABC กำหนดสัญญาเมธอดกลาง (`supports_direct_pin`, `supports_cinnamon_hotkeys`, `supports_win_hotkeys`, `set_app_process_id`, `set_group_process_id`, launcher/pin/stale_pin_label)
+  - `linux/` — ย้าย `desktop.py`, `panel.py`, `hotkeys.py` พร้อม `LinuxCinnamonBackend`
+  - `win32/` — แตก `core/win32.py` (849 บรรทัด) เป็น 6 โมดูลย่อยตามหน้าที่ (`aumid.py`, `com.py`, `ico.py`, `lnk.py`, `pin.py`, `hotkey.py`) + `Win32Backend`
+  - `__init__.py` — `get_backend()` + facade กลาง
+- **พับเก็บ macOS:** ลบ `core/macos.py`, `tests/test_macos.py` และ branch `darwin` ใน `core/launcher.py`, `core/icons.py`, `gui/flyout.py`
+- **ลด `sys.platform` ใน `gui/`:** ย้าย `_reveal()` เข้า `core/launcher.reveal_path()` (ลด `sys.platform` ใน `gui/flyout.py` เหลือ 0) และให้ `gui/main_window.py` เรียกผ่าน `core.platform` / `get_backend()`
+- **ลบไฟล์เก่าซ้ำซ้อน:** `core/taskbar.py`, `core/launchers.py`, `core/win32.py`
+- **เทสต์:** อัปเดต imports + เพิ่ม `test_backend_capabilities` → **367 เทสต์ ผ่าน 100% (`OK (skipped=10)`)**
+- **ต่อไป:** เฟส **R2** — แตกไฟล์ยักษ์ (`gui/group_editor.py`, `gui/main_window.py`) เป็นโมดูลย่อยหน้าที่เดียว

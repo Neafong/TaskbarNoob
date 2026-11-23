@@ -410,8 +410,6 @@ def platform_note() -> str:
     """หมายเหตุสั้นๆ ว่าดึงไอคอนจากโปรแกรมได้แค่ไหนในแต่ละ OS."""
     if sys.platform == "win32":
         return "Windows: ดึงไอคอนอัตโนมัติได้จาก .lnk/.desktop หรือเลือกไฟล์เอง"
-    if sys.platform == "darwin":
-        return "macOS: แนะนำเลือกไฟล์ไอคอนเอง (.icns/.png)"
     return (
         "Linux: ดึงจาก .desktop/ชื่อไอคอนในธีม/ไอคอนใน AppImage หรือเลือกไฟล์เองได้"
     )

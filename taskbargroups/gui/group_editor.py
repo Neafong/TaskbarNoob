@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (
 )
 
 from taskbargroups.core import icons as core_icons
-from taskbargroups.core.desktop import shortcut_from_path
+from taskbargroups.core.platform.linux.desktop import shortcut_from_path
 from taskbargroups.core.i18n import tr
 from taskbargroups.core.models import (
     MAX_ICON_SIZE,

@@ -66,7 +66,7 @@
 - ย้ายแผนเก่าที่ปิดจบแล้ว (`phase18-plan.md`, `windows-plan.md`) และ log เก่ายาวๆ (`WORKLOG.md`, `feedback.md`) แยกภาค `v0.1–v0.2` ลง `docs/archive/` แล้วเริ่ม `WORKLOG.md` / `feedback.md` ชุดใหม่ให้สั้นเบา ประหยัด token
 - อัปเดต `docs/README.md`, `docs/team.md` (สะท้อนการทำงานร่วมกับเจนนี่แทนทีม OpenCode เดิม) และ `AGENTS.md` ให้ตรงกับสถานะล่าสุด + แก้บั๊ก `storage._prune_order()` ให้เทสต์ Mint เขียว 100%
 
-### R1 — Platform Backend แยกขาดชัดเจน (`core/platform/`)
+### R1 — Platform Backend แยกขาดชัดเจน (`core/platform/`) ✅ เสร็จ (2026-11-23)
 - ยุบไฟล์เฉพาะ OS ที่กระจัดกระจาย (`desktop.py`, `panel.py`, `hotkeys.py`, `taskbar.py`, `launchers.py`, `win32.py`, `win32_com.py`) เป็นแพ็กเกจ `core/platform/`:
   - `base.py` — กำหนด interface กลาง (launcher, taskbar/pin, hotkey, reveal/open, icon source)
   - `linux/` — backend ของ Linux Mint (Cinnamon)

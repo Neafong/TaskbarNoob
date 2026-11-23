@@ -13,7 +13,7 @@ import subprocess
 
 from PySide6.QtCore import QAbstractNativeEventFilter, QObject
 
-from taskbargroups.core.win32 import (
+from taskbargroups.core.platform.win32.hotkey import (
     parse_hotkey_binding,
     register_hotkey,
     unregister_hotkey,

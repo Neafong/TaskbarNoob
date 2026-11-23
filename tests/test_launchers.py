@@ -1,4 +1,4 @@
-"""เทสต์ชั้น dispatch ข้าม OS (mock sys.platform — รันบน Linux ได้)."""
+"""เทสต์ชั้น dispatch ข้าม OS (`core.platform` — Linux / Windows, พับเก็บ macOS แล้ว)."""
 
 import sys
 import tempfile
@@ -6,8 +6,11 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from taskbargroups.core import launchers, macos, taskbar, win32
+from taskbargroups.core import platform
 from taskbargroups.core.models import Group
+from taskbargroups.core.platform import PinError, win32
+from taskbargroups.core.platform.win32 import lnk as win32_lnk
+from taskbargroups.core.platform.win32 import pin as win32_pin
 
 
 def _group() -> Group:
@@ -26,20 +29,25 @@ class FileNameTests(unittest.TestCase):
     def test_linux_desktop(self) -> None:
         with mock.patch.object(sys, "platform", "linux"):
             self.assertEqual(
-                launchers.launcher_file_name("My Game"), "taskbargroups-my-game.desktop"
+                platform.launcher_file_name("My Game"), "taskbargroups-my-game.desktop"
             )
 
     def test_windows_lnk(self) -> None:
         with mock.patch.object(sys, "platform", "win32"):
-            # ชื่อไฟล์ = ชื่อกลุ่ม เพราะ Windows เอาไปแสดงบน taskbar/Start
-            self.assertEqual(launchers.launcher_file_name("My Game"), "My Game.lnk")
+            self.assertEqual(platform.launcher_file_name("My Game"), "My Game.lnk")
 
-    def test_macos_command(self) -> None:
-        with mock.patch.object(sys, "platform", "darwin"):
-            self.assertEqual(
-                launchers.launcher_file_name("My Game"),
-                "taskbargroups-my-game.command",
-            )
+    def test_backend_capabilities(self) -> None:
+        linux = platform.get_backend("linux")
+        self.assertEqual(linux.name, "linux")
+        self.assertTrue(linux.supports_direct_pin)
+        self.assertTrue(linux.supports_cinnamon_hotkeys)
+        self.assertFalse(linux.supports_win_hotkeys)
+
+        win = platform.get_backend("win32")
+        self.assertEqual(win.name, "win32")
+        self.assertFalse(win.supports_direct_pin)
+        self.assertFalse(win.supports_cinnamon_hotkeys)
+        self.assertTrue(win.supports_win_hotkeys)
 
 
 class InstallRemoveTests(unittest.TestCase):
@@ -59,36 +67,24 @@ class InstallRemoveTests(unittest.TestCase):
                 return Path(link)
 
             with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
-                win32, "create_lnk", side_effect=fake_create
+                win32_lnk, "create_lnk", side_effect=fake_create
             ):
-                path = launchers.install_launcher(
+                path = platform.install_launcher(
                     _group(), store, "Game", target_dir=tmp
                 )
             self.assertTrue(str(path).endswith(".lnk"))
             self.assertIn('--open "Game"', created["arguments"])
-            # AUMID เฉพาะกลุ่ม — ไม่งั้นปุ่มบน taskbar จะซ้อนกัน
             self.assertEqual(created["aumid_value"], win32.aumid("Game"))
             with mock.patch.object(sys, "platform", "win32"):
-                self.assertTrue(launchers.remove_launcher("Game", target_dir=tmp))
-                self.assertFalse(launchers.remove_launcher("Game", target_dir=tmp))
-
-    def test_macos_install_roundtrip(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            store = _store(tmp)
-            with mock.patch.object(sys, "platform", "darwin"):
-                path = launchers.install_launcher(
-                    _group(), store, "Game", target_dir=tmp
-                )
-            self.assertTrue(str(path).endswith(".command"))
-            with mock.patch.object(sys, "platform", "darwin"):
-                self.assertTrue(launchers.remove_launcher("Game", target_dir=tmp))
+                self.assertTrue(platform.remove_launcher("Game", target_dir=tmp))
+                self.assertFalse(platform.remove_launcher("Game", target_dir=tmp))
 
 
 class TaskbarDispatchTests(unittest.TestCase):
     def test_linux_passthrough_empty(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             with mock.patch.object(sys, "platform", "linux"):
-                self.assertEqual(taskbar.pinned_desktop_ids(config_dir=tmp), set())
+                self.assertEqual(platform.pinned_desktop_ids(config_dir=tmp), set())
 
     def test_windows_pin_reveals_instead_of_copying(self) -> None:
         """Windows 11 ไม่ให้ปักเอง — ต้องเปิด Explorer ให้ผู้ใช้คลิกขวา/ลากวาง."""
@@ -98,15 +94,15 @@ class TaskbarDispatchTests(unittest.TestCase):
             shortcuts.mkdir()
             (shortcuts / "Game.lnk").write_bytes(b"lnk")
             with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
-                win32, "shortcuts_dir", return_value=shortcuts
-            ), mock.patch.object(win32, "taskbar_pinned_dir", return_value=pinned):
+                win32_lnk, "shortcuts_dir", return_value=shortcuts
+            ), mock.patch.object(win32_pin, "taskbar_pinned_dir", return_value=pinned):
                 calls: list = []
-                result = taskbar.pin_to_panel("Game.lnk", runner=calls.append)
+                result = platform.pin_to_panel("Game.lnk", runner=calls.append)
                 self.assertEqual(result, "taskbar-manual")
                 self.assertTrue(calls[0].startswith("explorer /select,"))
-                self.assertIn('"', calls[0])  # quote path ที่มีช่องว่าง
-                self.assertFalse(pinned.exists())  # ไม่ก๊อปไฟล์ปลอม
-                self.assertFalse(taskbar.is_pinned("Game.lnk"))
+                self.assertIn('"', calls[0])
+                self.assertFalse(pinned.exists())
+                self.assertFalse(platform.is_pinned("Game.lnk"))
 
     def test_windows_pinned_ids_match_aumid(self) -> None:
         """ระบุตัวตนจาก AUMID ไม่ใช่ชื่อไฟล์ — Windows เปลี่ยนชื่อให้ได้เอง."""
@@ -121,7 +117,6 @@ class TaskbarDispatchTests(unittest.TestCase):
                     '{"schema_version": 1, "name": "%s", "items": []}' % name,
                     encoding="utf-8",
                 )
-            # Windows เติม " (2)" เมื่อชนกับ .lnk ของแอปอื่น
             (pinned / "Game (2).lnk").write_bytes(b"x")
             (pinned / "someone-else.lnk").write_bytes(b"x")
             values = {
@@ -129,11 +124,11 @@ class TaskbarDispatchTests(unittest.TestCase):
                 "someone-else.lnk": "some.other.app",
             }
             with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
-                win32, "taskbar_pinned_dir", return_value=pinned
+                win32_pin, "taskbar_pinned_dir", return_value=pinned
             ), mock.patch.object(
-                win32, "read_lnk_aumid", side_effect=lambda p: values[Path(p).name]
+                win32_pin, "read_lnk_aumid", side_effect=lambda p: values[Path(p).name]
             ):
-                self.assertEqual(taskbar.pinned_desktop_ids(config), {"Game.lnk"})
+                self.assertEqual(platform.pinned_desktop_ids(config), {"Game.lnk"})
 
     def test_windows_unpin_reads_user_pinned_folder(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -142,7 +137,7 @@ class TaskbarDispatchTests(unittest.TestCase):
             pinned = Path(tmp) / "pinned"
             shortcuts.mkdir()
             pinned.mkdir()
-            (groups := config / "groups")
+            groups = config / "groups"
             (groups / "Game").mkdir(parents=True)
             (groups / "Game" / "group.json").write_text(
                 '{"schema_version": 1, "name": "Game", "items": []}',
@@ -150,62 +145,49 @@ class TaskbarDispatchTests(unittest.TestCase):
             )
             (pinned / "Game.lnk").write_bytes(b"lnk")
             with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
-                win32, "shortcuts_dir", return_value=shortcuts
-            ), mock.patch.object(win32, "taskbar_pinned_dir", return_value=pinned), mock.patch.object(
-                win32, "read_lnk_aumid", return_value=win32.aumid("Game")
+                win32_lnk, "shortcuts_dir", return_value=shortcuts
+            ), mock.patch.object(
+                win32_pin, "taskbar_pinned_dir", return_value=pinned
+            ), mock.patch.object(
+                win32_pin, "read_lnk_aumid", return_value=win32.aumid("Game")
             ):
-                self.assertTrue(taskbar.is_pinned("Game.lnk", config_dir=config))
-                self.assertTrue(taskbar.unpin_from_panel("Game.lnk"))
-                self.assertFalse(taskbar.is_pinned("Game.lnk", config_dir=config))
+                self.assertTrue(platform.is_pinned("Game.lnk", config_dir=config))
+                self.assertTrue(platform.unpin_from_panel("Game.lnk"))
+                self.assertFalse(platform.is_pinned("Game.lnk", config_dir=config))
 
     def test_windows_detects_stale_taskbar_label(self) -> None:
-        """เปลี่ยนชื่อกลุ่มแล้วป้ายบน taskbar แก้ไม่ได้ — ต้องเตือนผู้ใช้"""
+        """เปลี่ยนชื่อกลุ่มแล้วป้ายบน taskbar แก้ไม่ได้ — ต้องเตือนผู้ใช้."""
         with tempfile.TemporaryDirectory() as tmp:
             pinned = Path(tmp) / "pinned"
             pinned.mkdir()
-            (pinned / "Test.lnk").write_bytes(b"x")  # ชื่อไฟล์เก่า (จากตอนลากวาง)
+            (pinned / "Test.lnk").write_bytes(b"x")
             with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
-                win32, "taskbar_pinned_dir", return_value=pinned
+                win32_pin, "taskbar_pinned_dir", return_value=pinned
             ), mock.patch.object(
-                win32, "read_lnk_aumid", return_value=win32.aumid("Game")
+                win32_pin, "read_lnk_aumid", return_value=win32.aumid("Game")
             ):
-                self.assertTrue(taskbar.stale_pin_label("Game"))  # ชื่อไม่ตรง
+                self.assertTrue(platform.stale_pin_label("Game"))
 
         with tempfile.TemporaryDirectory() as tmp:
             pinned = Path(tmp) / "pinned"
             pinned.mkdir()
-            (pinned / "Game.lnk").write_bytes(b"x")  # ชื่อตรงแล้ว
+            (pinned / "Game.lnk").write_bytes(b"x")
             with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
-                win32, "taskbar_pinned_dir", return_value=pinned
+                win32_pin, "taskbar_pinned_dir", return_value=pinned
             ), mock.patch.object(
-                win32, "read_lnk_aumid", return_value=win32.aumid("Game")
+                win32_pin, "read_lnk_aumid", return_value=win32.aumid("Game")
             ):
-                self.assertFalse(taskbar.stale_pin_label("Game"))
+                self.assertFalse(platform.stale_pin_label("Game"))
 
     def test_windows_pin_missing_source_raises(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             shortcuts = Path(tmp) / "shortcuts"
             shortcuts.mkdir()
             with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
-                win32, "shortcuts_dir", return_value=shortcuts
+                win32_lnk, "shortcuts_dir", return_value=shortcuts
             ):
-                from taskbargroups.core.panel import PinError
-
                 with self.assertRaises(PinError):
-                    taskbar.pin_to_panel("Nope.lnk")
-
-    def test_macos_pin_roundtrip(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            target = Path(tmp) / "taskbargroups-game.command"
-            target.write_text("x")
-            with mock.patch.object(sys, "platform", "darwin"), mock.patch.object(
-                macos, "launchers_dir", return_value=Path(tmp)
-            ), mock.patch.object(macos, "pin_to_dock") as pin, mock.patch.object(
-                macos, "unpin_from_dock", return_value=True
-            ):
-                self.assertEqual(taskbar.pin_to_panel(target.name), "dock-pinned")
-                pin.assert_called_once()
-                self.assertTrue(taskbar.unpin_from_panel(target.name))
+                    platform.pin_to_panel("Nope.lnk")
 
 
 if __name__ == "__main__":

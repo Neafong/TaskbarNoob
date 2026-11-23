@@ -63,8 +63,8 @@ def _provider_icon(target: str) -> QIcon | None:
 
 def _lnk_icon_source(lnk: Path) -> tuple[str, int] | None:
     """หาไฟล์จริงที่เก็บไอคอนของ `.lnk` (IconLocation ถ้าตั้งเอง → ไม่งั้น Target)."""
-    from taskbargroups.core import win32 as core_win32
-    from taskbargroups.core import win32_com
+    from taskbargroups.core.platform import win32 as core_win32
+    from taskbargroups.core.platform.win32 import com as win32_com
 
     loc = win32_com.read_icon_location(lnk)
     if loc:
@@ -98,7 +98,7 @@ def _appsfolder_icon_png(aumid: str, dest: Path, size: int) -> Path | None:
     """สกัดไอคอนแอป MSIX/Store ผ่าน shell:AppsFolder\\<aumid> เป็น PNG."""
     import ctypes
     from ctypes import wintypes
-    from taskbargroups.core import win32_com
+    from taskbargroups.core.platform.win32 import com as win32_com
 
     hbm = win32_com.extract_appsfolder_hbitmap(aumid, size)
     if not hbm:
@@ -202,7 +202,7 @@ def list_dll_icons(dll_path: Path) -> list[tuple[int, QIcon]]:
 
 def _shell_icon_png(source: Path, dest: Path, size: int) -> Path | None:
     """สกัดไอคอนด้วย shell API ของ Windows (ความละเอียดสูง ไม่มี overlay ลูกศร)."""
-    from taskbargroups.core import win32_com
+    from taskbargroups.core.platform.win32 import com as win32_com
 
     icon_path, index = str(source), 0
     if source.suffix.lower() == ".lnk":
