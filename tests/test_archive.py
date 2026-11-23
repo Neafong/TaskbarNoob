@@ -4,9 +4,9 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from taskbargroups.core import archive
-from taskbargroups.core.models import Group, Shortcut
-from taskbargroups.core.storage import ConfigStore
+from taskbarnoob.core import archive
+from taskbarnoob.core.models import Group, Shortcut
+from taskbarnoob.core.storage import ConfigStore
 
 
 def make_store(root: str | Path) -> ConfigStore:

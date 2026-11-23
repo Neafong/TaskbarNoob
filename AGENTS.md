@@ -39,18 +39,20 @@
 - **GUI:** Qt/PySide6 (ข้าม OS Win/Linux) — ติดตั้งใน `.venv`
 - **Data:** JSON ต่อกลุ่ม (`group.json`, มี `schema_version`)
 - **สถาปัตยกรรม:** แยก `core/` (Python ล้วน ข้าม OS) ออกจาก `gui/` (Qt)
-- **config:** portable ใต้ `<app>/config/`, override ด้วย env `TASKBARGROUPS_CONFIG`
+- **config:** portable ใต้ `<app>/config/`, override ด้วย env `TASKBARNOOB_CONFIG` (รองรับ `TASKBARGROUPS_CONFIG` เก่า)
 - **hotkey:** gsettings ของ **Cinnamon** เท่านั้น
 
 ## สถานะปัจจุบัน
 - **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12):** repo `github.com/Neafong/TaskbarNoob` (Public) · GPL-3.0-or-later
 - **v0.2.0 ปล่อยขึ้น GitHub แล้ว (2026-11-23):** ครบทั้ง Linux Mint + Windows 11 (portable `TaskbarNoob.exe`, AUMID แยกต่อกลุ่ม/แอป, `.lnk` ผ่าน COM `IShellLinkW`, multi-res `.ico`, Hotkey Win32 + foreground focus + ย้ายคีย์ตามตอนเปลี่ยนชื่อ, ไอคอน MSIX/WindowsApps อัตโนมัติ, ตัวเลือกไอคอนระบบ 2 แหล่ง, Flyout เงามุมโค้ง)
   · โฟลเดอร์ใช้งานจริงบน Win: `D:\Portable\Tool\TaskbarNoob`
-- **งานปัจจุบัน (`v0.3.0` — Full Architecture Refactor บน Linux Mint):**
+- **งานปัจจุบัน (`v0.3.0` — Full Architecture Refactor บน Linux Mint — เสร็จครบ R0–R4!):**
   · ✅ **R0 เสร็จแล้ว (2026-11-23):** จัดระเบียบ `docs/` ลง `docs/archive/` + แก้บั๊ก `storage._prune_order()`
   · ✅ **R1 เสร็จแล้ว (2026-11-23):** แยก `core/platform/{base,linux,win32}` (แตก `win32.py` เป็น 6 โมดูลย่อย) + พับเก็บ `core/macos.py` + ลด `sys.platform` ใน `gui/`
-  · ✅ **R2 เสร็จแล้ว (2026-11-23):** แตก `gui/group_editor.py` → `icon_picker`/`shortcut_grid`/`shortcut_dialog`/`group_editor` และ `gui/main_window.py` → `group_list`/`app`/`main_window` → **367 เทสต์ ผ่าน 100% บน Mint (skipped=10 Windows-only)**
-  · **ถัดไป:** `R3` (icon pipeline เดียว + ตัวเลือกไอคอนแยกหมวด Mint + Steam icon resolver) → `R4` (เก็บกวาด + รีแบรนด์ `taskbargroups` → `taskbarnoob` พร้อม Auto-Migration + เครดิต `Noob & Jenny`) · ดู [`docs/roadmap.md`](docs/roadmap.md)
+  · ✅ **R2 เสร็จแล้ว (2026-11-23):** แตก `gui/group_editor.py` → `icon_picker`/`shortcut_grid`/`shortcut_dialog`/`group_editor` และ `gui/main_window.py` → `group_list`/`app`/`main_window`
+  · ✅ **R3 เสร็จแล้ว (2026-11-23):** แตก `core/icons/` (`cache`/`theme`/`appimage`/`steam`) + เลิก circular import ใน `gui/icons.py` + ตัวเลือกไอคอนแยกหมวดบน Mint (`categories`/`apps`/`all`) + Steam `steam://rungameid/<appid>` icon resolver ข้าม OS
+  · ✅ **R4 เสร็จแล้ว (2026-11-23):** ลบ dead code PowerShell + แยก `core/i18n/` + รีแบรนด์ภายใน `taskbargroups` → `taskbarnoob` พร้อม Auto-Migration (panel pins + Cinnamon hotkeys + env/XDG fallback + `.deb` Replaces/Conflicts) + เครดิต `Noob & Jenny` + bump `0.3.0` → **385 เทสต์ ผ่าน 100% บน Mint (skipped=10 Windows-only)**
+  · **ถัดไป:** ทดสอบ build AppImage/deb จริงบน Linux Mint แล้วค่อยทดสอบฝั่ง Windows 11 + ปล่อย Release `v0.3.0` · ดู [`docs/roadmap.md`](docs/roadmap.md)
 - **ยังเทสต์บนเครื่องนี้ไม่ได้:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่น (hotkey/pin = Cinnamon-only)
 
 ## หมายเหตุเทคนิคสำคัญ (แก้โค้ดตรงส่วนนี้ ต้องอ่านก่อน!)

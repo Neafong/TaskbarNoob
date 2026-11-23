@@ -1,6 +1,6 @@
 import unittest
 
-from taskbargroups.core.models import (
+from taskbarnoob.core.models import (
     ColorMode,
     Group,
     Shortcut,
@@ -68,7 +68,7 @@ class GroupTests(unittest.TestCase):
         self.assertIsNone(Group.from_dict({"show_labels": "yes"}).show_labels)
 
     def test_focus_scale_default_and_round_trip(self) -> None:
-        from taskbargroups.core.models import DEFAULT_FOCUS_SCALE
+        from taskbarnoob.core.models import DEFAULT_FOCUS_SCALE
 
         self.assertEqual(Group(name="G").focus_scale, DEFAULT_FOCUS_SCALE)
         group = Group(name="G", focus_scale=3.0)

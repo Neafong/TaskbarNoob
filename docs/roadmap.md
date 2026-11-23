@@ -91,7 +91,7 @@
   - **Linux Mint:** อ่าน `steam://rungameid/<appid>` จาก `.desktop` แล้ว fallback หาไอคอนใน `~/.local/share/Steam/appcache/librarycache/`
   - **Windows:** อ่าน `steam://rungameid/<appid>` จาก `.url` (กรณี `IconFile=` ว่าง/พัง) แล้วอ่าน `SteamPath` จาก Registry ไปดึงไอคอนจาก `appcache\librarycache\`
 
-### R4 — เก็บกวาด Dead Code, i18n และเทสต์
+### R4 — เก็บกวาด Dead Code, i18n และเทสต์ ✅ เสร็จ (2026-11-23)
 - ลบโค้ด/คอมเมนต์ PowerShell เก่าที่ไม่ได้ใช้งานจริงแล้วในฝั่ง Windows
 - พับเก็บ `core/macos.py` (และเทสต์/branch ที่อ้างถึง) ออกไปก่อนตามข้อตกลง
 - ปรับ `core/i18n.py` (582 บรรทัด) ให้ดูแลง่ายขึ้น (แยกตารางคำแปลออกจาก logic โหลดภาษา)

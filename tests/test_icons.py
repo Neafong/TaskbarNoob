@@ -4,8 +4,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from taskbargroups.core import icons
-from taskbargroups.core.storage import ConfigStore
+from taskbarnoob.core import icons
+from taskbarnoob.core.storage import ConfigStore
 
 
 class SafeStemTests(unittest.TestCase):
@@ -138,7 +138,7 @@ class AppImageTests(unittest.TestCase):
             )
             return subprocess.CompletedProcess(cmd, 0)
 
-        from taskbargroups.core.icons import appimage as appimage_mod
+        from taskbarnoob.core.icons import appimage as appimage_mod
 
         patches = (
             mock.patch.object(appimage_mod, "_appimage_cache_dir", return_value=cache),
@@ -150,7 +150,7 @@ class AppImageTests(unittest.TestCase):
         self.assertEqual(result.read_bytes(), b"real-icon")
 
     def test_extract_returns_none_when_extract_fails(self) -> None:
-        from taskbargroups.core.icons import appimage as appimage_mod
+        from taskbarnoob.core.icons import appimage as appimage_mod
 
         appimage = self._fake_appimage()
         with mock.patch.object(
@@ -159,7 +159,7 @@ class AppImageTests(unittest.TestCase):
             self.assertIsNone(icons.icon_from_appimage(appimage))
 
     def test_clean_env_strips_appimage_vars(self) -> None:
-        from taskbargroups.core.icons import appimage as appimage_mod
+        from taskbarnoob.core.icons import appimage as appimage_mod
 
         with mock.patch.dict(
             appimage_mod.os.environ,

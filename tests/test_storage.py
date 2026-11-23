@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from taskbargroups.core.models import Group, Shortcut
-from taskbargroups.core.storage import ConfigStore, StorageError, safe_dir_name
+from taskbarnoob.core.models import Group, Shortcut
+from taskbarnoob.core.storage import ConfigStore, StorageError, safe_dir_name
 
 
 class SafeDirNameTests(unittest.TestCase):

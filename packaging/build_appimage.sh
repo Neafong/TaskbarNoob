@@ -5,7 +5,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PY="$ROOT/.venv/bin/python"
-APP_ID="taskbargroups"
+APP_ID="taskbarnoob"
 BUILD="$ROOT/build"
 DIST="$ROOT/dist"
 APPDIR="$BUILD/${APP_ID}.AppDir"
@@ -36,9 +36,9 @@ rm -rf "$BUILD/pyinstaller"
   --noconfirm --clean \
   --name "$APP_ID" \
   --paths "$ROOT" \
-  --collect-submodules taskbargroups \
-  --add-data "$ICON:taskbargroups/assets" \
-  --add-data "$ROOT/packaging/assets/icons:taskbargroups/assets/icons" \
+  --collect-submodules taskbarnoob \
+  --add-data "$ICON:taskbarnoob/assets" \
+  --add-data "$ROOT/packaging/assets/icons:taskbarnoob/assets/icons" \
   --distpath "$BUILD/pyinstaller/dist" \
   --workpath "$BUILD/pyinstaller/build" \
   --specpath "$BUILD/pyinstaller" \

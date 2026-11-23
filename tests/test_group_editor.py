@@ -6,7 +6,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from taskbargroups.core.models import Group
+from taskbarnoob.core.models import Group
 
 try:
     from PySide6.QtCore import Qt
@@ -33,21 +33,21 @@ class GroupEditorUiTests(unittest.TestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self) -> None:
-        from taskbargroups.core.i18n import setup
-        from taskbargroups.gui.group_editor import GroupEditor
+        from taskbarnoob.core.i18n import setup
+        from taskbarnoob.gui.group_editor import GroupEditor
 
         setup("th")
         self._tmp = tempfile.TemporaryDirectory()
-        self._old_cfg = os.environ.get("TASKBARGROUPS_CONFIG")
-        os.environ["TASKBARGROUPS_CONFIG"] = self._tmp.name
+        self._old_cfg = os.environ.get("TASKBARNOOB_CONFIG")
+        os.environ["TASKBARNOOB_CONFIG"] = self._tmp.name
         self.editor = GroupEditor(None, None)
         self.editor.name_edit.setText("Test")
 
     def tearDown(self) -> None:
         if self._old_cfg is None:
-            os.environ.pop("TASKBARGROUPS_CONFIG", None)
+            os.environ.pop("TASKBARNOOB_CONFIG", None)
         else:
-            os.environ["TASKBARGROUPS_CONFIG"] = self._old_cfg
+            os.environ["TASKBARNOOB_CONFIG"] = self._old_cfg
         self._tmp.cleanup()
 
     def test_editor_builds(self) -> None:
@@ -90,14 +90,14 @@ class GroupEditorUiTests(unittest.TestCase):
         self.assertIs(self.editor.result_group().show_labels, True)
 
     def test_labels_checkbox_prefills_group_value(self) -> None:
-        from taskbargroups.gui.group_editor import GroupEditor
+        from taskbarnoob.gui.group_editor import GroupEditor
 
         editor = GroupEditor(None, None, group=Group(name="G", show_labels=True))
         self.assertTrue(editor.labels_check.isChecked())
 
     def test_labels_checkbox_prefills_app_default(self) -> None:
-        from taskbargroups.core.settings import Settings
-        from taskbargroups.gui.group_editor import GroupEditor
+        from taskbarnoob.core.settings import Settings
+        from taskbarnoob.gui.group_editor import GroupEditor
 
         Settings(self._tmp.name).set_flyout_labels(True)
         editor = GroupEditor(None, None)
@@ -114,7 +114,7 @@ class SystemIconDialogTests(unittest.TestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def test_scans_some_icons(self) -> None:
-        from taskbargroups.gui.group_editor import _SystemIconDialog
+        from taskbarnoob.gui.group_editor import _SystemIconDialog
 
         dialog = _SystemIconDialog()
         self.assertGreater(len(dialog._names), 0)
@@ -122,7 +122,7 @@ class SystemIconDialogTests(unittest.TestCase):
         dialog.close()
 
     def test_search_filters(self) -> None:
-        from taskbargroups.gui.group_editor import _SystemIconDialog
+        from taskbarnoob.gui.group_editor import _SystemIconDialog
 
         dialog = _SystemIconDialog()
         dialog.search.setText("firefox")
@@ -131,7 +131,7 @@ class SystemIconDialogTests(unittest.TestCase):
         dialog.close()
 
     def test_names_lowercased_filter_works(self) -> None:
-        from taskbargroups.gui.group_editor import _SystemIconDialog
+        from taskbarnoob.gui.group_editor import _SystemIconDialog
 
         dialog = _SystemIconDialog()
         dialog.search.setText("FIREFOX")
@@ -158,7 +158,7 @@ class WindowsProviderIconTests(unittest.TestCase):
     def _display_dialog(self):
         from unittest import mock
 
-        from taskbargroups.gui import group_editor
+        from taskbarnoob.gui import group_editor
 
         with mock.patch.object(group_editor._SystemIconDialog, "_scan"):
             return group_editor._SystemIconDialog()
@@ -166,7 +166,7 @@ class WindowsProviderIconTests(unittest.TestCase):
     def test_scan_windows_populates_from_start_menu(self) -> None:
         from unittest import mock
 
-        from taskbargroups.gui import icon_picker
+        from taskbarnoob.gui import icon_picker
 
         menu = os.path.join(self._tmp.name, "menu")
         sub = os.path.join(menu, "sub")
@@ -192,7 +192,7 @@ class WindowsProviderIconTests(unittest.TestCase):
     def test_scan_windows_filters_noise_shortcuts(self) -> None:
         from unittest import mock
 
-        from taskbargroups.gui import icon_picker
+        from taskbarnoob.gui import icon_picker
 
         menu = os.path.join(self._tmp.name, "menu")
         os.makedirs(menu)
@@ -222,7 +222,7 @@ class WindowsProviderIconTests(unittest.TestCase):
 
         from PySide6.QtGui import QIcon, QPixmap
 
-        from taskbargroups.gui import icon_picker
+        from taskbarnoob.gui import icon_picker
 
         fake_dll = Path(self._tmp.name) / "imageres.dll"
         fake_dll.write_bytes(b"")
@@ -249,7 +249,7 @@ class WindowsProviderIconTests(unittest.TestCase):
     def test_windows_shortcut_dirs_uses_env(self) -> None:
         from unittest import mock
 
-        from taskbargroups.gui import group_editor
+        from taskbarnoob.gui import group_editor
 
         root = os.path.join(self._tmp.name, "appdata")
         menu = os.path.join(root, "Microsoft", "Windows", "Start Menu", "Programs")
@@ -261,7 +261,7 @@ class WindowsProviderIconTests(unittest.TestCase):
         self.assertIn(Path(menu), dirs)
 
     def test_iter_windows_shortcuts_dedups_by_name(self) -> None:
-        from taskbargroups.gui import group_editor
+        from taskbarnoob.gui import group_editor
 
         a = os.path.join(self._tmp.name, "a")
         b = os.path.join(self._tmp.name, "b")
@@ -277,7 +277,7 @@ class WindowsProviderIconTests(unittest.TestCase):
     def test_cached_provider_png_reuses_fresh_cache(self) -> None:
         from unittest import mock
 
-        from taskbargroups.gui import icons as gui_icons
+        from taskbarnoob.gui import icons as gui_icons
 
         source = Path(self._tmp.name) / "app.exe"
         source.write_bytes(b"x")
@@ -300,7 +300,7 @@ class WindowsProviderIconTests(unittest.TestCase):
         import sys
         from unittest import mock
 
-        from taskbargroups.gui import icon_picker
+        from taskbarnoob.gui import icon_picker
 
         if sys.platform == "win32":
             self.skipTest("Linux categorized icon picker test")
@@ -327,7 +327,7 @@ class WindowsProviderIconTests(unittest.TestCase):
             dlg.close()
 
     def test_gui_icons_has_no_circular_import_to_group_editor(self) -> None:
-        from taskbargroups.gui import icons as gui_icons
+        from taskbarnoob.gui import icons as gui_icons
 
         src = Path(gui_icons.__file__).read_text(encoding="utf-8")
         self.assertNotIn("group_editor", src)
@@ -336,7 +336,7 @@ class WindowsProviderIconTests(unittest.TestCase):
     def test_auto_icon_uses_provider_for_exe(self) -> None:
         from unittest import mock
 
-        from taskbargroups.gui import shortcut_dialog
+        from taskbarnoob.gui import shortcut_dialog
 
         target = Path(self._tmp.name) / "app.exe"
         target.write_bytes(b"x")
@@ -363,7 +363,7 @@ class WindowsProviderIconTests(unittest.TestCase):
         """shell API ต้องได้ความละเอียดสูง (>=128px) — QFileIconProvider เดิมได้แค่ 128 แล้ว."""
         from PySide6.QtGui import QImage
 
-        from taskbargroups.gui.icons import extract_os_icon_png
+        from taskbarnoob.gui.icons import extract_os_icon_png
 
         dest = Path(self._tmp.name) / "icon.png"
         result = extract_os_icon_png(Path(sys.executable), dest)
@@ -378,8 +378,8 @@ class WindowsProviderIconTests(unittest.TestCase):
         (ไม่มี overlay ลูกศร shortcut ปนมา)."""
         from PySide6.QtGui import QImage
 
-        from taskbargroups.core.platform.win32 import com as win32_com
-        from taskbargroups.gui.icons import extract_os_icon_png
+        from taskbarnoob.core.platform.win32 import com as win32_com
+        from taskbarnoob.gui.icons import extract_os_icon_png
 
         with tempfile.TemporaryDirectory() as tmp:
             lnk = Path(tmp) / "Py.lnk"
@@ -394,7 +394,7 @@ class WindowsProviderIconTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
     def test_extract_missing_returns_none(self) -> None:
-        from taskbargroups.gui.icons import extract_os_icon_png
+        from taskbarnoob.gui.icons import extract_os_icon_png
 
         result = extract_os_icon_png(
             Path(self._tmp.name) / "ghost.exe", Path(self._tmp.name) / "x.png"

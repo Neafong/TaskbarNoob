@@ -53,7 +53,7 @@ def render(size: int = 256) -> QImage:
 
 
 def main() -> int:
-    out = sys.argv[1] if len(sys.argv) > 1 else "packaging/appimage/taskbargroups.png"
+    out = sys.argv[1] if len(sys.argv) > 1 else "packaging/appimage/taskbarnoob.png"
     size = int(sys.argv[2]) if len(sys.argv) > 2 else 256
     image = render(size)
     if not image.save(out, "PNG"):

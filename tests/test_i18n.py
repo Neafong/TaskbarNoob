@@ -4,9 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from taskbargroups.core import i18n
-from taskbargroups.core.i18n import setup
-from taskbargroups.core.settings import Settings
+from taskbarnoob.core import i18n
+from taskbarnoob.core.i18n import setup
+from taskbarnoob.core.settings import Settings
 
 QAPP = None
 
@@ -146,7 +146,7 @@ class I18nGuiTests(unittest.TestCase):
     def test_english_editor_button_text(self) -> None:
         from PySide6.QtWidgets import QLabel, QPushButton
 
-        from taskbargroups.gui.group_editor import GroupEditor
+        from taskbarnoob.gui.group_editor import GroupEditor
 
         setup("en", self._tmp.name)
         editor = GroupEditor(None, None)
@@ -159,7 +159,7 @@ class I18nGuiTests(unittest.TestCase):
     def test_user_language_editor_button_text(self) -> None:
         from PySide6.QtWidgets import QPushButton
 
-        from taskbargroups.gui.group_editor import GroupEditor
+        from taskbarnoob.gui.group_editor import GroupEditor
 
         lang = Path(self._tmp.name) / "lang"
         lang.mkdir()

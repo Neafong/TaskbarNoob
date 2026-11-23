@@ -12,9 +12,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from taskbargroups.core.platform import win32
-from taskbargroups.core.platform.win32 import lnk as win32_lnk
-from taskbargroups.core.platform.win32 import pin as win32_pin
+from taskbarnoob.core.platform import win32
+from taskbarnoob.core.platform.win32 import lnk as win32_lnk
+from taskbarnoob.core.platform.win32 import pin as win32_pin
 
 
 class LnkNameTests(unittest.TestCase):
@@ -24,7 +24,7 @@ class LnkNameTests(unittest.TestCase):
         self.assertEqual(win32.launcher_id("My Game"), "My Game")
 
     def test_aumid_is_per_group(self) -> None:
-        self.assertEqual(win32.aumid("Game"), "taskbargroups.group.game")
+        self.assertEqual(win32.aumid("Game"), "taskbarnoob.group.game")
         self.assertNotEqual(win32.aumid("Game"), win32.aumid("Production"))
 
 
@@ -221,13 +221,6 @@ class PngToIcoTests(unittest.TestCase):
         crc = b"\x00\x00\x00\x00"
         return sig + ihdr + crc
 
-    def test_script_uses_system_drawing(self) -> None:
-        script = win32.build_png_to_ico_ps_script("C:\\a\\b.png", "C:\\a\\b.ico")
-        self.assertIn("System.Drawing", script)
-        self.assertIn("$icon.Save($fs)", script)
-        self.assertIn("b.png", script)
-        self.assertIn("b.ico", script)
-
     def test_converts_png_in_ico(self) -> None:
         """PNG-in-ICO: header ถูก + PNG bytes ถูกฝังตรงๆ (lossless)."""
         with tempfile.TemporaryDirectory() as tmp:
@@ -336,7 +329,7 @@ class ComLnkTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
     def test_roundtrip_keeps_target_and_aumid(self) -> None:
-        from taskbargroups.core.platform.win32 import com as win32_com
+        from taskbarnoob.core.platform.win32 import com as win32_com
 
         with tempfile.TemporaryDirectory() as tmp:
             link = Path(tmp) / "Game.lnk"
@@ -354,7 +347,7 @@ class ComLnkTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
     def test_write_without_aumid_is_allowed(self) -> None:
-        from taskbargroups.core.platform.win32 import com as win32_com
+        from taskbarnoob.core.platform.win32 import com as win32_com
 
         with tempfile.TemporaryDirectory() as tmp:
             link = Path(tmp) / "Plain.lnk"
@@ -365,7 +358,7 @@ class ComLnkTests(unittest.TestCase):
     @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
     def test_read_icon_location_roundtrip(self) -> None:
         """IconLocation ต้องอ่านกลับได้ — ใช้ resolve ไอคอนจริงของ .lnk."""
-        from taskbargroups.core.platform.win32 import com as win32_com
+        from taskbarnoob.core.platform.win32 import com as win32_com
 
         with tempfile.TemporaryDirectory() as tmp:
             link = Path(tmp) / "Game.lnk"
@@ -380,7 +373,7 @@ class ComLnkTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
     def test_read_icon_location_empty_is_none(self) -> None:
-        from taskbargroups.core.platform.win32 import com as win32_com
+        from taskbarnoob.core.platform.win32 import com as win32_com
 
         with tempfile.TemporaryDirectory() as tmp:
             link = Path(tmp) / "Plain.lnk"
@@ -392,7 +385,7 @@ class ComLnkTests(unittest.TestCase):
         """กัน GUID พิมพ์ผิด (เคยพังเพราะขาดเลขฐาน 16 ไป 1 ตัว)."""
         import uuid
 
-        from taskbargroups.core.platform.win32 import com as win32_com
+        from taskbarnoob.core.platform.win32 import com as win32_com
 
         for value in (
             win32_com.CLSID_SHELL_LINK,
@@ -405,7 +398,7 @@ class ComLnkTests(unittest.TestCase):
             uuid.UUID(value)  # จะ raise ถ้าผิดรูป
 
     def test_write_outside_windows_raises(self) -> None:
-        from taskbargroups.core.platform.win32 import com as win32_com
+        from taskbarnoob.core.platform.win32 import com as win32_com
 
         with mock.patch.object(sys, "platform", "linux"), self.assertRaises(
             win32_com.ComError
@@ -439,24 +432,24 @@ class HotkeyParseTests(unittest.TestCase):
 
 class RegistryTests(unittest.TestCase):
     def test_register_unregister_find(self) -> None:
-        from taskbargroups.gui import win32_hotkey
+        from taskbarnoob.gui import win32_hotkey
 
         registry = win32_hotkey.HotkeyRegistry()
         with mock.patch.object(
             win32_hotkey, "register_hotkey"
         ) as reg, mock.patch.object(win32_hotkey, "unregister_hotkey") as unreg:
-            registry.register_slot("taskbargroups-game", "Game", "<Control><Alt>g", 1234)
+            registry.register_slot("taskbarnoob-game", "Game", "<Control><Alt>g", 1234)
             reg.assert_called_once()
             args = reg.call_args[0]
             self.assertEqual(args[1], 1234)  # hwnd
             self.assertEqual(registry.find_dir(args[0]), "Game")
-            self.assertTrue(registry.unregister_slot("taskbargroups-game", 1234))
+            self.assertTrue(registry.unregister_slot("taskbarnoob-game", 1234))
             unreg.assert_called_once()
             self.assertIsNone(registry.find_dir(args[0]))
-            self.assertFalse(registry.unregister_slot("taskbargroups-game", 1234))
+            self.assertFalse(registry.unregister_slot("taskbarnoob-game", 1234))
 
     def test_invalid_binding_raises_before_register(self) -> None:
-        from taskbargroups.gui import win32_hotkey
+        from taskbarnoob.gui import win32_hotkey
 
         registry = win32_hotkey.HotkeyRegistry()
         with mock.patch.object(win32_hotkey, "register_hotkey") as reg:
@@ -466,11 +459,11 @@ class RegistryTests(unittest.TestCase):
 
     def test_filter_spawns_center_flyout_on_wm_hotkey(self) -> None:
         import ctypes
-        from taskbargroups.gui import win32_hotkey
+        from taskbarnoob.gui import win32_hotkey
 
         registry = win32_hotkey.HotkeyRegistry()
         with mock.patch.object(win32_hotkey, "register_hotkey"):
-            registry.register_slot("taskbargroups-game", "Game", "<Control><Alt>g", 100)
+            registry.register_slot("taskbarnoob-game", "Game", "<Control><Alt>g", 100)
         msg = win32_hotkey._MSG(
             hwnd=100,
             message=win32_hotkey.WM_HOTKEY,
@@ -503,7 +496,7 @@ class AppExecLinkTests(unittest.TestCase):
         return struct.pack("<IHH", tag, len(body), 0) + body
 
     def test_parse_valid_app_exec_link(self) -> None:
-        from taskbargroups.core.platform.win32 import com as win32_com
+        from taskbarnoob.core.platform.win32 import com as win32_com
 
         buf = self._build_reparse(
             "Canva.Affinity_8a0j1tnjnt4a4",
@@ -519,15 +512,15 @@ class AppExecLinkTests(unittest.TestCase):
         )
 
     def test_parse_rejects_wrong_tag_or_short_data(self) -> None:
-        from taskbargroups.core.platform.win32 import com as win32_com
+        from taskbarnoob.core.platform.win32 import com as win32_com
 
         self.assertIsNone(win32_com.parse_app_exec_link_reparse(b"short"))
         bad_tag = self._build_reparse("pkg", "pkg!App", tag=0xA000000C)
         self.assertIsNone(win32_com.parse_app_exec_link_reparse(bad_tag))
 
     def test_shell_icon_uses_appsfolder_for_msix_alias(self) -> None:
-        from taskbargroups.core.platform.win32 import com as win32_com
-        from taskbargroups.gui import icons as gui_icons
+        from taskbarnoob.core.platform.win32 import com as win32_com
+        from taskbarnoob.gui import icons as gui_icons
 
         with tempfile.TemporaryDirectory() as tmp:
             fake_alias = Path(tmp) / "Affinity.exe"

@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from taskbargroups.core.platform.linux.desktop import (
+from taskbarnoob.core.platform.linux.desktop import (
     build_desktop_entry,
     build_exec,
     desktop_file_name,
@@ -16,9 +16,9 @@ from taskbargroups.core.platform.linux.desktop import (
     remove_launcher_icon,
     shortcut_from_path,
 )
-from taskbargroups.core.models import Group, Shortcut
-from taskbargroups.core.paths import app_dir
-from taskbargroups.core.storage import ConfigStore
+from taskbarnoob.core.models import Group, Shortcut
+from taskbarnoob.core.paths import app_dir
+from taskbarnoob.core.storage import ConfigStore
 
 
 class DesktopTests(unittest.TestCase):
@@ -32,7 +32,7 @@ class DesktopTests(unittest.TestCase):
         self._tmp.cleanup()
 
     def test_file_name_slug(self) -> None:
-        self.assertEqual(desktop_file_name("My Group"), "taskbargroups-my-group.desktop")
+        self.assertEqual(desktop_file_name("My Group"), "taskbarnoob-my-group.desktop")
 
     def test_build_exec_quotes_group(self) -> None:
         self.assertIn('--open "My Group"', build_exec("My Group", python="/usr/bin/python3"))
@@ -86,15 +86,15 @@ class DesktopTests(unittest.TestCase):
         )
 
     def test_launcher_id_matches_desktop_name(self) -> None:
-        self.assertEqual(launcher_id("My Group"), "taskbargroups-my-group")
+        self.assertEqual(launcher_id("My Group"), "taskbarnoob-my-group")
 
     def test_install_launcher_icon_svg_uses_scalable(self) -> None:
         source = Path(self._tmp.name) / "icon.svg"
         source.write_text("<svg/>", encoding="utf-8")
         name = install_launcher_icon("Tools", source, icons_root=self.icons)
-        self.assertEqual(name, "taskbargroups-tools")
+        self.assertEqual(name, "taskbarnoob-tools")
         dest = (
-            self.icons / "hicolor" / "scalable" / "apps" / "taskbargroups-tools.svg"
+            self.icons / "hicolor" / "scalable" / "apps" / "taskbarnoob-tools.svg"
         )
         self.assertTrue(dest.is_file())
 
@@ -103,7 +103,7 @@ class DesktopTests(unittest.TestCase):
         source.write_bytes(b"png")
         install_launcher_icon("Tools", source, icons_root=self.icons)
         dest = (
-            self.icons / "hicolor" / "256x256" / "apps" / "taskbargroups-tools.png"
+            self.icons / "hicolor" / "256x256" / "apps" / "taskbarnoob-tools.png"
         )
         self.assertTrue(dest.is_file())
         self.assertTrue(remove_launcher_icon("Tools", icons_root=self.icons))
@@ -119,7 +119,7 @@ class DesktopTests(unittest.TestCase):
             group, self.store, "Tools", target_dir=self.data, icons_root=self.icons
         )
         entry = path.read_text(encoding="utf-8")
-        self.assertIn("Icon=taskbargroups-tools", entry)
+        self.assertIn("Icon=taskbarnoob-tools", entry)
         self.assertNotIn(str(self.icons), entry)
 
     def test_no_group_icon_falls_back_to_themed(self) -> None:

@@ -1,8 +1,8 @@
 import unittest
 from unittest import mock
 
-from taskbargroups.core.platform.linux import hotkeys
-from taskbargroups.core.platform.linux.hotkeys import (
+from taskbarnoob.core.platform.linux import hotkeys
+from taskbarnoob.core.platform.linux.hotkeys import (
     HotkeyError,
     cinnamon_to_display,
     group_hotkeys,
@@ -134,8 +134,8 @@ class RegisterTests(unittest.TestCase):
 
 class BindingTests(unittest.TestCase):
     def test_hotkey_slot_slug(self) -> None:
-        self.assertEqual(hotkey_slot("My Group"), "taskbargroups-my-group")
-        self.assertEqual(hotkey_slot("Game"), "taskbargroups-game")
+        self.assertEqual(hotkey_slot("My Group"), "taskbarnoob-my-group")
+        self.assertEqual(hotkey_slot("Game"), "taskbarnoob-game")
 
     def test_parse_binding_strips_quotes(self) -> None:
         self.assertEqual(parse_binding("'<Control><Alt>t'"), "<Control><Alt>t")
@@ -160,16 +160,16 @@ class BindingTests(unittest.TestCase):
     def test_group_hotkeys_reads_registered(self) -> None:
         def runner(command):
             if list(command) == list_command():
-                return "['taskbargroups-game', 'other']"
-            if "taskbargroups-game" in command[2]:
+                return "['taskbarnoob-game', 'other']"
+            if "taskbarnoob-game" in command[2]:
                 return "['<Control><Alt>g']"
             return "@as []"
 
         with mock.patch.object(hotkeys, "is_cinnamon", return_value=True):
             result = group_hotkeys(
-                ["taskbargroups-game", "taskbargroups-tool"], runner=runner
+                ["taskbarnoob-game", "taskbarnoob-tool"], runner=runner
             )
-        self.assertEqual(result, {"taskbargroups-game": "<Control><Alt>g"})
+        self.assertEqual(result, {"taskbarnoob-game": "<Control><Alt>g"})
 
 
 if __name__ == "__main__":

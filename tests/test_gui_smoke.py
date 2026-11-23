@@ -14,8 +14,8 @@ try:
 except ImportError:
     HAVE_QT = False
 
-from taskbargroups.core.models import ColorMode, Group, Shortcut
-from taskbargroups.core.storage import ConfigStore
+from taskbarnoob.core.models import ColorMode, Group, Shortcut
+from taskbarnoob.core.storage import ConfigStore
 
 
 @unittest.skipUnless(HAVE_QT, "PySide6 not installed")
@@ -34,13 +34,13 @@ class GuiSmokeTests(unittest.TestCase):
         self._tmp.cleanup()
 
     def test_main_window_first_run_empty(self) -> None:
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.gui.main_window import MainWindow
 
         window = MainWindow(store=self.store)
         self.assertEqual(window.list.count(), 0)
 
     def test_main_window_lists_groups(self) -> None:
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.gui.main_window import MainWindow
 
         self.store.save_group(
             Group(name="G", items=[Shortcut(name="a", target="/bin/true")])
@@ -49,7 +49,7 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertEqual(window.list.count(), 1)
 
     def test_editor_result_group(self) -> None:
-        from taskbargroups.gui.group_editor import GroupEditor
+        from taskbarnoob.gui.group_editor import GroupEditor
 
         editor = GroupEditor(self.store)
         editor.name_edit.setText("My Group")
@@ -70,7 +70,7 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertEqual(group.validate(), [])
 
     def test_editor_hex_field_syncs_custom_color(self) -> None:
-        from taskbargroups.gui.group_editor import GroupEditor
+        from taskbarnoob.gui.group_editor import GroupEditor
 
         editor = GroupEditor(self.store)
         editor.color_combo.setCurrentIndex(
@@ -85,7 +85,7 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertEqual(editor.color_hex.text(), "#aabbcc")
 
     def test_editor_swatch_toggles_with_color_mode(self) -> None:
-        from taskbargroups.gui.group_editor import GroupEditor
+        from taskbarnoob.gui.group_editor import GroupEditor
 
         editor = GroupEditor(self.store)
         editor.color_combo.setCurrentIndex(
@@ -100,7 +100,7 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertTrue(editor.color_hex.isEnabled())
 
     def test_flyout_builds_buttons(self) -> None:
-        from taskbargroups.gui.flyout import FlyoutWindow
+        from taskbarnoob.gui.flyout import FlyoutWindow
 
         group = Group(
             name="G",
@@ -115,14 +115,14 @@ class GuiSmokeTests(unittest.TestCase):
     def test_flyout_has_no_open_all_button(self) -> None:
         from PySide6.QtWidgets import QPushButton
 
-        from taskbargroups.gui.flyout import FlyoutWindow
+        from taskbarnoob.gui.flyout import FlyoutWindow
 
         group = Group(name="G", allow_open_all=True)
         flyout = FlyoutWindow(group, self.store, "G")
         self.assertIsNone(flyout.findChild(QPushButton, "openAllButton"))
 
     def test_shortcut_dialog_keeps_icon_and_source(self) -> None:
-        from taskbargroups.gui.group_editor import ShortcutDialog
+        from taskbarnoob.gui.group_editor import ShortcutDialog
 
         dialog = ShortcutDialog(
             shortcut=Shortcut(name="a", target="/bin/true", icon="icons/a.png")
@@ -134,12 +134,12 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertEqual(dialog.result_shortcut().icon, "icons/a.png")
 
     def test_hotkey_dialog_saves_focus_scale(self) -> None:
-        from taskbargroups.gui.hotkey_dialog import HotkeyDialog
+        from taskbarnoob.gui.hotkey_dialog import HotkeyDialog
 
         group = Group(name="G", items=[Shortcut(name="a", target="/bin/true")])
         self.store.save_group(group)
         dialog = HotkeyDialog(group, self.store, "G")
-        from taskbargroups.core.models import DEFAULT_FOCUS_SCALE, MIN_FOCUS_SCALE
+        from taskbarnoob.core.models import DEFAULT_FOCUS_SCALE, MIN_FOCUS_SCALE
 
         expected_default = int(round(DEFAULT_FOCUS_SCALE * 10))
         expected_min = int(round(MIN_FOCUS_SCALE * 10))
@@ -153,7 +153,7 @@ class GuiSmokeTests(unittest.TestCase):
         self.app.processEvents()
 
     def test_editor_pending_icons_tracks_live_items(self) -> None:
-        from taskbargroups.gui.group_editor import GroupEditor
+        from taskbarnoob.gui.group_editor import GroupEditor
 
         editor = GroupEditor(self.store, group=Group(name="G"))
         shortcut = Shortcut(name="a", target="/bin/true")
@@ -164,7 +164,7 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertEqual(editor.pending_icons(), {})
 
     def test_cache_shortcut_icons_caches_resolvable_target(self) -> None:
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.gui.main_window import MainWindow
 
         image = Path(self._tmp.name) / "logo.png"
         image.write_bytes(b"png")
@@ -185,7 +185,7 @@ class GuiSmokeTests(unittest.TestCase):
     def test_editor_grid_accepts_dropped_file(self) -> None:
         from PySide6.QtCore import QUrl
 
-        from taskbargroups.gui.group_editor import GroupEditor
+        from taskbarnoob.gui.group_editor import GroupEditor
 
         editor = GroupEditor(self.store, group=Group(name="G"))
         target = Path(self._tmp.name) / "tool.bin"
@@ -198,9 +198,9 @@ class GuiSmokeTests(unittest.TestCase):
     def test_main_window_marks_pinned_rows(self) -> None:
         from unittest import mock
 
-        from taskbargroups.core.platform.linux.desktop import desktop_file_name
-        from taskbargroups.gui import main_window
-        from taskbargroups.gui.main_window import PINNED_ROLE, MainWindow
+        from taskbarnoob.core.platform.linux.desktop import desktop_file_name
+        from taskbarnoob.gui import main_window
+        from taskbarnoob.gui.main_window import PINNED_ROLE, MainWindow
 
         self.store.save_group(Group(name="G", items=[]))
         pinned = {desktop_file_name("G")}
@@ -212,9 +212,9 @@ class GuiSmokeTests(unittest.TestCase):
     def test_refresh_pinned_icon_regenerates_launcher(self) -> None:
         from unittest import mock
 
-        from taskbargroups.core.platform.linux.desktop import desktop_file_name
-        from taskbargroups.gui import main_window
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.core.platform.linux.desktop import desktop_file_name
+        from taskbarnoob.gui import main_window
+        from taskbarnoob.gui.main_window import MainWindow
 
         old_png = Path(self._tmp.name) / "old.png"
         new_svg = Path(self._tmp.name) / "new.svg"
@@ -246,7 +246,7 @@ class GuiSmokeTests(unittest.TestCase):
         )
         self.assertTrue(desktop_path.is_file())
         content = desktop_path.read_text(encoding="utf-8")
-        self.assertIn("Icon=taskbargroups-g", content)
+        self.assertIn("Icon=taskbarnoob-g", content)
         self.assertNotIn(str(old_icon), content)
         theme_icon = (
             Path(self._tmp.name)
@@ -254,7 +254,7 @@ class GuiSmokeTests(unittest.TestCase):
             / "hicolor"
             / "scalable"
             / "apps"
-            / "taskbargroups-g.svg"
+            / "taskbarnoob-g.svg"
         )
         self.assertTrue(theme_icon.is_file())
         reload_mock.assert_called_once()
@@ -265,10 +265,10 @@ class GuiSmokeTests(unittest.TestCase):
         เปลี่ยนไม่อัพเดท จนผู้ใช้ต้องมานั่งลบไฟล์เอง."""
         from unittest import mock
 
-        from taskbargroups.core.platform import win32 as core_win32
-        from taskbargroups.core.platform.win32 import ico as win32_ico
-        from taskbargroups.gui import main_window
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.core.platform import win32 as core_win32
+        from taskbarnoob.core.platform.win32 import ico as win32_ico
+        from taskbarnoob.gui import main_window
+        from taskbarnoob.gui.main_window import MainWindow
 
         self.store.save_group(Group(name="G"))
         group = self.store.load_group("G")
@@ -295,8 +295,8 @@ class GuiSmokeTests(unittest.TestCase):
     def test_refresh_pinned_icon_skips_when_not_pinned(self) -> None:
         from unittest import mock
 
-        from taskbargroups.gui import main_window
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.gui import main_window
+        from taskbarnoob.gui.main_window import MainWindow
 
         group = Group(name="G")
         with mock.patch.dict(
@@ -317,9 +317,9 @@ class GuiSmokeTests(unittest.TestCase):
     def test_sync_pinned_launchers_heals_absolute_icon(self) -> None:
         from unittest import mock
 
-        from taskbargroups.core.platform.linux.desktop import desktop_file_name, launcher_id
-        from taskbargroups.gui import main_window
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.core.platform.linux.desktop import desktop_file_name, launcher_id
+        from taskbarnoob.gui import main_window
+        from taskbarnoob.gui.main_window import MainWindow
 
         group = Group(name="G")
         icon_src = Path(self._tmp.name) / "icon.svg"
@@ -340,14 +340,14 @@ class GuiSmokeTests(unittest.TestCase):
             main_window, "reload_grouped_window_applet", return_value=True
         ) as reload_mock:
             MainWindow(store=self.store)
-        self.assertIn("Icon=taskbargroups-g", stale.read_text(encoding="utf-8"))
+        self.assertIn("Icon=taskbarnoob-g", stale.read_text(encoding="utf-8"))
         theme_icon = (
             Path(self._tmp.name)
             / "icons"
             / "hicolor"
             / "scalable"
             / "apps"
-            / "taskbargroups-g.svg"
+            / "taskbarnoob-g.svg"
         )
         self.assertTrue(theme_icon.is_file())
         reload_mock.assert_called_once()
@@ -355,15 +355,15 @@ class GuiSmokeTests(unittest.TestCase):
     def test_sync_pinned_launchers_skips_when_already_themed(self) -> None:
         from unittest import mock
 
-        from taskbargroups.core.platform.linux.desktop import desktop_file_name
-        from taskbargroups.gui import main_window
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.core.platform.linux.desktop import desktop_file_name
+        from taskbarnoob.gui import main_window
+        from taskbarnoob.gui.main_window import MainWindow
 
         self.store.save_group(Group(name="G"))
         apps = Path(self._tmp.name) / "applications"
         apps.mkdir()
         fresh = apps / desktop_file_name("G")
-        fresh.write_text("Icon=taskbargroups-g\n", encoding="utf-8")
+        fresh.write_text("Icon=taskbarnoob-g\n", encoding="utf-8")
         with mock.patch.dict(
             os.environ, {"XDG_DATA_HOME": self._tmp.name}, clear=False
         ), mock.patch.object(
@@ -381,7 +381,7 @@ class GuiSmokeTests(unittest.TestCase):
         from PySide6.QtTest import QTest
         from PySide6.QtWidgets import QListWidgetItem
 
-        from taskbargroups.gui.main_window import GroupListWidget
+        from taskbarnoob.gui.main_window import GroupListWidget
 
         widget = GroupListWidget()
         widget.resize(320, 140)
@@ -401,7 +401,7 @@ class GuiSmokeTests(unittest.TestCase):
     def test_status_color_is_theme_aware(self) -> None:
         from PySide6.QtGui import QColor, QPalette
 
-        from taskbargroups.gui.main_window import GroupListWidget
+        from taskbarnoob.gui.main_window import GroupListWidget
 
         widget = GroupListWidget()
         with mock.patch.object(sys, "platform", "linux"):
@@ -422,7 +422,7 @@ class GuiSmokeTests(unittest.TestCase):
 
     def test_windows_status_color_distinguishes_states(self) -> None:
         """ฝั่ง Windows ต้องแยกสีให้เห็นชัดตอนเปิดแอป (ไม่ต้อง hover)"""
-        from taskbargroups.gui.main_window import GroupListWidget
+        from taskbarnoob.gui.main_window import GroupListWidget
 
         widget = GroupListWidget()
         with mock.patch.object(sys, "platform", "win32"):
@@ -437,7 +437,7 @@ class GuiSmokeTests(unittest.TestCase):
         from PySide6.QtCore import QRect
         from PySide6.QtGui import QPainter, QPixmap
 
-        from taskbargroups.gui.main_window import GroupListWidget
+        from taskbarnoob.gui.main_window import GroupListWidget
 
         widget = GroupListWidget()
         pixmap = QPixmap(40, 30)
@@ -452,7 +452,7 @@ class GuiSmokeTests(unittest.TestCase):
         from PySide6.QtTest import QTest
         from PySide6.QtWidgets import QListWidgetItem
 
-        from taskbargroups.gui.main_window import GroupListWidget
+        from taskbarnoob.gui.main_window import GroupListWidget
 
         widget = GroupListWidget()
         widget.resize(320, 140)
@@ -476,7 +476,7 @@ class GuiSmokeTests(unittest.TestCase):
         from PySide6.QtCore import Qt
         from PySide6.QtWidgets import QListWidgetItem
 
-        from taskbargroups.gui.main_window import GroupListWidget
+        from taskbarnoob.gui.main_window import GroupListWidget
 
         widget = GroupListWidget()
         for name in names:
@@ -571,7 +571,7 @@ class GuiSmokeTests(unittest.TestCase):
     def test_editor_grid_drops_desktop_icon_source(self) -> None:
         from PySide6.QtCore import QUrl
 
-        from taskbargroups.gui.group_editor import GroupEditor
+        from taskbarnoob.gui.group_editor import GroupEditor
 
         image = Path(self._tmp.name) / "logo.png"
         image.write_bytes(b"png")
@@ -589,7 +589,7 @@ class GuiSmokeTests(unittest.TestCase):
         from PySide6.QtCore import Qt
         from PySide6.QtWidgets import QListWidgetItem
 
-        from taskbargroups.gui.group_editor import GroupEditor
+        from taskbarnoob.gui.group_editor import GroupEditor
 
         first = Shortcut(name="a", target="/bin/true")
         second = Shortcut(name="b", target="/bin/false")
@@ -609,7 +609,7 @@ class GuiSmokeTests(unittest.TestCase):
         from PySide6.QtGui import QDropEvent
         from PySide6.QtWidgets import QListWidgetItem
 
-        from taskbargroups.gui.main_window import GroupListWidget
+        from taskbarnoob.gui.main_window import GroupListWidget
 
         widget = GroupListWidget()
         item = QListWidgetItem("G")
@@ -631,7 +631,7 @@ class GuiSmokeTests(unittest.TestCase):
     def test_main_window_saves_group_order_on_change(self) -> None:
         from PySide6.QtCore import Qt
 
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.gui.main_window import MainWindow
 
         self.store.save_group(Group(name="Alpha", items=[]))
         self.store.save_group(Group(name="Beta", items=[]))
@@ -645,7 +645,7 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertEqual(self.store.load_order(), ["Beta", "Alpha"])
 
     def test_group_context_menu_lists_actions(self) -> None:
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.gui.main_window import MainWindow
 
         self.store.save_group(Group(name="G"))
         window = MainWindow(store=self.store)
@@ -661,7 +661,7 @@ class GuiSmokeTests(unittest.TestCase):
         from PySide6.QtGui import QContextMenuEvent
         from PySide6.QtWidgets import QListWidgetItem
 
-        from taskbargroups.gui.main_window import GroupListWidget
+        from taskbarnoob.gui.main_window import GroupListWidget
 
         widget = GroupListWidget()
         widget.resize(320, 140)
@@ -684,7 +684,7 @@ class GuiSmokeTests(unittest.TestCase):
         from PySide6.QtCore import QPoint, Qt
         from PySide6.QtGui import QContextMenuEvent
 
-        from taskbargroups.gui.main_window import GroupListWidget
+        from taskbarnoob.gui.main_window import GroupListWidget
 
         widget = GroupListWidget()
         widget.resize(320, 140)
@@ -700,7 +700,7 @@ class GuiSmokeTests(unittest.TestCase):
         self.assertEqual(received, [])
 
     def test_main_window_duplicate_adds_row(self) -> None:
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.gui.main_window import MainWindow
 
         self.store.save_group(
             Group(name="G", items=[Shortcut(name="a", target="/bin/true")])
@@ -713,7 +713,7 @@ class GuiSmokeTests(unittest.TestCase):
     def test_hotkey_sequence_conversion(self) -> None:
         from PySide6.QtGui import QKeySequence
 
-        from taskbargroups.gui.hotkey_dialog import qt_sequence_to_cinnamon
+        from taskbarnoob.gui.hotkey_dialog import qt_sequence_to_cinnamon
 
         self.assertEqual(
             qt_sequence_to_cinnamon(QKeySequence("Ctrl+Shift+G")),
@@ -725,19 +725,19 @@ class GuiSmokeTests(unittest.TestCase):
     def test_about_dialog_credits(self) -> None:
         from PySide6.QtWidgets import QLabel
 
-        from taskbargroups.core.i18n import setup, tr
-        from taskbargroups.gui.about_dialog import AboutDialog
+        from taskbarnoob.core.i18n import setup, tr
+        from taskbarnoob.gui.about_dialog import AboutDialog
 
         setup("th")
         dialog = AboutDialog()
         self.assertEqual(dialog.windowTitle(), tr("about.title"))
         texts = [label.text() for label in dialog.findChildren(QLabel)]
-        self.assertTrue(any("นู๊บ" in t and "น้องพริก" in t for t in texts))
+        self.assertTrue(any("นู๊บ" in t and "เจนนี่" in t for t in texts))
 
     def test_about_donate_button(self) -> None:
         from PySide6.QtWidgets import QPushButton
 
-        from taskbargroups.gui.about_dialog import AboutDialog
+        from taskbarnoob.gui.about_dialog import AboutDialog
 
         with_donate = AboutDialog(donate_url="https://ko-fi.com/neafong")
         labels = [b.text() for b in with_donate.findChildren(QPushButton)]
@@ -757,9 +757,9 @@ class GuiSmokeTests(unittest.TestCase):
 
         from PySide6.QtWidgets import QMessageBox
 
-        from taskbargroups.core.platform.linux.desktop import desktop_file_name
-        from taskbargroups.gui import main_window
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.core.platform.linux.desktop import desktop_file_name
+        from taskbarnoob.gui import main_window
+        from taskbarnoob.gui.main_window import MainWindow
 
         group = Group(name="G")
         icon_src = Path(self._tmp.name) / "icon.svg"
@@ -769,7 +769,7 @@ class GuiSmokeTests(unittest.TestCase):
         desktop_id = desktop_file_name("G")
         icon_file = (
             Path(self._tmp.name) / "icons" / "hicolor" / "scalable" / "apps"
-            / "taskbargroups-g.svg"
+            / "taskbarnoob-g.svg"
         )
 
         with mock.patch.dict(
@@ -798,9 +798,9 @@ class GuiSmokeTests(unittest.TestCase):
     def test_rename_pinned_group_migrates_launcher(self) -> None:
         from unittest import mock
 
-        from taskbargroups.core.platform.linux.desktop import desktop_file_name
-        from taskbargroups.gui import main_window
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.core.platform.linux.desktop import desktop_file_name
+        from taskbarnoob.gui import main_window
+        from taskbarnoob.gui.main_window import MainWindow
 
         self.store.save_group(Group(name="Old"))
         old_id = desktop_file_name("Old")
@@ -842,8 +842,8 @@ class GuiSmokeTests(unittest.TestCase):
     def test_duplicate_group_name_gets_suffix(self) -> None:
         from unittest import mock
 
-        from taskbargroups.gui import main_window
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.gui import main_window
+        from taskbarnoob.gui.main_window import MainWindow
 
         self.store.save_group(Group(name="Work"))
 
@@ -867,8 +867,8 @@ class GuiSmokeTests(unittest.TestCase):
         info_mock.assert_called_once()
 
     def test_main_window_retranslate_switches_language(self) -> None:
-        from taskbargroups.core.i18n import setup
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.core.i18n import setup
+        from taskbarnoob.gui.main_window import MainWindow
 
         self.store.save_group(Group(name="G"))
         setup("th")
@@ -885,8 +885,8 @@ class GuiSmokeTests(unittest.TestCase):
         """regression คลิก 2 รอบ: สลับธีมแล้วไอคอนต้องได้สีใหม่ทันที ไม่รอ event."""
         from PySide6.QtGui import QColor
 
-        from taskbargroups.gui.main_window import MainWindow
-        from taskbargroups.gui.theme import app_text_color, apply_theme
+        from taskbarnoob.gui.main_window import MainWindow
+        from taskbarnoob.gui.theme import app_text_color, apply_theme
 
         app = QApplication.instance() or QApplication([])
         self.addCleanup(apply_theme, app, "light")
@@ -914,9 +914,9 @@ class GuiSmokeTests(unittest.TestCase):
     def test_refresh_shows_hotkey_inline(self) -> None:
         from unittest import mock
 
-        from taskbargroups.core.platform.linux.hotkeys import hotkey_slot
-        from taskbargroups.gui import main_window
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.core.platform.linux.hotkeys import hotkey_slot
+        from taskbarnoob.gui import main_window
+        from taskbarnoob.gui.main_window import MainWindow
 
         self.store.save_group(Group(name="G"))
         with mock.patch.object(
@@ -931,7 +931,7 @@ class GuiSmokeTests(unittest.TestCase):
         # พรีวิวไอคอนกลุ่มต้องคงที่ 48px — สไลเดอร์คุมแค่ไอคอนในกริด
         from PySide6.QtGui import QColor, QPixmap
 
-        from taskbargroups.gui.group_editor import _GROUP_ICON_PREVIEW, GroupEditor
+        from taskbarnoob.gui.group_editor import _GROUP_ICON_PREVIEW, GroupEditor
 
         red = QPixmap(64, 64)
         red.fill(QColor("red"))
@@ -954,8 +954,8 @@ class GuiSmokeTests(unittest.TestCase):
         # กันบั๊กแพ็กเกจ: SVG ปุ่ม (เฟือง/ตา/...) ต้องหาเจอ ไม่ใช่ไอคอนว่าง
         from PySide6.QtGui import QColor
 
-        from taskbargroups.gui import button_icons
-        from taskbargroups.gui.button_icons import _svg_path, themed_icon
+        from taskbarnoob.gui import button_icons
+        from taskbarnoob.gui.button_icons import _svg_path, themed_icon
 
         self.assertTrue(
             button_icons._ASSETS.is_dir(),
@@ -973,9 +973,9 @@ class GuiSmokeTests(unittest.TestCase):
         import sys
         from unittest import mock
 
-        import taskbargroups.gui.button_icons as button_icons
+        import taskbarnoob.gui.button_icons as button_icons
 
-        for sub in ("_internal/taskbargroups/assets", "taskbargroups/assets"):
+        for sub in ("_internal/taskbarnoob/assets", "taskbarnoob/assets"):
             with self.subTest(layout=sub):
                 with tempfile.TemporaryDirectory() as tmp:
                     bundled = Path(tmp) / sub / "icons"
@@ -989,8 +989,8 @@ class WindowsPinTooltipTests(unittest.TestCase):
     """Tooltip ปุ่มสถานะบน Windows ต้องบอกชื่อไฟล์ที่ต้องลาก (Linux ใช้ข้อความเดิม)."""
 
     def _tip(self, platform: str, pinned: bool, dir_name: str = "Game") -> str:
-        from taskbargroups.core.models import Group
-        from taskbargroups.gui.main_window import _pin_tooltip
+        from taskbarnoob.core.models import Group
+        from taskbarnoob.gui.main_window import _pin_tooltip
 
         group = Group(name="Game", items=[])
         with mock.patch.object(sys, "platform", platform):
@@ -1011,9 +1011,9 @@ class WindowsPinTooltipTests(unittest.TestCase):
 
     def test_windows_tips_have_colour_heading(self) -> None:
         """หัวข้อคำแนะนำ/ข้อจำกัดต้องเป็นหนาสีแดง (อ่านออกทั้งธีมสว่างและมืด)"""
-        from taskbargroups.core.models import Group
-        from taskbargroups.gui import main_window
-        from taskbargroups.gui.main_window import _pin_tooltip
+        from taskbarnoob.core.models import Group
+        from taskbarnoob.gui import main_window
+        from taskbarnoob.gui.main_window import _pin_tooltip
 
         self.assertIn('<font color="#E5484D">', self._tip("win32", False))
 
@@ -1029,9 +1029,9 @@ class WindowsPinTooltipTests(unittest.TestCase):
 
     def test_windows_tips_drop_emoji(self) -> None:
         """อีโมจิต้องอยู่ในบรรทัดหัวข้อเท่านั้น ไม่ลอยคนละบรรทัด (อ่านทันที)"""
-        from taskbargroups.core.models import Group
-        from taskbargroups.gui import main_window
-        from taskbargroups.gui.main_window import _pin_tooltip
+        from taskbarnoob.core.models import Group
+        from taskbarnoob.gui import main_window
+        from taskbarnoob.gui.main_window import _pin_tooltip
 
         with mock.patch.object(sys, "platform", "win32"), mock.patch.object(
             main_window, "stale_pin_label", return_value=True
@@ -1080,9 +1080,9 @@ class DefaultGroupIconTests(unittest.TestCase):
     """ไอคอนสำรองของกลุ่มต้องเป็นไฟล์จริง (`.lnk` รับได้แค่พาธ)."""
 
     def test_falls_back_to_cached_system_icon(self) -> None:
-        from taskbargroups.core.models import Group
-        from taskbargroups.core.storage import ConfigStore
-        from taskbargroups.gui import icons as gui_icons
+        from taskbarnoob.core.models import Group
+        from taskbarnoob.core.storage import ConfigStore
+        from taskbarnoob.gui import icons as gui_icons
 
         with tempfile.TemporaryDirectory() as tmp:
             store = ConfigStore(tmp)
@@ -1090,8 +1090,8 @@ class DefaultGroupIconTests(unittest.TestCase):
             self.assertFalse(icon.isNull(), "ไอคอนสำรองห้ามว่าง")
 
     def test_cache_file_is_reused(self) -> None:
-        from taskbargroups.core.storage import ConfigStore
-        from taskbargroups.gui.icons import default_group_icon_file
+        from taskbarnoob.core.storage import ConfigStore
+        from taskbarnoob.gui.icons import default_group_icon_file
 
         with tempfile.TemporaryDirectory() as tmp:
             store = ConfigStore(tmp)
@@ -1107,7 +1107,7 @@ class DefaultGroupIconTests(unittest.TestCase):
 class FolderIconAssetTests(unittest.TestCase):
     def test_folder_svg_shipped(self) -> None:
         """Windows ใช้โฟลเดอร์แทนตา — asset ต้องอยู่ในชุด (มิฉะนั้น fallback ทำงาน)."""
-        from taskbargroups.gui import button_icons
+        from taskbarnoob.gui import button_icons
 
         path = button_icons._assets_dir() / "folder-fill.svg"
         self.assertTrue(path.is_file(), f"ไม่พบ {path}")
@@ -1115,10 +1115,10 @@ class FolderIconAssetTests(unittest.TestCase):
 
     def test_rename_group_migrates_win_hotkey(self) -> None:
         """เปลี่ยนชื่อกลุ่มบน Windows → hotkey ต้องย้ายตามไปชื่อใหม่."""
-        from taskbargroups.core.platform.linux.hotkeys import hotkey_slot
-        from taskbargroups.core.settings import Settings
-        from taskbargroups.gui import win32_hotkey
-        from taskbargroups.gui.main_window import MainWindow
+        from taskbarnoob.core.platform.linux.hotkeys import hotkey_slot
+        from taskbarnoob.core.settings import Settings
+        from taskbarnoob.gui import win32_hotkey
+        from taskbarnoob.gui.main_window import MainWindow
 
         with tempfile.TemporaryDirectory() as tmp:
             store = ConfigStore(tmp)

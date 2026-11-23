@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ตัดไฟล์ Qt/PySide6 ที่ TaskbarNoob ไม่ได้ใช้ออกจาก PyInstaller bundle (ลดขนาด)
 # ใช้: bash packaging/slim_bundle.sh <bundle_dir>
-#   bundle_dir = build/pyinstaller/dist/taskbargroups
+#   bundle_dir = build/pyinstaller/dist/taskbarnoob
 # ปลอดภัย: ลบเฉพาะโมดูลที่แอปไม่ import (QML/Quick/Pdf/VirtualKeyboard) + ปลั๊กอินที่ไม่ใช้
 set -euo pipefail
 

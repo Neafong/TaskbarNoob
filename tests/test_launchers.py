@@ -6,11 +6,11 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from taskbargroups.core import platform
-from taskbargroups.core.models import Group
-from taskbargroups.core.platform import PinError, win32
-from taskbargroups.core.platform.win32 import lnk as win32_lnk
-from taskbargroups.core.platform.win32 import pin as win32_pin
+from taskbarnoob.core import platform
+from taskbarnoob.core.models import Group
+from taskbarnoob.core.platform import PinError, win32
+from taskbarnoob.core.platform.win32 import lnk as win32_lnk
+from taskbarnoob.core.platform.win32 import pin as win32_pin
 
 
 def _group() -> Group:
@@ -18,7 +18,7 @@ def _group() -> Group:
 
 
 def _store(tmp: str):
-    from taskbargroups.core.storage import ConfigStore
+    from taskbarnoob.core.storage import ConfigStore
 
     store = ConfigStore(tmp)
     store.save_group(_group())
@@ -29,7 +29,7 @@ class FileNameTests(unittest.TestCase):
     def test_linux_desktop(self) -> None:
         with mock.patch.object(sys, "platform", "linux"):
             self.assertEqual(
-                platform.launcher_file_name("My Game"), "taskbargroups-my-game.desktop"
+                platform.launcher_file_name("My Game"), "taskbarnoob-my-game.desktop"
             )
 
     def test_windows_lnk(self) -> None:

@@ -4,6 +4,33 @@
 [Semantic Versioning](https://semver.org/lang/th/).
 ข้อมูลการออกรุ่น: ขั้นตอนใน [`docs/release-process.md`](docs/release-process.md)
 
+## [0.3.0] — 2026-11-23
+
+รื้อโครงสร้างสถาปัตยกรรมใหม่ทั้งหมด (Full Architecture Refactor) ยึดฟีเจอร์เดิมเป็นแกน ล้างหนี้เทคนิค + รีแบรนด์ชื่อภายในเป็น `taskbarnoob` เต็มรูปแบบ
+
+### Added
+
+- **ตัวเลือกไอคอนระบบแบบแยกหมวดบน Linux Mint (`gui/icon_picker.py`)** — แยก 3 หมวด (`หมวดหมู่และโฟลเดอร์`, `แอปที่ติดตั้ง`, `ไอคอนทั้งหมด`) พร้อมแคชต่อหมวด
+- **Steam `steam://rungameid/<appid>` icon resolver ข้าม OS (`core/icons/steam.py`)** — ดึงไอคอนเกมจาก `librarycache` (รองรับโครงสร้างเก่า/ใหม่, Flatpak Steam, `.desktop` Linux, `.url` Windows + Registry `SteamPath`)
+- **Auto-Migration อัตโนมัติบน Linux Mint (`core/platform/linux/migrate.py`)** — ย้ายการปักหมุด `taskbargroups-*.desktop` → `taskbarnoob-*.desktop` ในตำแหน่งเดิมบน panel, ย้ายฮอตคีย์ Cinnamon `taskbargroups-*` → `taskbarnoob-*`, รองรับ fallback env `TASKBARGROUPS_CONFIG` / `TASKBARGROUPS_NO_PIN` และ `~/.config/taskbargroups`, และใส่ `Replaces:`/`Conflicts: taskbargroups` ใน `.deb`
+
+### Changed
+
+- **แยก Platform Backend (`core/platform/{base,linux,win32}`)** — ยุบไฟล์เฉพาะ OS ลง backend กลาง (`PlatformBackend` ABC) + แตก `win32.py` เป็น 6 โมดูลย่อย (`aumid`, `com`, `ico`, `lnk`, `pin`, `hotkey`) + ลด `sys.platform` ใน `gui/`
+- **แตกไฟล์ยักษ์เป็นโมดูลย่อยหน้าที่เดียว** — `gui/group_editor.py` → `icon_picker`/`shortcut_grid`/`shortcut_dialog`/`group_editor`, `gui/main_window.py` → `group_list`/`app`/`main_window`, `core/icons/` (`cache`/`theme`/`appimage`/`steam`), `core/i18n/` (`th`/`en`/`__init__`)
+- **รวม Icon Pipeline เป็นจุดเดียว** — เลิก circular import ใน `gui/icons.py` และรวมค่าคงที่แคชไว้ที่เดียว
+- **รีแบรนด์ภายใน `taskbargroups` → `taskbarnoob`** — แพ็กเกจ Python, `APP_ID`, `.desktop`, `.deb`, AppImage, env `TASKBARNOOB_CONFIG`, และไฟล์ backup `taskbarnoob-backup-*.zip`
+- **อัปเดตเครดิต** เป็น **Noob & Jenny (เจนนี่)** (TH/EN/JA, `.appdata.xml`, `README.md`)
+
+### Removed
+
+- พับเก็บ `core/macos.py` และ branch `darwin` ออกไปก่อน (รอเครื่อง Mac จริงสำหรับพัฒนาและทดสอบ)
+- ลบโค้ด PowerShell เก่าที่ไม่ได้ใช้งานแล้วในฝั่ง Windows (`build_png_to_ico_ps_script`, `build_lnk_ps_script`, `build_read_lnk_ps_script`, `lnk_command`, `_ps_quote`)
+
+### Fixed
+
+- `ConfigStore._prune_order()` เรียงรายชื่อโฟลเดอร์กลุ่มตามชื่อ (แก้ผลลัพธ์ไม่แน่นอนบน Linux ext4)
+
 ## [0.2.0] — 2026-11-23
 
 รุ่นปรับปรุงใหญ่: "กระเป๋าใส่ได้ทุกอย่าง" + UI polish + รองรับ Windows 11 (portable)

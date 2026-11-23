@@ -14,14 +14,14 @@ try:
 except ImportError:
     HAVE_QT = False
 
-from taskbargroups.core.models import Group, Shortcut
-from taskbargroups.core.storage import ConfigStore
+from taskbarnoob.core.models import Group, Shortcut
+from taskbarnoob.core.storage import ConfigStore
 
 
 @unittest.skipUnless(HAVE_QT, "PySide6 not installed")
 class PositionTests(unittest.TestCase):
     def test_centered_above_cursor(self) -> None:
-        from taskbargroups.gui.flyout import MOUSE_OFFSET, flyout_position
+        from taskbarnoob.gui.flyout import MOUSE_OFFSET, flyout_position
 
         area = QRect(0, 0, 1920, 1080)
         pos = flyout_position(QPoint(960, 800), QSize(300, 200), area)
@@ -29,28 +29,28 @@ class PositionTests(unittest.TestCase):
         self.assertEqual(pos.y(), 800 - 200 - MOUSE_OFFSET)
 
     def test_clamped_to_left_edge(self) -> None:
-        from taskbargroups.gui.flyout import flyout_position
+        from taskbarnoob.gui.flyout import flyout_position
 
         area = QRect(0, 0, 1920, 1080)
         pos = flyout_position(QPoint(5, 800), QSize(300, 200), area)
         self.assertEqual(pos.x(), 0)
 
     def test_clamped_to_right_edge(self) -> None:
-        from taskbargroups.gui.flyout import flyout_position
+        from taskbarnoob.gui.flyout import flyout_position
 
         area = QRect(0, 0, 1920, 1080)
         pos = flyout_position(QPoint(1915, 800), QSize(300, 200), area)
         self.assertEqual(pos.x(), 1920 - 300)
 
     def test_flips_below_when_no_room_above(self) -> None:
-        from taskbargroups.gui.flyout import MOUSE_OFFSET, flyout_position
+        from taskbarnoob.gui.flyout import MOUSE_OFFSET, flyout_position
 
         area = QRect(0, 0, 1920, 1080)
         pos = flyout_position(QPoint(960, 5), QSize(300, 200), area)
         self.assertEqual(pos.y(), 5 + MOUSE_OFFSET)
 
     def test_clamps_when_taller_than_screen(self) -> None:
-        from taskbargroups.gui.flyout import flyout_position
+        from taskbarnoob.gui.flyout import flyout_position
 
         area = QRect(0, 0, 400, 100)
         pos = flyout_position(QPoint(200, 80), QSize(300, 200), area)
@@ -73,7 +73,7 @@ class _FakeScreen:
 @unittest.skipUnless(HAVE_QT, "PySide6 not installed")
 class PanelAnchorTests(unittest.TestCase):
     def test_bottom_panel_anchors_above_panel(self) -> None:
-        from taskbargroups.gui.flyout import panel_anchor_position
+        from taskbarnoob.gui.flyout import panel_anchor_position
 
         screen = _FakeScreen(QRect(0, 0, 1920, 1080), QRect(0, 0, 1920, 1040))
         pos = panel_anchor_position(QPoint(960, 1030), QSize(300, 200), screen)
@@ -81,14 +81,14 @@ class PanelAnchorTests(unittest.TestCase):
         self.assertEqual(pos.x(), 960 - 150)
 
     def test_top_panel_anchors_below_panel(self) -> None:
-        from taskbargroups.gui.flyout import panel_anchor_position
+        from taskbarnoob.gui.flyout import panel_anchor_position
 
         screen = _FakeScreen(QRect(0, 0, 1920, 1080), QRect(0, 40, 1920, 1040))
         pos = panel_anchor_position(QPoint(960, 10), QSize(300, 200), screen)
         self.assertEqual(pos.y(), 40)
 
     def test_left_panel_anchors_and_clamps(self) -> None:
-        from taskbargroups.gui.flyout import panel_anchor_position
+        from taskbarnoob.gui.flyout import panel_anchor_position
 
         screen = _FakeScreen(QRect(0, 0, 1920, 1080), QRect(60, 0, 1860, 1080))
         pos = panel_anchor_position(QPoint(10, 5), QSize(300, 200), screen)
@@ -96,14 +96,14 @@ class PanelAnchorTests(unittest.TestCase):
         self.assertEqual(pos.y(), 0)
 
     def test_no_panel_falls_back_to_cursor(self) -> None:
-        from taskbargroups.gui.flyout import MOUSE_OFFSET, panel_anchor_position
+        from taskbarnoob.gui.flyout import MOUSE_OFFSET, panel_anchor_position
 
         screen = _FakeScreen(QRect(0, 0, 1920, 1080), QRect(0, 0, 1920, 1080))
         pos = panel_anchor_position(QPoint(960, 800), QSize(300, 200), screen)
         self.assertEqual(pos.y(), 800 - 200 - MOUSE_OFFSET)
 
     def test_focus_position_is_centered(self) -> None:
-        from taskbargroups.gui.flyout import focus_position
+        from taskbarnoob.gui.flyout import focus_position
 
         pos = focus_position(QSize(300, 200), QRect(0, 0, 1920, 1080))
         self.assertEqual(pos.x(), (1920 - 300) // 2)
@@ -129,7 +129,7 @@ class FlyoutWindowTests(unittest.TestCase):
         self._tmp.cleanup()
 
     def test_closed_signal_emits_once(self) -> None:
-        from taskbargroups.gui.flyout import FlyoutWindow
+        from taskbarnoob.gui.flyout import FlyoutWindow
 
         group = self.store.load_group("G")
         window = FlyoutWindow(group, self.store, "G")
@@ -147,7 +147,7 @@ class FlyoutWindowTests(unittest.TestCase):
         from pathlib import Path
         from unittest import mock
 
-        from taskbargroups.gui.flyout import FlyoutWindow
+        from taskbarnoob.gui.flyout import FlyoutWindow
 
         target = Path(self._tmp.name) / "song.mp3"
         target.write_bytes(b"ID3fake")
@@ -172,7 +172,7 @@ class FlyoutWindowTests(unittest.TestCase):
             window.deleteLater()
 
     def test_labels_hidden_makes_square_buttons(self) -> None:
-        from taskbargroups.gui.flyout import FlyoutWindow
+        from taskbarnoob.gui.flyout import FlyoutWindow
 
         group = self.store.load_group("G")
         window = FlyoutWindow(group, self.store, "G", default_show_labels=False)
@@ -184,7 +184,7 @@ class FlyoutWindowTests(unittest.TestCase):
             window.deleteLater()
 
     def test_labels_shown_uses_item_name(self) -> None:
-        from taskbargroups.gui.flyout import FlyoutWindow
+        from taskbarnoob.gui.flyout import FlyoutWindow
 
         group = self.store.load_group("G")
         window = FlyoutWindow(group, self.store, "G", default_show_labels=True)
@@ -194,8 +194,8 @@ class FlyoutWindowTests(unittest.TestCase):
             window.deleteLater()
 
     def test_group_override_beats_app_default(self) -> None:
-        from taskbargroups.core.models import Group
-        from taskbargroups.gui.flyout import FlyoutWindow
+        from taskbarnoob.core.models import Group
+        from taskbarnoob.gui.flyout import FlyoutWindow
 
         for override, expected_text in ((True, True), (False, False)):
             group = Group(
@@ -211,7 +211,7 @@ class FlyoutWindowTests(unittest.TestCase):
                 window.deleteLater()
 
     def test_focus_mode_scales_icons(self) -> None:
-        from taskbargroups.gui.flyout import FOCUS_MIN_ICON, FlyoutWindow
+        from taskbarnoob.gui.flyout import FOCUS_MIN_ICON, FlyoutWindow
 
         group = self.store.load_group("G")
         normal = FlyoutWindow(group, self.store, "G")
@@ -224,8 +224,8 @@ class FlyoutWindowTests(unittest.TestCase):
             focus.deleteLater()
 
     def test_focus_mode_uses_group_scale(self) -> None:
-        from taskbargroups.core.models import Group
-        from taskbargroups.gui.flyout import FlyoutWindow
+        from taskbarnoob.core.models import Group
+        from taskbarnoob.gui.flyout import FlyoutWindow
 
         group = Group(
             name="G",
@@ -241,7 +241,7 @@ class FlyoutWindowTests(unittest.TestCase):
 
     def test_flyout_disables_native_drop_shadow(self) -> None:
         from PySide6.QtCore import Qt
-        from taskbargroups.gui.flyout import FlyoutWindow
+        from taskbarnoob.gui.flyout import FlyoutWindow
 
         group = self.store.load_group("G")
         window = FlyoutWindow(group, self.store, "G")
@@ -277,14 +277,14 @@ class ControllerTests(unittest.TestCase):
         self._tmp.cleanup()
 
     def test_delegate_false_without_running_instance(self) -> None:
-        from taskbargroups.gui.flyout import FlyoutController
+        from taskbarnoob.gui.flyout import FlyoutController
 
         controller = FlyoutController(self.app, self.store, server_name=self.name)
         self.assertFalse(controller.try_delegate("G"))
 
     @unittest.skipUnless(sys.platform == "linux", "Linux-only")
     def test_primary_opens_then_delegate_switches_group(self) -> None:
-        from taskbargroups.gui.flyout import FlyoutController
+        from taskbarnoob.gui.flyout import FlyoutController
 
         primary = FlyoutController(self.app, self.store, server_name=self.name)
         primary.start_primary("G")
@@ -308,7 +308,7 @@ class ControllerTests(unittest.TestCase):
             primary.server.close()
 
     def test_same_group_is_reused(self) -> None:
-        from taskbargroups.gui.flyout import FlyoutController
+        from taskbarnoob.gui.flyout import FlyoutController
 
         primary = FlyoutController(self.app, self.store, server_name=self.name)
         primary.start_primary("G")
@@ -328,7 +328,7 @@ class ControllerTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == "linux", "Linux-only")
     def test_start_primary_carries_focus_mode(self) -> None:
-        from taskbargroups.gui.flyout import FlyoutController
+        from taskbarnoob.gui.flyout import FlyoutController
 
         primary = FlyoutController(self.app, self.store, server_name=self.name)
         primary.start_primary("G", QPoint(100, 100), True)

@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from taskbargroups.core import icons
-from taskbargroups.core.icons import steam as steam_icons
+from taskbarnoob.core import icons
+from taskbarnoob.core.icons import steam as steam_icons
 
 
 class SteamAppIdTests(unittest.TestCase):

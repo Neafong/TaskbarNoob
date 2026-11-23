@@ -5,8 +5,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from taskbargroups.core.platform.linux import panel
-from taskbargroups.core.platform.linux.panel import (
+from taskbarnoob.core.platform.linux import panel
+from taskbarnoob.core.platform.linux.panel import (
     PinError,
     add_grouped_window_pin,
     add_panel_launcher,
@@ -86,7 +86,7 @@ class PinToPanelTests(unittest.TestCase):
 
     def test_disabled_by_env(self) -> None:
         with mock.patch.object(panel, "is_cinnamon", return_value=True):
-            with mock.patch.dict("os.environ", {"TASKBARGROUPS_NO_PIN": "1"}):
+            with mock.patch.dict("os.environ", {"TASKBARNOOB_NO_PIN": "1"}):
                 with self.assertRaises(PinError):
                     pin_to_panel("x.desktop", config_dir=Path("/nonexistent"))
 

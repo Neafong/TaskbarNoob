@@ -6,7 +6,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from pathlib import Path
 
-from taskbargroups.core.settings import Settings
+from taskbarnoob.core.settings import Settings
 
 try:
     from PySide6.QtWidgets import QApplication
@@ -49,7 +49,7 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(self.settings.path, Path(self._tmp.name) / "settings.json")
 
     def test_donate_url_default_and_custom(self) -> None:
-        from taskbargroups.core.settings import DEFAULT_DONATE_URL
+        from taskbarnoob.core.settings import DEFAULT_DONATE_URL
 
         self.assertEqual(self.settings.get_donate_url(), DEFAULT_DONATE_URL)
         self.settings.set_donate_url("https://example.com/x")
@@ -79,21 +79,21 @@ class ThemeTests(unittest.TestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def test_resolve_passthrough(self) -> None:
-        from taskbargroups.gui.theme import resolve_theme
+        from taskbarnoob.gui.theme import resolve_theme
 
         self.assertEqual(resolve_theme("light", self.app), "light")
         self.assertEqual(resolve_theme("dark", self.app), "dark")
         self.assertEqual(resolve_theme("weird", self.app), "light")
 
     def test_resolve_auto_returns_scheme(self) -> None:
-        from taskbargroups.gui.theme import resolve_theme
+        from taskbarnoob.gui.theme import resolve_theme
 
         self.assertIn(resolve_theme("auto", self.app), ("light", "dark"))
 
     def test_apply_dark_sets_window_color(self) -> None:
         from PySide6.QtGui import QPalette
 
-        from taskbargroups.gui.theme import apply_theme, resolve_theme
+        from taskbarnoob.gui.theme import apply_theme, resolve_theme
 
         apply_theme(self.app, resolve_theme("dark", self.app))
         color = self.app.palette().color(QPalette.ColorRole.Window)
@@ -103,7 +103,7 @@ class ThemeTests(unittest.TestCase):
         """ธีมสว่างต้องคุมสีเองทั้งชุด (ไม่พึ่ง standardPalette ที่คืนค่าไม่สม่ำเสมอบน Windows dark mode)."""
         from PySide6.QtGui import QPalette
 
-        from taskbargroups.gui.theme import apply_theme
+        from taskbarnoob.gui.theme import apply_theme
 
         apply_theme(self.app, "dark")
         apply_theme(self.app, "light")
@@ -122,11 +122,11 @@ class SettingsDialogTests(unittest.TestCase):
     def test_theme_change_applies_and_saves(self) -> None:
         import tempfile
 
-        from taskbargroups.gui.settings_dialog import SettingsDialog
+        from taskbarnoob.gui.settings_dialog import SettingsDialog
 
         with tempfile.TemporaryDirectory() as tmp:
-            old = os.environ.get("TASKBARGROUPS_CONFIG")
-            os.environ["TASKBARGROUPS_CONFIG"] = tmp
+            old = os.environ.get("TASKBARNOOB_CONFIG")
+            os.environ["TASKBARNOOB_CONFIG"] = tmp
             try:
                 class FakeMain:
                     def on_install_launcher(self) -> None:
@@ -143,19 +143,19 @@ class SettingsDialogTests(unittest.TestCase):
                 dialog.close()
             finally:
                 if old is None:
-                    os.environ.pop("TASKBARGROUPS_CONFIG", None)
+                    os.environ.pop("TASKBARNOOB_CONFIG", None)
                 else:
-                    os.environ["TASKBARGROUPS_CONFIG"] = old
+                    os.environ["TASKBARNOOB_CONFIG"] = old
 
     def test_language_change_applies_immediately(self) -> None:
         import tempfile
 
-        from taskbargroups.core import i18n
-        from taskbargroups.gui.settings_dialog import SettingsDialog
+        from taskbarnoob.core import i18n
+        from taskbarnoob.gui.settings_dialog import SettingsDialog
 
         with tempfile.TemporaryDirectory() as tmp:
-            old = os.environ.get("TASKBARGROUPS_CONFIG")
-            os.environ["TASKBARGROUPS_CONFIG"] = tmp
+            old = os.environ.get("TASKBARNOOB_CONFIG")
+            os.environ["TASKBARNOOB_CONFIG"] = tmp
             try:
                 i18n.setup("th", tmp)
                 dialog = SettingsDialog(object())
@@ -171,37 +171,37 @@ class SettingsDialogTests(unittest.TestCase):
             finally:
                 i18n.setup("th", tmp)
                 if old is None:
-                    os.environ.pop("TASKBARGROUPS_CONFIG", None)
+                    os.environ.pop("TASKBARNOOB_CONFIG", None)
                 else:
-                    os.environ["TASKBARGROUPS_CONFIG"] = old
+                    os.environ["TASKBARNOOB_CONFIG"] = old
 
     def test_config_button_shows_config_dir(self) -> None:
         import tempfile
 
-        from taskbargroups.gui.settings_dialog import SettingsDialog
+        from taskbarnoob.gui.settings_dialog import SettingsDialog
 
         with tempfile.TemporaryDirectory() as tmp:
-            old = os.environ.get("TASKBARGROUPS_CONFIG")
-            os.environ["TASKBARGROUPS_CONFIG"] = tmp
+            old = os.environ.get("TASKBARNOOB_CONFIG")
+            os.environ["TASKBARNOOB_CONFIG"] = tmp
             try:
                 dialog = SettingsDialog(object())
                 self.assertEqual(dialog.config_button.text(), str(Settings(tmp).config_dir))
                 dialog.close()
             finally:
                 if old is None:
-                    os.environ.pop("TASKBARGROUPS_CONFIG", None)
+                    os.environ.pop("TASKBARNOOB_CONFIG", None)
                 else:
-                    os.environ["TASKBARGROUPS_CONFIG"] = old
+                    os.environ["TASKBARNOOB_CONFIG"] = old
 
     def test_backup_buttons_present_and_retranslated(self) -> None:
         import tempfile
 
-        from taskbargroups.core import i18n
-        from taskbargroups.gui.settings_dialog import SettingsDialog
+        from taskbarnoob.core import i18n
+        from taskbarnoob.gui.settings_dialog import SettingsDialog
 
         with tempfile.TemporaryDirectory() as tmp:
-            old = os.environ.get("TASKBARGROUPS_CONFIG")
-            os.environ["TASKBARGROUPS_CONFIG"] = tmp
+            old = os.environ.get("TASKBARNOOB_CONFIG")
+            os.environ["TASKBARNOOB_CONFIG"] = tmp
             try:
                 i18n.setup("th", tmp)
                 dialog = SettingsDialog(object())
@@ -223,9 +223,9 @@ class SettingsDialogTests(unittest.TestCase):
             finally:
                 i18n.setup("th", tmp)
                 if old is None:
-                    os.environ.pop("TASKBARGROUPS_CONFIG", None)
+                    os.environ.pop("TASKBARNOOB_CONFIG", None)
                 else:
-                    os.environ["TASKBARGROUPS_CONFIG"] = old
+                    os.environ["TASKBARNOOB_CONFIG"] = old
 
 
 class HotkeysDictTests(unittest.TestCase):
@@ -240,15 +240,15 @@ class HotkeysDictTests(unittest.TestCase):
         self.assertEqual(self.settings.get_hotkeys(), {})
 
     def test_set_remove_roundtrip(self) -> None:
-        self.settings.set_hotkey("taskbargroups-game", "<Control><Alt>g")
+        self.settings.set_hotkey("taskbarnoob-game", "<Control><Alt>g")
         self.assertEqual(
-            self.settings.get_hotkeys(), {"taskbargroups-game": "<Control><Alt>g"}
+            self.settings.get_hotkeys(), {"taskbarnoob-game": "<Control><Alt>g"}
         )
         reloaded = Settings(self._tmp.name)
         self.assertEqual(
-            reloaded.get_hotkeys(), {"taskbargroups-game": "<Control><Alt>g"}
+            reloaded.get_hotkeys(), {"taskbarnoob-game": "<Control><Alt>g"}
         )
-        reloaded.remove_hotkey("taskbargroups-game")
+        reloaded.remove_hotkey("taskbarnoob-game")
         self.assertEqual(reloaded.get_hotkeys(), {})
 
     def test_corrupt_value_ignored(self) -> None:

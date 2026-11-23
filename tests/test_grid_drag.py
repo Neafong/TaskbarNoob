@@ -14,7 +14,7 @@ except ImportError:
 
 
 def _make_grid(app, count: int):
-    from taskbargroups.gui.group_editor import ShortcutGrid
+    from taskbarnoob.gui.group_editor import ShortcutGrid
 
     grid = ShortcutGrid()
     for i in range(count):
@@ -203,7 +203,7 @@ class DropEventTests(unittest.TestCase):
         from PySide6.QtGui import QColor, QIcon, QPixmap
         from PySide6.QtWidgets import QListWidgetItem
 
-        from taskbargroups.gui.group_editor import ShortcutGrid
+        from taskbarnoob.gui.group_editor import ShortcutGrid
 
         def icon() -> QIcon:
             pixmap = QPixmap(64, 64)

@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from taskbargroups.core import paths
+from taskbarnoob.core import paths
 
 
 class AppDirTests(unittest.TestCase):
@@ -22,8 +22,18 @@ class AppDirTests(unittest.TestCase):
 
 class DefaultConfigDirTests(unittest.TestCase):
     def test_env_override_wins(self) -> None:
-        with mock.patch.dict(os.environ, {"TASKBARGROUPS_CONFIG": "/custom/cfg"}, clear=True):
+        with mock.patch.dict(os.environ, {"TASKBARNOOB_CONFIG": "/custom/cfg"}, clear=True):
             self.assertEqual(paths.default_config_dir(), Path("/custom/cfg"))
+
+    def test_legacy_env_fallback_and_new_precedence(self) -> None:
+        with mock.patch.dict(os.environ, {"TASKBARGROUPS_CONFIG": "/legacy/cfg"}, clear=True):
+            self.assertEqual(paths.default_config_dir(), Path("/legacy/cfg"))
+        with mock.patch.dict(
+            os.environ,
+            {"TASKBARNOOB_CONFIG": "/new/cfg", "TASKBARGROUPS_CONFIG": "/legacy/cfg"},
+            clear=True,
+        ):
+            self.assertEqual(paths.default_config_dir(), Path("/new/cfg"))
 
     def test_portable_next_to_appimage(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -38,8 +48,18 @@ class DefaultConfigDirTests(unittest.TestCase):
             env = {"APPIMAGE": str(blocker / "App.AppImage"), "XDG_CONFIG_HOME": str(Path(tmp) / "xdg")}
             with mock.patch.dict(os.environ, env, clear=True):
                 self.assertEqual(
-                    paths.default_config_dir(), Path(tmp) / "xdg" / "taskbargroups"
+                    paths.default_config_dir(), Path(tmp) / "xdg" / "taskbarnoob"
                 )
+
+    def test_fallback_reuses_legacy_xdg_dir_if_new_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            blocker = Path(tmp) / "not-a-dir"
+            blocker.write_text("file")
+            legacy = Path(tmp) / "xdg" / "taskbargroups"
+            legacy.mkdir(parents=True)
+            env = {"APPIMAGE": str(blocker / "App.AppImage"), "XDG_CONFIG_HOME": str(Path(tmp) / "xdg")}
+            with mock.patch.dict(os.environ, env, clear=True):
+                self.assertEqual(paths.default_config_dir(), legacy)
 
 
 class AppIconPathTests(unittest.TestCase):
@@ -48,11 +68,11 @@ class AppIconPathTests(unittest.TestCase):
             icon = paths.app_icon_path()
         self.assertIsNotNone(icon)
         self.assertTrue(icon.is_file())
-        self.assertEqual(icon.name, "taskbargroups.png")
+        self.assertEqual(icon.name, "taskbarnoob.png")
 
     def test_bundled_meipass_icon_preferred(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            bundled = Path(tmp) / "taskbargroups" / "assets" / "taskbargroups.png"
+            bundled = Path(tmp) / "taskbarnoob" / "assets" / "taskbarnoob.png"
             bundled.parent.mkdir(parents=True)
             bundled.write_bytes(b"png")
             with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
@@ -64,7 +84,7 @@ class AppIconPathTests(unittest.TestCase):
         # PyInstaller 6 (onedir) วาง data ใต้ _internal/ — ต้องหาเจอเหมือนกัน
         with tempfile.TemporaryDirectory() as tmp:
             bundled = (
-                Path(tmp) / "_internal" / "taskbargroups" / "assets" / "taskbargroups.png"
+                Path(tmp) / "_internal" / "taskbarnoob" / "assets" / "taskbarnoob.png"
             )
             bundled.parent.mkdir(parents=True)
             bundled.write_bytes(b"png")

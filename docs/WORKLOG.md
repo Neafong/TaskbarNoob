@@ -45,3 +45,18 @@
 - **ตัวเลือกไอคอนระบบแบบแยกหมวดบน Linux Mint (`gui/icon_picker.py`):** เพิ่ม `QComboBox` 3 หมวด (`หมวดหมู่และโฟลเดอร์` [default], `แอปที่ติดตั้ง`, `ไอคอนทั้งหมด`) พร้อมแคชต่อหมวด + เพิ่ม i18n keys ครบ TH/EN/`ja.json`
 - **เทสต์:** เพิ่ม `tests/test_steam_icons.py` + `ScanThemeIconsTests` + `test_linux_icon_picker_switches_categories` + `test_gui_icons_has_no_circular_import_to_group_editor` → **381 เทสต์ ผ่าน 100% (`OK (skipped=10)`)** + `compileall` ผ่าน
 - **ต่อไป:** เฟส **R4** — ลบ dead code PowerShell, แยก `core/i18n/`, รีแบรนด์ `taskbargroups` → `taskbarnoob` พร้อม Auto-Migration, อัปเดตเครดิต `Noob & Jenny`, และ bump เป็น `v0.3.0`
+
+## 2026-11-23 — R4: ล้าง Dead Code, แยก `i18n`, รีแบรนด์ `taskbarnoob` + Auto-Migration + เครดิต `Noob & Jenny` (`v0.3.0`) `[เสร็จ]`
+- **ลบ dead code PowerShell ฝั่ง Windows:** ลบ `build_png_to_ico_ps_script`, `build_lnk_ps_script`, `build_read_lnk_ps_script`, `lnk_command`, `_ps_quote` และเทสต์ที่ผูกอยู่
+- **แยก `core/i18n.py` เป็นแพ็กเกจ `core/i18n/{__init__.py, th.py, en.py}`**
+- **อัปเดตเครดิตเป็น `Noob & Jenny` (เจนนี่):** ครบทั้ง `th.py`, `en.py`, `packaging/lang/ja.json`, `gui/about_dialog.py`, `packaging/appimage/taskbarnoob.appdata.xml`, `README.md`
+- **รีแบรนด์ชื่อภายในทั้งหมด `taskbargroups` → `taskbarnoob`:**
+  - `git mv taskbargroups taskbarnoob` + รีเนม `packaging/appimage/taskbargroups.*` → `taskbarnoob.*`
+  - อัปเดต imports, `APP_ID = "taskbarnoob"`, `TASKBARNOOB_CONFIG` (fallback `TASKBARGROUPS_CONFIG`), `TASKBARNOOB_NO_PIN` (fallback `TASKBARGROUPS_NO_PIN`), `EXPORT_DEFAULT_NAME = "taskbarnoob-backup-{ts}.zip"`, `build_appimage.sh`, `build_deb.sh` (เพิ่ม `Replaces: taskbargroups` & `Conflicts: taskbargroups`), `build_windows.ps1`, `.github/workflows/tests.yml`
+- **Auto-Migration (`core/platform/linux/migrate.py` + `core/paths.py`):**
+  - Non-portable `~/.config/taskbargroups` fallback เมื่อ `~/.config/taskbarnoob` ยังไม่มี
+  - ย้ายการปักหมุด Cinnamon (`taskbargroups-*.desktop` → `taskbarnoob-*.desktop`) ในตำแหน่งเดิมบน panel พร้อมติดตั้งไอคอนใหม่ ลบของเก่า และ `ReloadXlet` (idempotent)
+  - ย้ายฮอตคีย์ Cinnamon (`taskbargroups-*` → `taskbarnoob-*`) พร้อมล้าง/ถอน slot เก่าอย่างปลอดภัย
+- **Bump เป็น `v0.3.0`** + อัปเดต `CHANGELOG.md`, `README.md`, `AGENTS.md`, `docs/roadmap.md`
+- **เทสต์:** เพิ่ม `tests/test_linux_migration.py` + env/config fallback ใน `tests/test_paths.py` → **385 เทสต์ ผ่าน 100% (`OK (skipped=10)`)** + `compileall` ผ่าน
+- **ต่อไป:** ทดสอบ build AppImage/deb จริงบน Linux Mint แล้วค่อยส่งไม้ต่อทดสอบฝั่ง Windows 11!

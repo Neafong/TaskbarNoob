@@ -5,7 +5,7 @@ umask 022
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PY="$ROOT/.venv/bin/python"
-APP_ID="taskbargroups"
+APP_ID="taskbarnoob"
 BUILD="$ROOT/build"
 DIST="$ROOT/dist"
 BUNDLE="$BUILD/pyinstaller/dist/${APP_ID}"
@@ -14,7 +14,7 @@ if [[ ! -x "$PY" ]]; then
   echo "ไม่พบ $PY (ต้องมี .venv)"; exit 1
 fi
 
-VERSION="$("$PY" -c "import taskbargroups; print(taskbargroups.__version__)")"
+VERSION="$("$PY" -c "import taskbarnoob; print(taskbarnoob.__version__)")"
 ARCH="amd64"
 SVG_ICON="$ROOT/packaging/appimage/${APP_ID}.svg"
 PNG_ICON="$ROOT/packaging/appimage/${APP_ID}.png"
@@ -38,9 +38,9 @@ if [[ ! -x "$BUNDLE/${APP_ID}" ]]; then
     --noconfirm --clean \
     --name "$APP_ID" \
     --paths "$ROOT" \
-    --collect-submodules taskbargroups \
-    --add-data "$ROOT/packaging/appimage/${APP_ID}.png:taskbargroups/assets" \
-    --add-data "$ROOT/packaging/assets/icons:taskbargroups/assets/icons" \
+    --collect-submodules taskbarnoob \
+    --add-data "$ROOT/packaging/appimage/${APP_ID}.png:taskbarnoob/assets" \
+    --add-data "$ROOT/packaging/assets/icons:taskbarnoob/assets/icons" \
     --distpath "$BUILD/pyinstaller/dist" \
     --workpath "$BUILD/pyinstaller/build" \
     --specpath "$BUILD/pyinstaller" \
@@ -61,7 +61,7 @@ cp -a "$BUNDLE/." "$STAGE/usr/lib/${APP_ID}/"
 
 cat > "$STAGE/usr/bin/${APP_ID}" <<'WRAP'
 #!/bin/sh
-exec "/usr/lib/taskbargroups/taskbargroups" "$@"
+exec "/usr/lib/taskbarnoob/taskbarnoob" "$@"
 WRAP
 chmod +x "$STAGE/usr/bin/${APP_ID}"
 
@@ -76,6 +76,8 @@ Version: ${VERSION}
 Section: utils
 Priority: optional
 Architecture: ${ARCH}
+Replaces: taskbargroups
+Conflicts: taskbargroups
 Depends: libc6, libstdc++6, libgl1, libglib2.0-0, libxkbcommon0, libxcb-cursor0, libfontconfig1, libdbus-1-3, libxcb1
 Installed-Size: ${SIZE}
 Maintainer: TaskbarNoob <noreply@example.com>

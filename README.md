@@ -65,7 +65,7 @@ chmod +x TaskbarNoob-x86_64.AppImage
 
 **`.deb`** (Debian/Ubuntu/Mint)
 ```bash
-sudo apt install ./taskbargroups_<version>_amd64.deb
+sudo apt install ./taskbarnoob_<version>_amd64.deb
 ```
 
 ## รันจากซอร์ส / Run from source
@@ -73,20 +73,20 @@ sudo apt install ./taskbargroups_<version>_amd64.deb
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-.venv/bin/python -m taskbargroups
+.venv/bin/python -m taskbarnoob
 ```
 
 CLI:
 ```bash
-.venv/bin/python -m taskbargroups --list              # แสดงรายชื่อกลุ่ม
-.venv/bin/python -m taskbargroups --open "<GroupDir>" # เปิด flyout ของกลุ่ม
+.venv/bin/python -m taskbarnoob --list              # แสดงรายชื่อกลุ่ม
+.venv/bin/python -m taskbarnoob --open "<GroupDir>" # เปิด flyout ของกลุ่ม
 ```
 
 ## Build แพ็กเกจ / Build packages
 
 ```bash
 bash packaging/build_appimage.sh   # -> dist/TaskbarNoob-x86_64.AppImage
-bash packaging/build_deb.sh        # -> dist/taskbargroups_<ver>_amd64.deb
+bash packaging/build_deb.sh        # -> dist/taskbarnoob_<ver>_amd64.deb
 ```
 
 ## ทดสอบ / Tests
@@ -104,7 +104,7 @@ bash packaging/build_deb.sh        # -> dist/taskbargroups_<ver>_amd64.deb
 ## โครงสร้างโปรเจกต์ (ย่อ) / Project layout
 
 ```
-taskbargroups/
+taskbarnoob/
 ├── core/   ตรรกะล้วน (ไม่พึ่ง Qt) — storage · icons · launcher · hotkeys · archive · i18n
 └── gui/    ส่วน Qt/PySide6 — main_window · group_editor · flyout · settings_dialog …
 packaging/  build scripts · assets (โลโก้) · lang (asset ภาษา) · appimage/
@@ -114,7 +114,7 @@ docs/       เอกสารออกแบบ + worklog
 
 ## เครดิต & สนับสนุน / Credits & Support
 
-สร้างโดย **Noob & Pickle** — ไอเดีย/ดีไซน์: นู๊บ · โค้ด: น้องพริก
+สร้างโดย **Noob & Jenny** — ไอเดีย/ดีไซน์: นู๊บ · โค้ด: เจนนี่
 
 ถ้าชอบและอยากสนับสนุน ☕ → [ko-fi.com/neafong](https://ko-fi.com/neafong)
 
@@ -129,7 +129,7 @@ docs/       เอกสารออกแบบ + worklog
 
 **GNU General Public License v3.0 or later (GPL-3.0-or-later)**
 
-Copyright (C) 2026 Noob & Pickle
+Copyright (C) 2026 Noob & Jenny
 
 โปรแกรมนี้เป็นซอฟต์แวร์เสรี — คุณใช้/ศึกษา/แก้ไข/แจกจ่ายได้ ภายใต้เงื่อนไข GPL
 โดยเฉพาะ **ถ้านำไปแจกจ่ายหรือต่อยอด ต้องเปิดซอร์สโค้ดให้ผู้อื่นด้วยในเงื่อนไขเดียวกัน**
@@ -140,4 +140,4 @@ Copyright (C) 2026 Noob & Pickle
 
 ---
 
-<sub>ชื่อที่แสดงบนหน้าจอคือ **TaskbarNoob** · ตัวรหัสแอปยังใช้ `taskbargroups` เพื่อไม่ให้ config/การปักหมุดเดิมพัง</sub>
+<sub>รุ่น v0.3.0 รีแบรนด์ชื่อภายในทั้งหมดเป็น `taskbarnoob` พร้อมระบบ Auto-Migration ย้ายการปักหมุดและฮอตคีย์เดิมจาก `taskbargroups` ให้อัตโนมัติ</sub>

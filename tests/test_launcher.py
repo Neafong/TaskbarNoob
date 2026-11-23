@@ -6,14 +6,14 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from taskbargroups.core.launcher import (
+from taskbarnoob.core.launcher import (
     LaunchError,
     _resolve_cwd,
     _split_arguments,
     child_env,
     launch,
 )
-from taskbargroups.core.models import Shortcut
+from taskbarnoob.core.models import Shortcut
 
 
 class ArgumentTests(unittest.TestCase):
@@ -71,7 +71,7 @@ class LaunchLinuxDispatchTests(unittest.TestCase):
 
     def test_executable_file_runs_directly(self) -> None:
         target = self._make_file("app.AppImage", executable=True)
-        with mock.patch("taskbargroups.core.launcher.subprocess.Popen") as popen:
+        with mock.patch("taskbarnoob.core.launcher.subprocess.Popen") as popen:
             launch(Shortcut(name="a", target=target, arguments="--x"))
         popen.assert_called_once_with(
             [target, "--x"], cwd=None, env=mock.ANY, start_new_session=True
@@ -82,7 +82,7 @@ class LaunchLinuxDispatchTests(unittest.TestCase):
         path = Path(self._tmp.name) / "song.mp3"
         path.write_bytes(b"ID3\x04fake-mp3-data")
         path.chmod(0o777)
-        with mock.patch("taskbargroups.core.launcher.subprocess.Popen") as popen:
+        with mock.patch("taskbarnoob.core.launcher.subprocess.Popen") as popen:
             launch(Shortcut(name="s", target=str(path)))
         popen.assert_called_once_with(
             ["gio", "open", str(path)], cwd=None, env=mock.ANY, start_new_session=True
@@ -95,7 +95,7 @@ class LaunchLinuxDispatchTests(unittest.TestCase):
                 path.write_bytes(b"\x7fELFfake-binary")
                 path.chmod(0o755)
                 with mock.patch(
-                    "taskbargroups.core.launcher.subprocess.Popen"
+                    "taskbarnoob.core.launcher.subprocess.Popen"
                 ) as popen:
                     launch(Shortcut(name="g", target=str(path)))
                 popen.assert_called_once_with(
@@ -104,21 +104,21 @@ class LaunchLinuxDispatchTests(unittest.TestCase):
 
     def test_document_file_uses_gio_open(self) -> None:
         target = self._make_file("doc.txt", executable=False)
-        with mock.patch("taskbargroups.core.launcher.subprocess.Popen") as popen:
+        with mock.patch("taskbarnoob.core.launcher.subprocess.Popen") as popen:
             launch(Shortcut(name="d", target=target))
         popen.assert_called_once_with(
             ["gio", "open", target], cwd=None, env=mock.ANY, start_new_session=True
         )
 
     def test_directory_uses_gio_open(self) -> None:
-        with mock.patch("taskbargroups.core.launcher.subprocess.Popen") as popen:
+        with mock.patch("taskbarnoob.core.launcher.subprocess.Popen") as popen:
             launch(Shortcut(name="d", target=self._tmp.name))
         popen.assert_called_once_with(
             ["gio", "open", self._tmp.name], cwd=None, env=mock.ANY, start_new_session=True
         )
 
     def test_desktop_file_uses_gio_launch(self) -> None:
-        with mock.patch("taskbargroups.core.launcher.subprocess.Popen") as popen:
+        with mock.patch("taskbarnoob.core.launcher.subprocess.Popen") as popen:
             launch(Shortcut(name="d", target="/tmp/whatever.desktop"))
         popen.assert_called_once_with(
             ["gio", "launch", "/tmp/whatever.desktop"],
@@ -128,7 +128,7 @@ class LaunchLinuxDispatchTests(unittest.TestCase):
         )
 
     def test_command_in_path_runs_directly(self) -> None:
-        with mock.patch("taskbargroups.core.launcher.subprocess.Popen") as popen:
+        with mock.patch("taskbarnoob.core.launcher.subprocess.Popen") as popen:
             launch(Shortcut(name="f", target="firefox"))
         popen.assert_called_once_with(
             ["firefox"], cwd=None, env=mock.ANY, start_new_session=True
@@ -148,7 +148,7 @@ class LaunchLinuxDispatchTests(unittest.TestCase):
     def test_failed_exec_raises_launch_error(self) -> None:
         target = self._make_file("broken.AppImage", executable=True)
         with mock.patch(
-            "taskbargroups.core.launcher.subprocess.Popen",
+            "taskbarnoob.core.launcher.subprocess.Popen",
             side_effect=OSError("nope"),
         ):
             with self.assertRaises(LaunchError):

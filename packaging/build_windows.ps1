@@ -5,7 +5,7 @@
 $ErrorActionPreference = "Stop"
 $ROOT = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $PY = Join-Path $ROOT ".venv-win\Scripts\python.exe"
-$APP_ID = "taskbargroups"
+$APP_ID = "taskbarnoob"
 $EXE_NAME = "TaskbarNoob"   # ชื่อแอปที่ผู้ใช้เห็น (APP_ID คงไว้เพื่อ .lnk/.desktop เดิมไม่พัง)
 $BUILD = Join-Path $ROOT "build\win"
 $DIST = Join-Path $ROOT "dist"
@@ -39,9 +39,9 @@ $pyArgs = @(
     "--noconfirm", "--clean",
     "--name", $EXE_NAME,
     "--paths", $ROOT,
-    "--collect-submodules", "taskbargroups",
-    "--add-data", "$ICON;taskbargroups/assets",
-    "--add-data", "$ROOT\packaging\assets\icons;taskbargroups/assets/icons",
+    "--collect-submodules", "taskbarnoob",
+    "--add-data", "$ICON;taskbarnoob/assets",
+    "--add-data", "$ROOT\packaging\assets\icons;taskbarnoob/assets/icons",
     "--distpath", "$BUILD\dist",
     "--workpath", "$BUILD\build",
     "--specpath", "$BUILD",
