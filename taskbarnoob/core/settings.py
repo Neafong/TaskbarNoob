@@ -65,7 +65,7 @@ class Settings:
 
     def set_language(self, language: str) -> None:
         if isinstance(language, str) and language.strip():
-            self.set("language", language.strip().lower())
+            self.set("language", language.strip())
 
     def get_donate_url(self) -> str:
         url = self.get("donate_url", DEFAULT_DONATE_URL)

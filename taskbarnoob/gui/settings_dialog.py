@@ -68,7 +68,15 @@ class SettingsDialog(QDialog):
         self.language_combo = QComboBox()
         for code, label in available_languages(self._settings.config_dir):
             self.language_combo.addItem(label, code)
-        lang_index = self.language_combo.findData(self._settings.get_language())
+        saved_lang = self._settings.get_language()
+        lang_index = self.language_combo.findData(saved_lang)
+        if lang_index < 0:
+            needle = saved_lang.casefold()
+            for i in range(self.language_combo.count()):
+                data = self.language_combo.itemData(i)
+                if isinstance(data, str) and data.casefold() == needle:
+                    lang_index = i
+                    break
         self.language_combo.setCurrentIndex(max(0, lang_index))
         self.language_combo.currentIndexChanged.connect(self._on_language_changed)
         self._form.addRow(tr("settings.language"), self.language_combo)

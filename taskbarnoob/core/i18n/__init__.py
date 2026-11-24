@@ -32,6 +32,20 @@ def bundled_lang_dir() -> Path | None:
     return None
 
 
+def _find_lang_file(directory: Path, code: str) -> Path | None:
+    """หาไฟล์ `<code >.json` ในโฟลเดอร์ (ลองตรงตัวก่อน แล้ว fallback แบบไม่สนตัวพิมพ์ใหญ่/เล็ก)."""
+    direct = directory / f"{code}.json"
+    if direct.is_file():
+        return direct
+    if not directory.is_dir():
+        return None
+    target = code.casefold()
+    for path in directory.glob("*.json"):
+        if path.stem.casefold() == target:
+            return path
+    return None
+
+
 def _read_lang_json(path: Path) -> dict[str, str]:
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
@@ -60,15 +74,15 @@ class I18n:
 
     def _load(self) -> dict:
         base = dict(TH)
-        if self._language == "en":
+        if self._language.casefold() == "en":
             base.update(EN)
         bundled = bundled_lang_dir()
         if bundled is not None:
-            bundled_file = bundled / f"{self._language}.json"
-            if bundled_file.is_file():
+            bundled_file = _find_lang_file(bundled, self._language)
+            if bundled_file is not None:
                 base.update(_read_lang_json(bundled_file))
-        overlay = self.lang_dir() / f"{self._language}.json"
-        if overlay.is_file():
+        overlay = _find_lang_file(self.lang_dir(), self._language)
+        if overlay is not None:
             base.update(_read_lang_json(overlay))
         return base
 

@@ -69,6 +69,12 @@ class SettingsTests(unittest.TestCase):
         )
         self.assertFalse(Settings(self._tmp.name).get_flyout_labels())
 
+    def test_set_language_preserves_case(self) -> None:
+        self.settings.set_language("zh_CN")
+        self.assertEqual(Settings(self._tmp.name).get_language(), "zh_CN")
+        self.settings.set_language("pt_BR")
+        self.assertEqual(Settings(self._tmp.name).get_language(), "pt_BR")
+
 
 @unittest.skipUnless(HAVE_QT, "PySide6 not installed")
 class ThemeTests(unittest.TestCase):
@@ -168,6 +174,40 @@ class SettingsDialogTests(unittest.TestCase):
                 self.assertNotEqual(dialog.windowTitle(), th_title)
                 self.assertEqual(dialog.windowTitle(), "Settings")
                 dialog.close()
+            finally:
+                i18n.setup("th", tmp)
+                if old is None:
+                    os.environ.pop("TASKBARNOOB_CONFIG", None)
+                else:
+                    os.environ["TASKBARNOOB_CONFIG"] = old
+
+    def test_mixed_case_language_restored_on_reopen(self) -> None:
+        import tempfile
+
+        from taskbarnoob.core import i18n
+        from taskbarnoob.gui.settings_dialog import SettingsDialog
+
+        with tempfile.TemporaryDirectory() as tmp:
+            old = os.environ.get("TASKBARNOOB_CONFIG")
+            os.environ["TASKBARNOOB_CONFIG"] = tmp
+            try:
+                i18n.setup("th", tmp)
+                dialog = SettingsDialog(object())
+                zh_index = dialog.language_combo.findData("zh_CN")
+                self.assertGreaterEqual(zh_index, 0)
+                dialog.language_combo.setCurrentIndex(zh_index)
+                dialog.close()
+
+                # เปิดหน้าต่าง Settings ใหม่ — dropdown ต้องยังเลือก zh_CN ไม่เด้งกลับไทย
+                reopened = SettingsDialog(object())
+                self.assertEqual(reopened.language_combo.currentData(), "zh_CN")
+                reopened.close()
+
+                # กรณีไฟล์เก่าที่เคยเซฟเป็นตัวพิมพ์เล็ก "zh_cn" ก็ต้องแมตช์กลับเป็น zh_CN ได้
+                Settings(tmp).set("language", "zh_cn")
+                legacy = SettingsDialog(object())
+                self.assertEqual(legacy.language_combo.currentData(), "zh_CN")
+                legacy.close()
             finally:
                 i18n.setup("th", tmp)
                 if old is None:

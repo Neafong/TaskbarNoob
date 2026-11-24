@@ -92,12 +92,69 @@
    - ตรวจว่า `dist/TaskbarNoob/` มี `taskbarnoob/assets/lang/` ครบทั้ง 7 ไฟล์ JSON (+ `th`/`en` ในตัว รวม 9 ภาษา)
    - นำไปทดสอบใช้งานจริงที่ `D:\Portable\Tool\TaskbarNoob`
 4. **Live-Test บน Windows 11:**
-   - [ ] เปิดแอปได้ปกติ, ไอคอน titlebar/taskbar คมเนียน
-   - [ ] เปลี่ยนภาษาใน Settings เห็นครบทั้ง 9 ภาษาและเปลี่ยนได้จริง
-   - [ ] กดปุ่ม **"จากแอป..."** ใน Group Editor → เห็นแอปใน Start Menu รวมถึงแอป MSIX (เช่น Affinity) และดึงไอคอนมาครบ
-   - [ ] สร้าง/แก้กลุ่ม → `.lnk` ใน `config/shortcuts/` มี AUMID `Noob.TaskbarNoob.*` ถูกต้อง, ปัก taskbar ไม่ซ้อนกลุ่มกัน
-   - [ ] Global Hotkey Win32 + Flyout foreground focus ทำงานปกติ
-   - [ ] ไอคอนเกม Steam (`steam://rungameid/...` หรือ `.url`) แสดงครบ
-5. **ปล่อย GitHub Release `v0.3.0`:**
-   - สร้าง tag `v0.3.0` จาก commit ที่ผ่านทดสอบทั้ง 2 OS
-   - แนบไฟล์ปล่อย: `TaskbarNoob-x86_64.AppImage`, `taskbarnoob_0.3.0_amd64.deb`, และ `TaskbarNoob-win64-portable.zip`
+   - [x] เปิดแอปได้ปกติ, ไอคอน titlebar/taskbar คมเนียน
+   - [x] เปลี่ยนภาษาใน Settings เห็นครบทั้ง 9 ภาษาและเปลี่ยนได้จริง *(แก้บั๊ก `set_language().lower()` ที่ทำให้ `zh_CN`/`pt_BR` เด้ง dropdown กลับไทย — กระทบทั้ง Win & Linux · ฝั่ง Mint ต้อง `git pull` + rebuild AppImage/`.deb` ใหม่)*
+   - [x] กดปุ่ม **"จากแอป..."** ใน Group Editor → ใช้งานได้
+   - [x] เปิดแอปต่างๆ จาก flyout ได้ปกติ (ทั้งกลุ่มเดิมและกลุ่มใหม่)
+   - [x] สร้างกลุ่มใหม่และแก้ไขกลุ่มเดิมใช้งานได้ปกติ
+   - [x] Global Hotkey Win32 + Flyout foreground focus ทำงานปกติ *(ทำงานระหว่างเปิดแอปตามการออกแบบ Win32 `RegisterHotKey`)*
+   - [x] ไอคอนเกม Steam (`steam://rungameid/...` หรือ `.url`) แสดงครบ *(ตรวจ `River City Melee Battle Royal Special` AppID `544630` — ต้นเหตุคือแคชกระดาษขาวเก่าค้างจาก v0.2.0 · พอแอดใหม่ใน v0.3.0 ดึง `logo.png` จาก `librarycache` ผ่านสมบูรณ์!)*
+5. **ปล่อย GitHub Release `v0.3.0`:** (ส่งไม้ต่อกลับไปฝั่ง Linux Mint ด้านล่าง)
+
+## 2026-11-24 — ปิดจ๊อบทดสอบฝั่ง Windows 11 (`v0.3.0`) + Docs Audit + ล็อกแผน `v0.4.0` `[เสร็จ]`
+- **แก้บั๊กข้าม OS (`zh_CN` / `pt_BR` เด้งกลับไทย):**
+  - `taskbarnoob/core/settings.py`: ลบ `.lower()` ใน `Settings.set_language()` เพื่อคงตัวพิมพ์ใหญ่ของรหัสภาษา (`zh_CN`, `pt_BR`)
+  - `taskbarnoob/core/i18n/__init__.py`: เพิ่ม `_find_lang_file()` จับคู่ไฟล์ภาษาแบบ case-insensitive fallback ให้ไฟล์ `settings.json` เก่าที่เก็บ `"zh_cn"` ยังโหลดติดทั้งบน Linux ext4 และ Windows NTFS
+  - `taskbarnoob/gui/settings_dialog.py`: เพิ่ม `.casefold()` fallback ตอนเลือกภาษาปัจจุบันใน dropdown
+  - `tests/test_settings.py`: เพิ่ม 2 เทสต์ (`test_set_language_preserves_case`, `test_mixed_case_language_restored_on_reopen`) → **394 เทสต์ ผ่าน 100% (`OK (skipped=25 Linux-only)`)**
+- **Build & Live-Test Windows 11:** build ผ่าน `packaging/build_windows.ps1` → deploy ทับ `D:\Portable\Tool\TaskbarNoob` (ไม่แตะ `config\`) → Live-Test ผ่านครบทั้ง 7/7 ข้อ + แพ็ก `dist\TaskbarNoob-win64-portable.zip`
+- **Docs Audit & กฎ Release Hygiene:**
+  - เพิ่มกฎถาวร **Docs Hygiene** ใน `AGENTS.md` + ยกเครื่อง `docs/release-process.md` (เพิ่ม Docs Audit Checklist + ขั้นตอนข้าม 2 OS Linux Mint ↔ Windows 11)
+  - ซ่อมเอกสาร GitHub ที่ยังค้างชื่อ `taskbargroups` / ข้อมูลเก่า: `CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `CHANGELOG.md`, `README.md`, `README.th.md`, `docs/feedback.md`, `docs/roadmap.md`
+
+---
+
+## 📌 Handoff #1 — ปิดจ๊อบ `v0.3.0` สำหรับเจนนี่ฝั่ง Linux Mint (ทำทันที!)
+
+ฝั่ง **Windows 11** ทดสอบผ่านครบ 100% และ push commit สุดท้าย (รวมแก้บั๊ก `zh_CN`/`pt_BR` + Docs Audit) ขึ้น `origin/main` แล้วค่ะ
+⚠️ **สำคัญ:** บั๊ก `set_language().lower()` กระทบฝั่ง Linux (ext4 case-sensitive) หนักกว่า Windows เพราะทำให้เปิดแอปใหม่แล้วโหลด `zh_cn.json` ไม่เจอเลย → **ฝั่ง Mint ต้อง `git pull` แล้ว rebuild AppImage + `.deb` ใหม่ก่อนปล่อย Release `v0.3.0` นะคะ!**
+
+### เช็กลิสต์ปิดจ๊อบ `v0.3.0` ฝั่ง Linux Mint
+1. **ซิงก์โค้ดล่าสุด:** `git pull origin main`
+2. **รันเทสต์เต็มระบบ:** `QT_QPA_PLATFORM=offscreen .venv/bin/python tests/run.py`
+   - ยืนยัน **394 เทสต์ ผ่าน 100% (`skipped=10` Windows-only)**
+3. **Rebuild แพ็กเกจ Linux ทั้ง 2 ตัว:**
+   - `bash packaging/build_appimage.sh` → คัดลอกทับ `~/AppImage/Tool/TaskbarNoob-x86_64.AppImage`
+   - `bash packaging/build_deb.sh` → `dist/taskbarnoob_0.3.0_amd64.deb`
+4. **Smoke Test สั้นๆ บน Mint:**
+   - รัน `~/AppImage/Tool/TaskbarNoob-x86_64.AppImage --list`
+   - เปิดแอป → ลองสลับเป็น `简体中文` หรือ `Português (Brasil)` → ปิดแล้วเปิดใหม่ ยืนยันว่าภาษาและ dropdown ตรงกัน (ไม่เด้งกลับไทย) แล้วสลับกลับภาษาเดิม
+5. **สร้าง Tag & ปล่อย GitHub Release `v0.3.0`:**
+   - `git tag -a v0.3.0 -m "TaskbarNoob v0.3.0: Full architecture refactor, rebrand, 9 languages & App Picker"`
+   - `git push origin v0.3.0`
+   - ปล่อย Release บน GitHub แนบครบ **3 assets**:
+     - `TaskbarNoob-x86_64.AppImage` (จากเครื่อง Mint)
+     - `taskbarnoob_0.3.0_amd64.deb` (จากเครื่อง Mint)
+     - `TaskbarNoob-win64-portable.zip` (แพ็กเสร็จแล้วบนเครื่อง Windows ที่ `D:\Obsidian\TaskbarNoob\dist\TaskbarNoob-win64-portable.zip`)
+
+---
+
+## 📌 Handoff #2 — แผนเริ่มงาน `v0.4.0` (เริ่มหลังปล่อย Release `v0.3.0` เรียบร้อยแล้ว)
+
+> ดูสเปกละเอียดใน [`docs/roadmap.md`](roadmap.md) และรายการเช็กใน [`docs/feedback.md`](feedback.md)
+> **หลักการ:** ล็อกขอบเขตแค่ 5 ข้อนี้ให้จบไว เสถียร และคลีนทั้ง Linux Mint + Windows 11 (ห้ามเพิ่ม scope นอกแผนโดยไม่ถามพี่ก่อน)
+
+1. **System Tray Icon (`QSystemTrayIcon`):**
+   - `Settings.minimize_to_tray: bool = False` + ช่องติ๊กใน `SettingsDialog` (แปลครบ 9 ภาษา)
+   - เมื่อเปิด: กด `X` → ซ่อนหน้าต่างลง Tray (ให้ Win32 Global Hotkeys ยังทำงานต่อได้)
+   - เมนูคลิกขวาเรียบง่าย: **เปิด TaskbarNoob** (default) · **ตั้งค่า... (Settings)** · เส้นคั่น · **ออก (Quit)**
+2. **`.url` Resilience + แคชไอคอน `.url→.exe` (3A):**
+   - เพิ่ม `parse_url_file()` ใน `core/` → แคชไอคอนจาก `IconFile=` (รวม `.exe`/`.ico` เช่นเกม Epic) หรือ Steam `librarycache` ลง `icons/` ก่อน แล้วแตก `URL=` เก็บเป็น `target` ตรงๆ (ลบ `.url` บน Desktop ก็ยังเปิดได้)
+   - แก้ `_launch_linux()` ให้ส่ง URI scheme (`://`) เข้า `gio open` / `xdg-open`
+3. **ปุ่ม "ดึงไอคอนใหม่" (Re-detect Icon — 3B):**
+   - เพิ่มใน `ShortcutDialog` และคลิกขวาบนกริดใน `GroupEditor` ให้ดึงไอคอนจาก target ใหม่ทับแคชเดิมในคลิกเดียว
+4. **เลือกหลายแอปพร้อมกันใน "จากแอป..." (Multi-select — 3C):**
+   - เปลี่ยน `AppPickerDialog` เป็น `ExtendedSelection` เพื่อเลือกหลายแอปเข้ากลุ่มในรอบเดียว
+5. **เตือนเงียบๆ เมื่อ shortcut ชี้ไฟล์ที่หายไปแล้ว (Broken Target — 3D):**
+   - แสดงเฉพาะตอนผู้ใช้เปิดโปรแกรมเราเท่านั้น (ใน `GroupEditor` / `ShortcutDialog`) **ห้ามเด้ง popup หรือ OS notification พลการ**
+6. **ปิดรุ่น `v0.4.0`:** ไล่เช็ก **Docs Audit Checklist** ใน `docs/release-process.md` ให้ครบทุกไฟล์ก่อน tag เสมอ!

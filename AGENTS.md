@@ -12,7 +12,8 @@
 - **Think:** อย่าเดาเงียบๆ — เขียน assumption ก่อนลงมือ · มีหลายทางให้เสนอเทรดออฟ · งงให้หยุดถามค่ะ
 - **Simple:** โค้ดน้อยสุดที่แก้ได้ · ไม่เพิ่ม feature/abstraction/config เผื่ออนาคต · ถ้า 200 บรรทัดลดเหลือ 50 ได้ ให้เขียนใหม่ค่ะ
 - **Surgical:** แตะเฉพาะที่สั่ง · ไม่จัด format/refactor/ลบของข้างๆ ที่ไม่เกี่ยว (เจอให้แค่บอก) · เก็บขยะเฉพาะที่เราสร้างเอง · ทุก diff ต้องโยงถึง request ได้ค่ะ
-- **Verify:** นิยาม done ก่อนทำ (เทสต์ไหนต้องผ่าน) · งานหลายขั้นให้แตก `1. step → verify` · รัน `.venv/bin/python tests/run.py` จนเขียว (392 เทสต์) ก่อนจบค่ะ
+- **Verify:** นิยาม done ก่อนทำ (เทสต์ไหนต้องผ่าน) · งานหลายขั้นให้แตก `1. step → verify` · รัน `tests/run.py` จนเขียว (394 เทสต์) ก่อนจบค่ะ
+- **Docs Hygiene (กฎออกรุ่น):** ห้ามปิดรุ่น/สร้าง tag จนกว่าจะไล่ตรวจ **Docs Audit Checklist** ใน `docs/release-process.md` ครบ (`README.md`, `README.th.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `appdata.xml`, `docs/roadmap.md`, `docs/feedback.md`, `docs/WORKLOG.md`, `AGENTS.md`) · อย่าปล่อยเอกสาร GitHub ค้างชื่อ/ข้อมูลเก่าข้ามรุ่นค่ะ
 - **Tradeoff:** งานจิ๋ว (typo, one-liner ชัดๆ) ใช้วิจารณญาณ ไม่ต้องครบพิธีค่ะ
 
 ## วิธีรันงานยาว (สั่งครั้งเดียวจบ)
@@ -32,7 +33,7 @@
 ## เป้าหมายโปรเจกต์
 แอปคล้าย [Taskbar Groups](https://github.com/tjackenpacken/taskbar-groups):
 จัดกลุ่ม shortcut แล้วกดครั้งเดียวเปิดกลุ่มนั้นได้
-- **เป้าหลัก:** Linux Mint (Cinnamon) · **เป้ารอง:** Windows (alpha) · **macOS:** มีโค้ดแต่ยังไม่ทดสอบ
+- **เป้าหลัก:** Linux Mint (Cinnamon) · **เป้ารอง:** Windows 11 (portable) · **macOS:** พับเก็บไว้ก่อนจนกว่าจะมีเครื่องจริงสำหรับทดสอบ
 - **Portable:** config อยู่ในโฟลเดอร์แอป (`<app>/config/`)
 
 ## Stack ที่ล็อกแล้ว
@@ -46,16 +47,14 @@
 - **v0.1.0 ขึ้น GitHub แล้ว (2026-10-12):** repo `github.com/Neafong/TaskbarNoob` (Public) · GPL-3.0-or-later
 - **v0.2.0 ปล่อยขึ้น GitHub แล้ว (2026-11-23):** ครบทั้ง Linux Mint + Windows 11 (portable `TaskbarNoob.exe`, AUMID แยกต่อกลุ่ม/แอป, `.lnk` ผ่าน COM `IShellLinkW`, multi-res `.ico`, Hotkey Win32 + foreground focus + ย้ายคีย์ตามตอนเปลี่ยนชื่อ, ไอคอน MSIX/WindowsApps อัตโนมัติ, ตัวเลือกไอคอนระบบ 2 แหล่ง, Flyout เงามุมโค้ง)
   · โฟลเดอร์ใช้งานจริงบน Win: `D:\Portable\Tool\TaskbarNoob`
-- **งานปัจจุบัน (`v0.3.0` — ฝั่ง Linux Mint เสร็จ 100% พร้อมส่งต่อทดสอบฝั่ง Windows 11!):**
-  · ✅ **R0–R4 เสร็จครบ (2026-11-23):** จัดระเบียบเอกสาร · แยก `core/platform/{base,linux,win32}` · แตกไฟล์ยักษ์ `gui/` · แตก `core/icons/` + Steam icon resolver + ตัวเลือกไอคอน 3 หมวด · ลบ dead code PowerShell · แยก `core/i18n/` · รีแบรนด์ `taskbargroups` → `taskbarnoob` พร้อม Auto-Migration · เครดิต `Noob & Jenny` · bump `0.3.0`
-  · ✅ **Live-Test Polish บน Linux Mint เสร็จครบ (2026-11-23 – 2026-11-24):**
-    - ไอคอนแอปเนียนทุกระดับ (`app_window_icon()` mipmap + `taskbarnoob.svg` scalable)
-    - ดึงไอคอนจากแอป Electron/Portable `.asar` อัตโนมัติ (`core/icons/portable.py` — เช่น Antigravity)
-    - Flyout ตรึงตรงกึ่งกลางไอคอนที่ปักบน panel จริงผ่าน Cinnamon DBus `pinned_icon_rect()` (ไม่วิ่งตามเมาส์)
-    - รองรับไอคอน Flatpak/Snap + จัดอันดับความละเอียดสูงสุด/SVG สี (เลี่ยง `-symbolic`) + ปุ่ม **"จากแอป..."** (`gui/app_picker.py`) เลือกแอปที่ติดตั้งไว้ได้เลยทั้ง Linux & Windows
-    - **9 ภาษาติดมากับตัวแอป:** ไทย · English · 日本語 · 简体中文 · 한국어 · Español · Deutsch · Français · Português (Brasil)
-  · ✅ **เทสต์ & แพ็กเกจ Linux Mint:** **392 เทสต์ ผ่าน 100% (`skipped=10` Windows-only)** · AppImage deploy ที่ `/home/noob/AppImage/Tool/TaskbarNoob-x86_64.AppImage` + `.deb` ที่ `dist/taskbarnoob_0.3.0_amd64.deb`
-  · **ถัดไป:** ทดสอบ & build ฝั่ง **Windows 11** (ดู Handoff ท้าย `docs/WORKLOG.md`) แล้วปล่อย GitHub Release `v0.3.0` · ดู [`docs/roadmap.md`](docs/roadmap.md)
+- **งานปัจจุบัน (`v0.3.0` — ทดสอบผ่านครบทั้ง Linux Mint + Windows 11 แล้ว · เหลือฝั่ง Mint pull fix + rebuild + ปล่อย Release!):**
+  · ✅ **R0–R4 + Live-Test Polish บน Linux Mint (2026-11-23 – 2026-11-24):** แยก `core/platform/{base,linux,win32}` · แตกไฟล์ยักษ์ `gui/` + `core/icons/` + `core/i18n/` · Steam/Portable ASAR/Flatpak/Snap icon resolver · ปุ่ม **"จากแอป..."** (`gui/app_picker.py`) · Flyout ตรึงกึ่งกลางไอคอนบน Cinnamon panel (`pinned_icon_rect()`) · 9 ภาษาในตัว · รีแบรนด์ `taskbargroups` → `taskbarnoob` พร้อม Auto-Migration · เครดิต `Noob & Jenny`
+  · ✅ **ทดสอบ & Build ฝั่ง Windows 11 เสร็จครบ (2026-11-24):**
+    - แก้บั๊กข้าม OS: `Settings.set_language()` แปลงรหัสภาษาเป็นตัวพิมพ์เล็กทำให้ `zh_CN`/`pt_BR` เด้งกลับไทย (+ case-insensitive fallback ใน `core/i18n` และ `SettingsDialog`)
+    - เทสต์ผ่าน **394/394** (`skipped=25` Linux-only) · deploy ที่ `D:\Portable\Tool\TaskbarNoob` + live-test ผ่านครบ 7/7 ข้อ (รวม Steam `River City Melee`) · แพ็ก `dist\TaskbarNoob-win64-portable.zip`
+    - ทำ **Docs Audit** ซ่อมเอกสารค้าง (`CONTRIBUTING.md`, `PULL_REQUEST_TEMPLATE.md`, `docs/release-process.md`, `docs/feedback.md`, `CHANGELOG.md`, `README*.md`) + ล็อกแผน `v0.4.0`
+  · **ถัดไป (1) ปิดจ๊อบ `v0.3.0` ฝั่ง Linux Mint:** `git pull origin main` → รัน `tests/run.py` (394 เทสต์) → rebuild `AppImage` + `.deb` (รวมแก้บั๊ก `zh_CN`/`pt_BR`) → deploy `~/AppImage/Tool/` → tag `v0.3.0` & ปล่อย GitHub Release (แนบ 3 ไฟล์)
+  · **ถัดไป (2) เริ่ม `v0.4.0` (หลังปล่อย `v0.3.0`):** System Tray Icon (เปิด/ปิดใน Settings) + `.url` Resilience (แตก `URL=` เก็บตรง + แคชไอคอน `.url→.exe` เช่น Epic) + ปุ่มดึงไอคอนใหม่ + Multi-select "จากแอป..." + เตือน target หายแบบเงียบเฉพาะตอนเปิดแอป (ดูสเปกใน [`docs/roadmap.md`](docs/roadmap.md) และ Handoff ท้าย [`docs/WORKLOG.md`](docs/WORKLOG.md))
 - **ยังเทสต์บนเครื่องนี้ไม่ได้:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่น (hotkey/pin = Cinnamon-only)
 
 ## หมายเหตุเทคนิคสำคัญ (แก้โค้ดตรงส่วนนี้ ต้องอ่านก่อน!)
@@ -128,7 +127,7 @@
 ## วิธีรัน / Dev
 - รันแอป: `.venv/bin/python -m taskbarnoob`
 - เปิด flyout: `... -m taskbarnoob --open "<GroupDir>"` · list: `... --list`
-- เทสต์: `QT_QPA_PLATFORM=offscreen .venv/bin/python tests/run.py` → **392 เทสต์ ผ่าน 100% (skipped=10 Windows-only)**
+- เทสต์: `QT_QPA_PLATFORM=offscreen .venv/bin/python tests/run.py` → **394 เทสต์ ผ่าน 100% (skipped=10 Windows-only)**
   · (ถ้ารัน `python -m unittest discover -s tests` ผลเทสต์เท่ากันแต่ตอนปิด PySide6 6.12 จะ segfault
     ใน `destroyQCoreApplication()` — บั๊กฝั่ง Qt · `tests/run.py` เรียก `os._exit()` เลี่ยงให้)
 - แพ็ก: `bash packaging/build_appimage.sh` → `dist/TaskbarNoob-x86_64.AppImage`
@@ -162,10 +161,10 @@ docs/   README.md (แผนที่เอกสาร) · roadmap.md (แผ�
 config/ (gitignored) — ข้อมูลกลุ่มจริงแบบ portable
 ```
 
-## งานถัดไป (Next Actions — v0.3.0)
-1. **ฝั่ง Windows 11:** `git pull origin main` → รัน `python tests/run.py` ให้ผ่านครบ **392/392** (0 skipped)
-2. **Build Windows Portable:** รัน `powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1` + ทดสอบจริงบน Win 11 (ปุ่ม "จากแอป..." + Affinity/MSIX + 9 ภาษา + Steam + AUMID + Hotkeys)
-3. **ปล่อย GitHub Release `v0.3.0`:** แท็ก `v0.3.0` + แนบ `TaskbarNoob-x86_64.AppImage`, `taskbarnoob_0.3.0_amd64.deb`, และ `TaskbarNoob-win64-portable.zip`
+## งานถัดไป (Next Actions)
+1. **ฝั่ง Linux Mint (ปิดจ๊อบ `v0.3.0`):** `git pull origin main` → รัน `tests/run.py` (394 เทสต์) → rebuild `AppImage` + `.deb` (รวมแก้บั๊ก `zh_CN`/`pt_BR`) → คัดลอก AppImage ไป `~/AppImage/Tool/` → smoke test
+2. **ปล่อย GitHub Release `v0.3.0`:** แท็ก `v0.3.0` + แนบ `TaskbarNoob-x86_64.AppImage`, `taskbarnoob_0.3.0_amd64.deb`, และ `TaskbarNoob-win64-portable.zip`
+3. **เริ่ม `v0.4.0` (หลังปล่อย `v0.3.0`):** ดูสเปกที่ล็อกไว้ใน `docs/roadmap.md` และ Handoff ท้าย `docs/WORKLOG.md`
 
 ## เอกสารอ้างอิง
 - `docs/README.md` — แผนที่/ดัชนีเอกสาร (รวม `docs/archive/`)

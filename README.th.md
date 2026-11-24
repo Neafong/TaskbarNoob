@@ -103,7 +103,7 @@ powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1
 ## ทดสอบ
 
 ```bash
-.venv/bin/python tests/run.py      # 392 tests
+.venv/bin/python tests/run.py      # 394 tests
 ```
 
 ## ภาษา & การเพิ่มภาษาใหม่
@@ -127,7 +127,7 @@ taskbarnoob/
 │   └── ...         models · storage · paths · launcher · settings · archive
 └── gui/            ส่วน Qt/PySide6 (main_window · group_editor · app_picker · flyout …)
 packaging/          build scripts · assets (โลโก้) · lang (7 ภาษาแพ็กติดแอป) · appimage/
-tests/              unittest ชุดทดสอบ (392 tests)
+tests/              unittest ชุดทดสอบ (394 tests)
 docs/               เอกสารออกแบบ + worklog + roadmap
 ```
 

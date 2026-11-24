@@ -36,6 +36,7 @@
 - **ไอคอนแอปขอบหยักบน panel/titlebar** — สร้าง `QIcon` หลายขนาดแบบ mipmap (`16–256px`) ใน `gui/icons.app_window_icon()` + แนบ `taskbarnoob.svg` ลง `hicolor/scalable/apps/`
 - **Flatpak `.desktop` ไม่มีไอคอน + ไอคอนขนาดไม่เท่ากัน (16px vs 24px vs SVG)** — เพิ่มโฟลเดอร์ Flatpak/Snap ใน `core/icons/theme.py` และให้ `find_theme_icon()` เลือก SVG / ความละเอียดสูงสุด (เลี่ยง `-symbolic`) แทนการคืนไฟล์แรกที่เจอ
 - `ConfigStore._prune_order()` เรียงรายชื่อโฟลเดอร์กลุ่มตามชื่อ (แก้ผลลัพธ์ไม่แน่นอนบน Linux ext4)
+- **ภาษาที่มีตัวพิมพ์ใหญ่ (`zh_CN`, `pt_BR`) เด้งกลับภาษาไทยหลังเปิดแอปใหม่** — แก้ `Settings.set_language()` ไม่ให้แปลงเป็นตัวพิมพ์เล็ก + fallback จับคู่แบบ case-insensitive ใน `core/i18n` และ `SettingsDialog` (แก้ทั้ง Windows 11 และ Linux ext4)
 
 ## [0.2.0] — 2026-11-23
 
@@ -133,5 +134,6 @@
 
 - ขั้นตอน bump → build → tag → Release ดู [`docs/release-process.md`](docs/release-process.md)
 
+[0.3.0]: https://github.com/Neafong/TaskbarNoob/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Neafong/TaskbarNoob/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Neafong/TaskbarNoob/releases/tag/v0.1.0

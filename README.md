@@ -102,7 +102,7 @@ powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1
 ## Tests
 
 ```bash
-.venv/bin/python tests/run.py      # 392 tests
+.venv/bin/python tests/run.py      # 394 tests
 ```
 
 ## Languages & Translations
@@ -126,7 +126,7 @@ taskbarnoob/
 │   └── ...         models · storage · paths · launcher · settings · archive
 └── gui/            Qt/PySide6 UI (main_window · group_editor · app_picker · flyout …)
 packaging/          Build scripts · assets · lang (7 bundled JSON packs) · appimage/
-tests/              unittest suite (392 tests)
+tests/              unittest suite (394 tests)
 docs/               Design docs, roadmap, and worklog
 ```
 

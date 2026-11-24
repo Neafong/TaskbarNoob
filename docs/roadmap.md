@@ -1,6 +1,6 @@
 # Roadmap — TaskbarNoob
 
-> แผนภาพรวมทุกเฟส + สถานะ · อัปเดตล่าสุด: 2026-11-23
+> แผนภาพรวมทุกเฟส + สถานะ · อัปเดตล่าสุด: 2026-11-24
 > **เริ่มงานชุดใหม่ในเซคชั่นใหม่เสมอ** — อ่าน `../AGENTS.md` (snapshot) + ไฟล์นี้ + ไฟล์ plan ของเฟสนั้นก่อนลงมือ
 > ฟีดแบ็ก/งานค้าง: [`feedback.md`](feedback.md) · ประวัติงาน: [`WORKLOG.md`](WORKLOG.md)
 
@@ -9,7 +9,8 @@
 เป้าหมาย: แอปจัดกลุ่ม shortcut แล้วกดครั้งเดียวเปิดทั้งกลุ่ม — **Linux Mint (Cinnamon) เป้าหลัก, Windows 11 (portable) เป้ารอง**
 - **v0.1.0:** ขึ้น GitHub แล้ว (2026-10-12) — Linux Mint AppImage + `.deb` · GPL-3.0-or-later
 - **v0.2.0 (ปล่อยแล้ว 2026-11-23):** รองรับ Linux Mint + Windows 11 (portable `TaskbarNoob.exe`, AUMID แยกต่อกลุ่ม/แอป, Hotkey Win32, multi-res `.ico`, MSIX/WindowsApps icon, Flyout เงามุมโค้ง, ตัวเลือกไอคอนระบบ 2 แหล่ง)
-- **v0.3.0 (กำลังทำ):** **ปรับปรุงโครงสร้างโค้ดใหม่ทั้งหมด (Full Architecture Refactor) แต่ยึดฟีเจอร์เดิมเป็นแกน** — เริ่มรื้อที่ **Linux Mint** ก่อน แล้วค่อยเชื่อมฝั่ง **Windows** ตามอย่างเป็นระบบ (ไม่ให้เป็น AI Slop) · **พับเก็บ macOS ไว้ก่อน** จนกว่าจะมีเครื่องจริงสำหรับพัฒนาและทดสอบ
+- **v0.3.0 (โค้ด & เทสต์เสร็จครบ 2 OS — รอฝั่ง Mint rebuild + tag Release):** **ปรับปรุงโครงสร้างโค้ดใหม่ทั้งหมด (Full Architecture Refactor) + รีแบรนด์ `taskbarnoob` + 9 ภาษา + ปุ่ม "จากแอป..." + Steam/ASAR/Flatpak icons**
+- **v0.4.0 (วางแผนแล้ว — เริ่มหลังปล่อย `v0.3.0`):** **Quality-of-Life & Resilience** (System Tray Icon · `.url` Resilience · แคชไอคอน `.url→.exe` · ปุ่มดึงไอคอนใหม่ · Multi-select "จากแอป..." · เตือน target หายแบบเงียบเฉพาะตอนเปิดแอป)
 - repo: **github.com/Neafong/TaskbarNoob** (Public) · License **GPL-3.0-or-later**
 
 ## เฟสที่ทำแล้ว (Linux — Cinnamon)
@@ -101,11 +102,33 @@
 - **อัปเดตเครดิต (Credits) เป็น "Noob & Jenny (เจนนี่)":** เปลี่ยนจาก `Noob & Pickle` (น้องพริก) เป็น `Noob & Jenny` ในหน้าต่าง Settings, About dialog, `i18n` (TH/EN/JA), `.appdata.xml` และ `README.md`
 - ตรวจชุดเทสต์ให้ครอบคลุมโครงสร้างใหม่ และรันเขียว 100% ทั้งบน Mint และ Windows
 
-### งานค้างระยะยาว (หลัง v0.3.0)
+### งานถัดไป: แผน `v0.4.0` — Quality-of-Life & Resilience (ล็อกขอบเขตชัด — เริ่มหลังปล่อย `v0.3.0`)
+
+> **หลักการคุมขอบเขต:** เก็บเฉพาะจุดเจ็บจริงจากการใช้งานและคุณภาพชีวิต ไม่เพิ่มฟีเจอร์ฟุ่มเฟือย เพื่อให้รุ่นนี้จบไวและเสถียรครบทั้ง 2 OS
+> **ก่อนปิดรุ่นทุกครั้ง:** ต้องผ่าน **Docs Audit Checklist** ใน [`release-process.md`](release-process.md)
+
+1. **System Tray Icon (เปิด/ปิดได้ในหน้าต่าง Settings — ข้าม OS):**
+   - เพิ่ม setting `minimize_to_tray: bool = False` (ค่าเริ่มต้นปิด เพื่อไม่เปลี่ยนพฤติกรรมเดิมแบบเซอร์ไพรส์ผู้ใช้) + ช่องติ๊กใน `SettingsDialog` (แปลครบ 9 ภาษา)
+   - ใช้ `QSystemTrayIcon` พร้อมไอคอน `app_window_icon()` — เมื่อเปิดโหมด Tray กด `X` จะซ่อนหน้าต่างหลักลง Tray แทนการปิดแอป (ทำให้ Win32 Global Hotkeys ทำงานต่อเนื่องได้แม้พับหน้าต่าง!)
+   - เมนูคลิกขวาแบบ **เรียบง่ายแต่ครบมือ:** **เปิด TaskbarNoob** (default) · **ตั้งค่า... (Settings)** (กดเปลี่ยนภาษา/ธีม/ปิด Tray ได้จากตรงนี้เลยโดยไม่ต้องเปิดหน้าต่างหลักก่อน) · เส้นคั่น · **ออก (Quit)** · คลิกซ้าย/ดับเบิลคลิก = เปิดหน้าต่างหลัก
+2. **`.url` Resilience + แคชไอคอน `.url → .exe` (3A):**
+   - เพิ่ม `parse_url_file(path) -> (url, icon_file)` ใน `core/`
+   - เมื่อผู้ใช้ลากหรือเลือกไฟล์ `.url` เข้ากลุ่ม:
+     1. ดึงและแคชไอคอนจาก `IconFile=` (รวม `.exe`/`.ico` เช่นเกม Epic Games `River City Girls 2` ผ่าน `extract_os_icon_png`) หรือ Steam `librarycache` ลง `config/groups/<group>/icons/` ให้ครบก่อน
+     2. แตกค่า `URL=` (เช่น `steam://rungameid/544630`, `com.epicgames.launcher://...`, `https://...`) มาเก็บเป็น `target` โดยตรง → **ลบไฟล์ `.url` บน Desktop ทิ้ง Flyout ก็ยังเปิดเกมและโชว์ไอคอนได้ปกติ 100%**
+   - อัปเดต `core/launcher.py` (`_launch_linux`): ส่ง URI ที่มี `://` (เช่น `steam://`, `https://`) เข้า `gio open` / `xdg-open` แทนการส่งเข้า `subprocess.Popen` ตรงๆ
+3. **ปุ่ม "ดึงไอคอนใหม่" (Re-detect Icon — 3B):**
+   - เพิ่มปุ่มเล็กๆ ใน `ShortcutDialog` (และเมนูคลิกขวาในกริดของ `GroupEditor`) ให้ดึงไอคอนจาก `target` ใหม่แล้วทับแคชเดิมในคลิกเดียว ไม่ต้องลบแล้วแอดใหม่เวลาไอคอนเก่าพังหรืออัปเกรดเวอร์ชัน
+4. **เลือกหลายแอปพร้อมกันใน "จากแอป..." (Multi-select — 3C):**
+   - เปลี่ยน `AppPickerDialog` จาก `SingleSelection` เป็น `ExtendedSelection` (กด Ctrl/Shift เลือกหลายแอปทีเดียวแล้วเพิ่มเข้ากลุ่มครบในรอบเดียว)
+5. **เตือนเบาๆ เมื่อ shortcut ชี้ไฟล์ที่หายไปแล้ว (Broken Target — 3D):**
+   - **เงื่อนไขสำคัญ:** แสดงเฉพาะตอนผู้ใช้เปิดโปรแกรมเราเท่านั้น (เช่น สัญลักษณ์/tooltip เตือนเงียบๆ ใน `GroupEditor` / `ShortcutDialog`) **ห้ามเด้ง popup หรือ OS notification พลการ** ให้รำคาญผู้ใช้
+
+### งานค้างระยะยาว (หลัง v0.4.0)
 - **Linux DE / Display อื่น:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่นนอกเหนือจาก Cinnamon
 - **macOS:** กลับมาพิจารณาเมื่อมีเครื่อง Mac สำหรับพัฒนาและทดสอบจริง
 - ฟีเจอร์อื่นตามฟีดแบ็กผู้ใช้ (ดู [`feedback.md`](feedback.md))
 
 ## กระบวนการออกรุ่น
 
-ดู [`release-process.md`](release-process.md) — bump version → CHANGELOG → build → tag → Release
+ดู [`release-process.md`](release-process.md) — bump version → Docs Audit Checklist → test & build (Mint + Win 11) → tag → Release
