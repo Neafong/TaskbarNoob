@@ -9,7 +9,6 @@ APP_ID="taskbarnoob"
 BUILD="$ROOT/build"
 DIST="$ROOT/dist"
 APPDIR="$BUILD/${APP_ID}.AppDir"
-OUT="$DIST/TaskbarNoob-x86_64.AppImage"
 TOOLS="$BUILD/tools"
 ICON="$ROOT/packaging/appimage/${APP_ID}.png"
 
@@ -17,6 +16,9 @@ if [[ ! -x "$PY" ]]; then
   echo "ไม่พบ $PY (ต้องมี .venv ก่อน)" >&2
   exit 1
 fi
+
+VERSION="$("$PY" -c "import sys; sys.path.insert(0, '$ROOT'); import taskbarnoob; print(taskbarnoob.__version__)")"
+OUT="$DIST/TaskbarNoob-${VERSION}-x86_64.AppImage"
 
 if ! "$PY" -m PyInstaller --version >/dev/null 2>&1; then
   echo "ติดตั้ง PyInstaller..."

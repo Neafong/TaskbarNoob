@@ -100,7 +100,7 @@
   "settings.theme_auto": "Seguir al sistema (auto)",
   "settings.theme_light": "Claro",
   "settings.theme_dark": "Oscuro",
-  "settings.theme_hint": "Elige 'Seguir al sistema' para igualar tu tema de Cinnamon.\nNota: no cambia los iconos de la barra de tareas.",
+  "settings.theme_hint": "Elige «Seguir al sistema» para coincidir con el tema del sistema.\nNota: esto no cambia los iconos de la barra de tareas.",
   "settings.language": "Idioma / Language",
   "settings.flyout_labels": "Por defecto: mostrar nombres bajo los iconos",
   "settings.flyout_labels_tip": "Se aplica a grupos sin ajuste propio · editable por grupo",

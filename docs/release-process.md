@@ -6,9 +6,19 @@
 ## หลักการเวอร์ชัน (SemVer)
 
 - ตัวเลขเวอร์ชัน**แหล่งเดียว** = `__version__` ใน `taskbarnoob/__init__.py`
-  (build scripts อ่านจากตรงนี้ — อย่าแก้ที่อื่น)
-- รูปแบบ `MAJOR.MINOR.PATCH` เช่น `0.3.0` · แท็ก = `v<version>` เช่น `v0.3.0`
+  (build scripts ทุกแพลตฟอร์มอ่านจากตรงนี้ — อย่าแก้ที่อื่น)
+- รูปแบบ `MAJOR.MINOR.PATCH` เช่น `0.4.0` · แท็ก = `v<version>` เช่น `v0.4.0`
 - ปล่อยรุ่นผ่าน GitHub Releases + **แนบ binary เป็น assets** (AppImage, `.deb`, Windows portable `.zip`) — ไม่ commit binary เข้า repo
+
+## กฎตั้งชื่อไฟล์ Release (ล็อกตายตัวทุกแพลตฟอร์ม)
+
+> ทุกแพลตฟอร์มต้องมีเลขเวอร์ชัน `<ver>` ตรงกับ `__version__` เหมือนกันหมด (ห้ามตั้งชื่อเองเวลาอัปโหลดหรือเขียน Release Notes):
+
+| แพลตฟอร์ม | ชื่อไฟล์ Asset (สร้างอัตโนมัติจากสคริปต์) | หมายเหตุ |
+|---|---|---|
+| Linux AppImage | `TaskbarNoob-<ver>-x86_64.AppImage` | เวลา deploy เครื่องใช้งานจริงให้ `cp` ทับ `~/AppImage/Tool/TaskbarNoob-x86_64.AppImage` (ชื่อคงที่เพื่อไม่ให้พิน/คีย์ลัดหลุด) |
+| Linux `.deb` | `taskbarnoob_<ver>_amd64.deb` | รูปแบบมาตรฐาน Debian package |
+| Windows Portable | `TaskbarNoob-<ver>-win64-portable.zip` | `build_windows.ps1` ซิปให้เองอัตโนมัติ (มีโฟลเดอร์ `TaskbarNoob\` ครอบข้างใน) |
 
 ## Docs Audit Checklist (บังคับก่อนปิดรุ่นทุกครั้ง!)
 
@@ -29,15 +39,14 @@
    - Linux Mint: `QT_QPA_PLATFORM=offscreen .venv/bin/python tests/run.py`
    - Windows 11: `.venv-win\Scripts\python.exe tests/run.py`
 4. **Build & Smoke Test ฝั่ง Linux Mint:**
-   - `bash packaging/build_appimage.sh` → `dist/TaskbarNoob-x86_64.AppImage`
+   - `bash packaging/build_appimage.sh` → `dist/TaskbarNoob-<ver>-x86_64.AppImage`
    - `bash packaging/build_deb.sh` → `dist/taskbarnoob_<ver>_amd64.deb`
-   - **คัดลอก AppImage ไปที่ใช้งานจริง:** `cp dist/TaskbarNoob-x86_64.AppImage ~/AppImage/Tool/`
+   - **คัดลอก AppImage ไปที่ใช้งานจริง (ชื่อคงที่):** `cp dist/TaskbarNoob-<ver>-x86_64.AppImage ~/AppImage/Tool/TaskbarNoob-x86_64.AppImage`
      *(ที่เดียวที่ใช้รัน/เทสต์ — ดูข้อตกลง "ที่เก็บไฟล์" ใน `../AGENTS.md` · อย่าเทสต์จาก `dist/` ตรง ๆ)*
    - smoke test: `~/AppImage/Tool/TaskbarNoob-x86_64.AppImage --list` + ทดสอบเปิดแอปจริง
 5. **Build & Smoke Test ฝั่ง Windows 11:**
-   - `powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1` → `dist\TaskbarNoob\`
+   - `powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1` → สร้างทั้ง `dist\TaskbarNoob\` และ `dist\TaskbarNoob-<ver>-win64-portable.zip` อัตโนมัติ (สคริปต์ตรวจลบ `config\` ที่อาจหลงเหลือก่อนซิปให้ด้วย)
    - deploy ทับโฟลเดอร์ใช้งานจริง `D:\Portable\Tool\TaskbarNoob` (ไม่แตะ `config\`) + live-test
-   - ตรวจว่า `dist\TaskbarNoob\` ไม่มี `config\` หลงเหลือ แล้วบีบอัดเป็น `dist\TaskbarNoob-win64-portable.zip`
 6. **ซิงก์โค้ด (ถ้ามีการแก้บั๊กระหว่างทดสอบอีก OS):**
    - `git commit` + `git push origin main` → ให้เครื่องอีกฝั่ง `git pull`, รันเทสต์, และ rebuild แพ็กเกจให้ตรง commit เดียวกัน
 7. **สร้างแท็กจาก commit สุดท้ายที่ผ่านทั้ง 2 OS:**
@@ -47,10 +56,10 @@
    ```
 8. **สร้าง GitHub Release** (เว็บ): https://github.com/Neafong/TaskbarNoob/releases/new
    - Choose a tag: `vX.Y.Z` · title `TaskbarNoob vX.Y.Z` · release notes
-   - แนบ assets ครบ 3 ไฟล์:
-     - `TaskbarNoob-x86_64.AppImage`
+   - แนบ assets ครบ 3 ไฟล์ (ชื่อตามตารางด้านบนเป๊ะ):
+     - `TaskbarNoob-<ver>-x86_64.AppImage`
      - `taskbarnoob_<ver>_amd64.deb`
-     - `TaskbarNoob-win64-portable.zip`
+     - `TaskbarNoob-<ver>-win64-portable.zip`
    - **ไม่** ติ๊ก Pre-release (เว้นใช้กับ `-rcN`) · เผยแพร่
 
 ## งานระหว่างรุ่น (ปกติ)

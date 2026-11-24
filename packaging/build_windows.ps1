@@ -1,6 +1,8 @@
 ﻿# สร้าง TaskbarNoob Portable ฝั่ง Windows (รันบนเครื่อง Windows)
 # ใช้: powershell -ExecutionPolicy Bypass -File packaging\build_windows.ps1
-# ผลลัพธ์: dist\TaskbarNoob\  (คัดลอกทั้งโฟลเดอร์ไปใช้งานได้เลย — config อยู่ข้าง exe)
+# ผลลัพธ์:
+#   - dist\TaskbarNoob\                              (โฟลเดอร์ portable พร้อมรัน)
+#   - dist\TaskbarNoob-<ver>-win64-portable.zip      (ไฟล์ซิปสำหรับอัปขึ้น GitHub Release)
 
 $ErrorActionPreference = "Stop"
 $ROOT = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
@@ -12,6 +14,18 @@ $DIST = Join-Path $ROOT "dist"
 $OUTDIR = Join-Path $DIST "TaskbarNoob"
 $ICON = Join-Path $ROOT "packaging\win\$APP_ID.png"
 $EXE_ICO = Join-Path $ROOT "packaging\win\taskbarnoob.ico"   # ไอค่อนโลโก้ TG (ต้องเป็น .ico)
+
+if (!(Test-Path $PY)) {
+    Write-Host "สร้าง venv ใหม่..."
+    py -3.11 -m venv (Join-Path $ROOT ".venv-win")
+}
+& $PY -c "import PySide6, PyInstaller" 2>$null
+if ($LASTEXITCODE -ne 0) {
+    & $PY -m pip install --quiet PySide6 pyinstaller
+}
+
+$VERSION = (& $PY -c "import sys; sys.path.insert(0, r'$ROOT'); import taskbarnoob; print(taskbarnoob.__version__)").Trim()
+$ZIPOUT = Join-Path $DIST "TaskbarNoob-$VERSION-win64-portable.zip"
 
 # สร้าง .ico + .png จากโลโก้ SVG เสมอ (multi-res PNG-in-ICO) — ไม่งั้น ICO เก่า (single-res) จะถูกใช้ต่อ
 Write-Host "สร้างไอคอน exe จาก Logo TG.svg (multi-res)..."
@@ -25,16 +39,7 @@ if (!(Test-Path $EXE_ICO)) {
     $EXE_ICO = ""   # สร้างไม่ได้ = ไม่ใส่ --icon (ไม่ทำให้ build พัง)
 }
 
-if (!(Test-Path $PY)) {
-    Write-Host "สร้าง venv ใหม่..."
-    py -3.11 -m venv (Join-Path $ROOT ".venv-win")
-}
-& $PY -c "import PySide6, PyInstaller" 2>$null
-if ($LASTEXITCODE -ne 0) {
-    & $PY -m pip install --quiet PySide6 pyinstaller
-}
-
-Write-Host "[1/2] PyInstaller build (portable, one-dir)..."
+Write-Host "[1/3] PyInstaller build (portable, one-dir) v$VERSION..."
 $pyArgs = @(
     "--noconfirm", "--clean",
     "--name", $EXE_NAME,
@@ -52,7 +57,7 @@ if ($EXE_ICO) { $pyArgs += @("--icon", $EXE_ICO) }
 $pyArgs += (Join-Path $ROOT "packaging\entrypoint.py")
 & $PY -m PyInstaller @pyArgs
 
-Write-Host "[2/2] จัดโฟลเดอร์ portable..."
+Write-Host "[2/3] จัดโฟลเดอร์ portable..."
 if (Test-Path $OUTDIR) { Remove-Item -Recurse -Force $OUTDIR }
 New-Item -ItemType Directory -Force $OUTDIR | Out-Null
 Copy-Item -Recurse -Force (Join-Path $BUILD "dist\$EXE_NAME\*") $OUTDIR
@@ -65,5 +70,15 @@ TaskbarNoob Portable (Windows)
 - เทสต์: TaskbarNoob.exe --list
 "@ | Out-File -Encoding utf8 (Join-Path $OUTDIR "README-Portable.txt")
 
-Write-Host "เสร็จแล้ว: $OUTDIR"
-Get-ChildItem $OUTDIR | Format-Table Name, Length
+# กัน config หลุดติดเข้าไปในซิป Release
+$LEAKED_CONFIG = Join-Path $OUTDIR "config"
+if (Test-Path $LEAKED_CONFIG) { Remove-Item -Recurse -Force $LEAKED_CONFIG }
+
+Write-Host "[3/3] สร้างไฟล์ซิป Release..."
+if (Test-Path $ZIPOUT) { Remove-Item -Force $ZIPOUT }
+Compress-Archive -Path $OUTDIR -DestinationPath $ZIPOUT -Force
+
+Write-Host "เสร็จแล้ว:"
+Write-Host "  โฟลเดอร์: $OUTDIR"
+Write-Host "  ไฟล์ซิป:  $ZIPOUT"
+Get-Item $ZIPOUT | Format-Table Name, Length

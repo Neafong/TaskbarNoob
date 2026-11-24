@@ -100,7 +100,7 @@
   "settings.theme_auto": "Suivre le système (auto)",
   "settings.theme_light": "Clair",
   "settings.theme_dark": "Sombre",
-  "settings.theme_hint": "Choisissez « Suivre le système » pour correspondre à votre thème Cinnamon.\nNote : ne modifie pas les icônes de la barre des tâches.",
+  "settings.theme_hint": "Choisissez « Suivre le système » pour correspondre au thème du système.\nRemarque : cela ne modifie pas les icônes de la barre des tâches.",
   "settings.language": "Langue / Language",
   "settings.flyout_labels": "Par défaut : afficher les noms sous les icônes",
   "settings.flyout_labels_tip": "S'applique aux groupes sans réglage propre · modifiable par groupe",

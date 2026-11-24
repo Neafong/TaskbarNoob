@@ -139,7 +139,7 @@ TH = {
     "settings.theme_light": "สว่าง (light)",
     "settings.theme_dark": "เข้ม (dark)",
     "settings.theme_hint": (
-        "เลือก 'ตามระบบ' เพื่อเข้ม/สว่างตามธีม Cinnamon เอง\n"
+        "เลือก 'ตามระบบ' เพื่อเข้ม/สว่างตามธีมของระบบเอง\n"
         "หมายเหตุ: ธีมนี้ไม่เปลี่ยนไอคอน/ปุ่มบน Taskbar"
     ),
     "settings.language": "ภาษา / Language",

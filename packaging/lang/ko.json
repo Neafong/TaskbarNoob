@@ -100,7 +100,7 @@
   "settings.theme_auto": "시스템 설정 따르기 (자동)",
   "settings.theme_light": "라이트",
   "settings.theme_dark": "다크",
-  "settings.theme_hint": "'시스템 설정 따르기'를 선택하면 Cinnamon 테마에 맞춥니다.\n참고: 작업 표시줄 아이콘에는 영향을 주지 않습니다.",
+  "settings.theme_hint": "「시스템 설정 따르기」를 선택하면 시스템 테마에 자동으로 맞춥니다.\n참고: 작업 표시줄의 아이콘은 변경되지 않습니다.",
   "settings.language": "언어 / Language",
   "settings.flyout_labels": "기본값: 플라이아웃 아이콘 아래에 이름 표시",
   "settings.flyout_labels_tip": "개별 설정이 없는 그룹에 적용됩니다 · 그룹 편집기에서 개별 설정 가능",

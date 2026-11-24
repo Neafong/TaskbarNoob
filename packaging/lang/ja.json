@@ -99,7 +99,7 @@
   "settings.theme_auto": "システムに合わせる（自動）",
   "settings.theme_light": "ライト",
   "settings.theme_dark": "ダーク",
-  "settings.theme_hint": "「システムに合わせる」を選ぶと Cinnamon のテーマに追従します。\n注: タスクバーのアイコンには影響しません。",
+  "settings.theme_hint": "「システムに従う」を選ぶとシステムのテーマに自動で合わせます。\n注意: タスクバーのアイコンは変更されません。",
   "settings.language": "言語 / Language",
   "settings.flyout_labels": "フライアウトのアイコン下に名前を表示",
   "settings.flyout_labels_tip": "オン: アイコン下に名前を表示 · オフ: アイコンのみ（すっきり）",

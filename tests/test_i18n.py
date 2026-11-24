@@ -198,6 +198,17 @@ class LanguageAssetTests(unittest.TestCase):
                 f"{code}.json: ค่าต้องเป็น str ทั้งหมด",
             )
 
+    def test_theme_hint_is_cross_os_neutral(self) -> None:
+        self.assertNotIn("cinnamon", i18n.TH["settings.theme_hint"].lower())
+        self.assertNotIn("cinnamon", i18n.EN["settings.theme_hint"].lower())
+        for path in sorted(self._assets.glob("*.json")):
+            data = json.loads(path.read_text(encoding="utf-8"))
+            self.assertNotIn(
+                "cinnamon",
+                data.get("settings.theme_hint", "").lower(),
+                f"{path.name}: settings.theme_hint ไม่ควรอ้างอิงเฉพาะ Cinnamon",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

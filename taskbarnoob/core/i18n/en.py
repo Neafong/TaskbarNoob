@@ -131,7 +131,7 @@ EN = {
     "settings.theme_light": "Light",
     "settings.theme_dark": "Dark",
     "settings.theme_hint": (
-        "Choose 'Follow system' to match your Cinnamon theme.\n"
+        "Choose 'Follow system' to match your system theme.\n"
         "Note: this does not change icons on the Taskbar."
     ),
     "settings.language": "Language",

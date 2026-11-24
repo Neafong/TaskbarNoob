@@ -100,7 +100,7 @@
   "settings.theme_auto": "System folgen (Auto)",
   "settings.theme_light": "Hell",
   "settings.theme_dark": "Dunkel",
-  "settings.theme_hint": "Wähle 'System folgen', um dein Cinnamon-Design zu übernehmen.\nHinweis: Symbole in der Taskleiste bleiben unverändert.",
+  "settings.theme_hint": "Wähle „System folgen“, um dich automatisch an das Systemdesign anzupassen.\nHinweis: Dies ändert keine Symbole in der Taskleiste.",
   "settings.language": "Sprache / Language",
   "settings.flyout_labels": "Standard: Namen unter Flyout-Symbolen anzeigen",
   "settings.flyout_labels_tip": "Gilt für Gruppen ohne eigene Einstellung · pro Gruppe anpassbar",
