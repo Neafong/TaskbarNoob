@@ -123,6 +123,8 @@
    - เปลี่ยน `AppPickerDialog` จาก `SingleSelection` เป็น `ExtendedSelection` (กด Ctrl/Shift เลือกหลายแอปทีเดียวแล้วเพิ่มเข้ากลุ่มครบในรอบเดียว)
 5. **เตือนเบาๆ เมื่อ shortcut ชี้ไฟล์ที่หายไปแล้ว (Broken Target — 3D):**
    - **เงื่อนไขสำคัญ:** แสดงเฉพาะตอนผู้ใช้เปิดโปรแกรมเราเท่านั้น (เช่น สัญลักษณ์/tooltip เตือนเงียบๆ ใน `GroupEditor` / `ShortcutDialog`) **ห้ามเด้ง popup หรือ OS notification พลการ** ให้รำคาญผู้ใช้
+6. **เก็บงานจิ๋ว UI (Cross-OS wording):**
+   - แก้คำอธิบายใต้ตัวเลือก Theme ใน `SettingsDialog` (`settings.theme_hint` ครบ 9 ภาษา) ไม่ให้เขียนคำว่า `"Cinnamon"` ตายตัวตอนรันบน Windows (ใช้คำกลางเช่น `"system theme"` / `"ธีมของระบบ"`)
 
 ### งานค้างระยะยาว (หลัง v0.4.0)
 - **Linux DE / Display อื่น:** Wayland · จอหลายจอ · panel ย้ายด้าน · DE อื่นนอกเหนือจาก Cinnamon

@@ -23,13 +23,17 @@ Why **"Noob"**? To us, "Noob" doesn't mean bad — it means staying humble, keep
 
 ## Screenshots
 
-**Overview**
+**Overview — Linux Mint (Cinnamon) vs Windows 11 (v0.3.0)**
 
-![TaskbarNoob Overview](docs/screenshots/all-ui.jpg)
-
-| Main Window | Group Editor |
+| Linux Mint (Cinnamon) | Windows 11 (v0.3.0) |
 | :---: | :---: |
-| ![Main Window](docs/screenshots/main-window.png) | ![Group Editor](docs/screenshots/edit-group.png) |
+| ![Linux Mint Overview](docs/screenshots/all-ui.jpg) | ![Windows 11 v0.3.0 Overview](docs/screenshots/all-ui-v0.3.png) |
+
+**Settings & 9 Built-in Languages**
+
+| Settings | 9 Built-in Languages |
+| :---: | :---: |
+| ![Settings](docs/screenshots/settings-v0.3.png) | ![9 Built-in Languages](docs/screenshots/language-v0.3.png) |
 
 ## Features
 

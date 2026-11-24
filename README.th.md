@@ -24,13 +24,17 @@
 
 ## ตัวอย่างหน้าจอ
 
-**ภาพรวมหน้าจอ**
+**ภาพรวมหน้าจอ — Linux Mint (Cinnamon) เทียบกับ Windows 11 (v0.3.0)**
 
-![ภาพรวมหน้าจอ TaskbarNoob](docs/screenshots/all-ui.jpg)
-
-| หน้าหลัก | แก้ไขกลุ่ม |
+| Linux Mint (Cinnamon) | Windows 11 (v0.3.0) |
 | :---: | :---: |
-| ![หน้าหลัก](docs/screenshots/main-window.png) | ![แก้ไขกลุ่ม](docs/screenshots/edit-group.png) |
+| ![ภาพรวม Linux Mint](docs/screenshots/all-ui.jpg) | ![ภาพรวม Windows 11 v0.3.0](docs/screenshots/all-ui-v0.3.png) |
+
+**หน้าตั้งค่า & 9 ภาษาในตัว**
+
+| หน้าตั้งค่า (Settings) | 9 ภาษาในตัวแอป |
+| :---: | :---: |
+| ![หน้าตั้งค่า](docs/screenshots/settings-v0.3.png) | ![9 ภาษาในตัว](docs/screenshots/language-v0.3.png) |
 
 ## ฟีเจอร์เด่น
 

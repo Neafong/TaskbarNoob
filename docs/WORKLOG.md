@@ -157,4 +157,6 @@
    - เปลี่ยน `AppPickerDialog` เป็น `ExtendedSelection` เพื่อเลือกหลายแอปเข้ากลุ่มในรอบเดียว
 5. **เตือนเงียบๆ เมื่อ shortcut ชี้ไฟล์ที่หายไปแล้ว (Broken Target — 3D):**
    - แสดงเฉพาะตอนผู้ใช้เปิดโปรแกรมเราเท่านั้น (ใน `GroupEditor` / `ShortcutDialog`) **ห้ามเด้ง popup หรือ OS notification พลการ**
-6. **ปิดรุ่น `v0.4.0`:** ไล่เช็ก **Docs Audit Checklist** ใน `docs/release-process.md` ให้ครบทุกไฟล์ก่อน tag เสมอ!
+6. **เก็บงานจิ๋ว Cross-OS wording (`settings.theme_hint`):**
+   - แก้คำอธิบายใต้ตัวเลือก Theme ใน `SettingsDialog` ที่ยังเขียนคำว่า `"Cinnamon"` บน Windows ให้เป็นคำกลาง (`system theme` / `ธีมของระบบ`) ครบ 9 ภาษา
+7. **ปิดรุ่น `v0.4.0`:** ไล่เช็ก **Docs Audit Checklist** ใน `docs/release-process.md` ให้ครบทุกไฟล์ก่อน tag เสมอ!
