@@ -139,10 +139,10 @@ EN = {
     "settings.flyout_labels_tip": (
         "Applies to groups that don't set their own value · set per group in the editor"
     ),
-    "settings.minimize_to_tray": "Minimize to System Tray when closing",
+    "settings.minimize_to_tray": "Enable System Tray icon",
     "settings.minimize_to_tray_tip": (
-        "Closing the window hides it to the system tray instead of quitting "
-        "(keeps global hotkeys active in the background)"
+        "Show an icon in the system tray and keep running in the background "
+        "when closing the window (keeps global hotkeys active)"
     ),
     "tray.open": "Open TaskbarNoob",
     "tray.settings": "Settings...",
