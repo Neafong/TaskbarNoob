@@ -12,6 +12,7 @@ DEFAULT_THEME = "auto"
 DEFAULT_LANGUAGE = "th"
 DEFAULT_DONATE_URL = "https://ko-fi.com/neafong"
 DEFAULT_FLYOUT_LABELS = False
+DEFAULT_MINIMIZE_TO_TRAY = False
 
 VALID_THEMES = ("auto", "light", "dark")
 
@@ -79,6 +80,15 @@ class Settings:
 
     def set_flyout_labels(self, enabled: bool) -> None:
         self.set("flyout_labels", bool(enabled))
+
+    def get_minimize_to_tray(self) -> bool:
+        value = self.get("minimize_to_tray", DEFAULT_MINIMIZE_TO_TRAY)
+        if isinstance(value, bool):
+            return value
+        return DEFAULT_MINIMIZE_TO_TRAY
+
+    def set_minimize_to_tray(self, enabled: bool) -> None:
+        self.set("minimize_to_tray", bool(enabled))
 
     def get_hotkeys(self) -> dict[str, str]:
         """map {slot: binding} สำหรับ OS ที่ไม่มีที่เก็บ hotkey ของระบบ (Windows)."""

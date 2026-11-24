@@ -6,6 +6,7 @@ import os
 import sys
 
 from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -15,6 +16,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPushButton,
+    QSystemTrayIcon,
     QVBoxLayout,
     QWidget,
 )
@@ -60,7 +62,7 @@ from .group_list import (
     _style_menu,
 )
 from .hotkey_dialog import HotkeyDialog
-from .icons import cache_provider_icon, group_icon
+from .icons import app_window_icon, cache_provider_icon, group_icon
 from .settings_dialog import SettingsDialog
 from .theme import app_text_color
 
@@ -107,6 +109,10 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.store = store or ConfigStore()
         self._flyout: FlyoutWindow | None = None
+        self._tray: QSystemTrayIcon | None = None
+        self._tray_menu: QMenu | None = None
+        self._tray_actions: dict[str, QAction] = {}
+        self._force_quit: bool = False
 
         self.setWindowTitle(tr("app.title"))
         self.resize(660, 420)
@@ -146,6 +152,95 @@ class MainWindow(QMainWindow):
 
         self.refresh()
         self._sync_pinned_launchers()
+        self.sync_tray()
+
+    def sync_tray(self) -> None:
+        """เปิด/ปิด System Tray Icon ตามค่า minimize_to_tray ใน settings."""
+        enabled = Settings(self.store.config_dir).get_minimize_to_tray()
+        app = QApplication.instance()
+        if enabled and QSystemTrayIcon.isSystemTrayAvailable():
+            if self._tray is None:
+                self._create_tray()
+            if self._tray is not None:
+                self._retranslate_tray()
+                self._tray.show()
+            if app is not None:
+                app.setQuitOnLastWindowClosed(False)
+        else:
+            if self._tray is not None:
+                self._tray.hide()
+            if app is not None:
+                app.setQuitOnLastWindowClosed(True)
+
+    def _create_tray(self) -> None:
+        icon = app_window_icon()
+        if icon.isNull():
+            app = QApplication.instance()
+            if app is not None:
+                icon = app.windowIcon()
+        tray = QSystemTrayIcon(icon, self)
+        menu = _style_menu(QMenu(self))
+        open_act = menu.addAction(tr("tray.open"), self.show_from_tray)
+        font = open_act.font()
+        font.setBold(True)
+        open_act.setFont(font)
+        settings_act = menu.addAction(tr("tray.settings"), self.open_settings)
+        menu.addSeparator()
+        quit_act = menu.addAction(tr("tray.quit"), self.quit_app)
+        tray.setContextMenu(menu)
+        tray.setToolTip(tr("tray.tooltip"))
+        tray.activated.connect(self._on_tray_activated)
+        self._tray = tray
+        self._tray_menu = menu
+        self._tray_actions = {
+            "tray.open": open_act,
+            "tray.settings": settings_act,
+            "tray.quit": quit_act,
+        }
+
+    def _retranslate_tray(self) -> None:
+        if self._tray is None:
+            return
+        self._tray.setToolTip(tr("tray.tooltip"))
+        for key, action in self._tray_actions.items():
+            action.setText(tr(key))
+
+    def _on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
+        if reason in (
+            QSystemTrayIcon.ActivationReason.Trigger,
+            QSystemTrayIcon.ActivationReason.DoubleClick,
+        ):
+            self.show_from_tray()
+
+    def show_from_tray(self) -> None:
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
+    def quit_app(self) -> None:
+        self._force_quit = True
+        if self._tray is not None:
+            self._tray.hide()
+        app = QApplication.instance()
+        if app is not None:
+            app.setQuitOnLastWindowClosed(True)
+        self.close()
+        if app is not None:
+            app.quit()
+
+    def closeEvent(self, event) -> None:
+        if (
+            not self._force_quit
+            and self._tray is not None
+            and self._tray.isVisible()
+            and Settings(self.store.config_dir).get_minimize_to_tray()
+        ):
+            event.ignore()
+            self.hide()
+            return
+        if self._tray is not None:
+            self._tray.hide()
+        super().closeEvent(event)
 
     def _sync_pinned_launchers(self) -> None:
         """ซ่อม launcher ของกลุ่มที่ปักไว้ที่ยังชี้ไอค่อนเป็น path สัมบูรณ์.
@@ -211,6 +306,7 @@ class MainWindow(QMainWindow):
             button.setText(tr(key))
         self.refresh_icons()
         self.setup_button.setToolTip(tr("main.setup_tooltip"))
+        self._retranslate_tray()
         self.refresh()
 
     def refresh(self) -> None:

@@ -144,6 +144,15 @@ TH = {
     "settings.flyout_labels_tip": (
         "ใช้กับกลุ่มที่ไม่ได้ตั้งค่าไว้เอง · ปรับรายกลุ่มได้ในหน้าแก้ไขกลุ่ม"
     ),
+    "settings.minimize_to_tray": "ซ่อนลง System Tray เมื่อกดปิดหน้าต่าง",
+    "settings.minimize_to_tray_tip": (
+        "กดปุ่มปิด (X) จะซ่อนหน้าต่างลงถาดระบบแทนการปิดแอป "
+        "(ช่วยให้คีย์ลัดทำงานต่อเนื่องได้แม้พับหน้าต่าง)"
+    ),
+    "tray.open": "เปิด TaskbarNoob",
+    "tray.settings": "ตั้งค่า...",
+    "tray.quit": "ออก",
+    "tray.tooltip": "TaskbarNoob — คลิกเพื่อเปิดหน้าต่างหลัก",
     "settings.config_dir": "ที่เก็บ config",
     "settings.open_config_dir": "เปิดโฟลเดอร์ config ในตัวจัดการไฟล์",
     "settings.install_launcher": "ติดตั้ง launcher",

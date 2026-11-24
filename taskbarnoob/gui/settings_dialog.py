@@ -87,6 +87,12 @@ class SettingsDialog(QDialog):
         self.labels_check.toggled.connect(self._on_labels_toggled)
         self._form.addRow(self.labels_check)
 
+        self.tray_check = QCheckBox(tr("settings.minimize_to_tray"))
+        self.tray_check.setToolTip(tr("settings.minimize_to_tray_tip"))
+        self.tray_check.setChecked(self._settings.get_minimize_to_tray())
+        self.tray_check.toggled.connect(self._on_tray_toggled)
+        self._form.addRow(self.tray_check)
+
         lang_buttons = QHBoxLayout()
         self.export_button = QPushButton(tr("settings.export_lang"))
         self.export_button.setToolTip(tr("settings.export_lang_tip"))
@@ -166,6 +172,11 @@ class SettingsDialog(QDialog):
     def _on_labels_toggled(self, checked: bool) -> None:
         self._settings.set_flyout_labels(checked)
 
+    def _on_tray_toggled(self, checked: bool) -> None:
+        self._settings.set_minimize_to_tray(checked)
+        if hasattr(self._main, "sync_tray"):
+            self._main.sync_tray()
+
     def _on_language_changed(self, index: int) -> None:
         code = self.language_combo.itemData(index)
         if not code:
@@ -183,6 +194,8 @@ class SettingsDialog(QDialog):
         self.theme_hint.setText(tr("settings.theme_hint"))
         self.labels_check.setText(tr("settings.flyout_labels"))
         self.labels_check.setToolTip(tr("settings.flyout_labels_tip"))
+        self.tray_check.setText(tr("settings.minimize_to_tray"))
+        self.tray_check.setToolTip(tr("settings.minimize_to_tray_tip"))
         for widget, key in (
             (self.theme_combo, "settings.theme"),
             (self.language_combo, "settings.language"),

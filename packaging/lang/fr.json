@@ -175,5 +175,11 @@
   "about.close": "Fermer",
   "menu.settings": "Paramètres",
   "menu.about": "À propos de TaskbarNoob",
-  "settings.credits": "Made by Noob & Jenny"
+  "settings.credits": "Made by Noob & Jenny",
+  "settings.minimize_to_tray": "Réduire dans la zone de notification à la fermeture",
+  "settings.minimize_to_tray_tip": "Fermer (X) masque la fenêtre dans la barre système au lieu de quitter (garde les raccourcis globaux actifs)",
+  "tray.open": "Ouvrir TaskbarNoob",
+  "tray.settings": "Paramètres...",
+  "tray.quit": "Quitter",
+  "tray.tooltip": "TaskbarNoob — Cliquer pour ouvrir la fenêtre principale"
 }

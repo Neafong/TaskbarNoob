@@ -175,5 +175,11 @@
   "about.close": "Schließen",
   "menu.settings": "Einstellungen",
   "menu.about": "Über TaskbarNoob",
-  "settings.credits": "Made by Noob & Jenny"
+  "settings.credits": "Made by Noob & Jenny",
+  "settings.minimize_to_tray": "Beim Schließen in das System-Tray minimieren",
+  "settings.minimize_to_tray_tip": "Schließen (X) blendet das Fenster ins Tray aus, statt zu beenden (hält globale Hotkeys im Hintergrund aktiv)",
+  "tray.open": "TaskbarNoob öffnen",
+  "tray.settings": "Einstellungen...",
+  "tray.quit": "Beenden",
+  "tray.tooltip": "TaskbarNoob — Klicken, um das Hauptfenster zu öffnen"
 }

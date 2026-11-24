@@ -175,5 +175,11 @@
   "about.donate_tip": "Ko-fi ページを開いて開発者を支援",
   "about.close": "閉じる",
   "settings.credits": "Made by Noob & Jenny",
-  "flyout.reveal": "場所を開く"
+  "flyout.reveal": "場所を開く",
+  "settings.minimize_to_tray": "ウィンドウを閉じるときシステムトレイに最小化",
+  "settings.minimize_to_tray_tip": "閉じる (X) で終了せずシステムトレイに隠します（バックグラウンドでホットキーを維持）",
+  "tray.open": "TaskbarNoob を開く",
+  "tray.settings": "設定...",
+  "tray.quit": "終了",
+  "tray.tooltip": "TaskbarNoob — クリックしてメインウィンドウを開く"
 }

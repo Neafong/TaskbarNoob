@@ -175,5 +175,11 @@
   "about.close": "关闭",
   "menu.settings": "设置",
   "menu.about": "关于 TaskbarNoob",
-  "settings.credits": "Made by Noob & Jenny"
+  "settings.credits": "Made by Noob & Jenny",
+  "settings.minimize_to_tray": "关闭窗口时最小化到系统托盘",
+  "settings.minimize_to_tray_tip": "点击关闭 (X) 时隐藏到系统托盘而非退出（保持全局快捷键在后台生效）",
+  "tray.open": "打开 TaskbarNoob",
+  "tray.settings": "设置...",
+  "tray.quit": "退出",
+  "tray.tooltip": "TaskbarNoob — 点击打开主窗口"
 }

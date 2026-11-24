@@ -175,5 +175,11 @@
   "about.close": "Cerrar",
   "menu.settings": "Ajustes",
   "menu.about": "Acerca de TaskbarNoob",
-  "settings.credits": "Made by Noob & Jenny"
+  "settings.credits": "Made by Noob & Jenny",
+  "settings.minimize_to_tray": "Minimizar a la bandeja del sistema al cerrar",
+  "settings.minimize_to_tray_tip": "Al cerrar (X) la ventana se oculta en la bandeja en lugar de salir (mantiene activos los atajos globales)",
+  "tray.open": "Abrir TaskbarNoob",
+  "tray.settings": "Configuración...",
+  "tray.quit": "Salir",
+  "tray.tooltip": "TaskbarNoob — Clic para abrir la ventana principal"
 }

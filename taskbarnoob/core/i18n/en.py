@@ -136,6 +136,15 @@ EN = {
     "settings.flyout_labels_tip": (
         "Applies to groups that don't set their own value · set per group in the editor"
     ),
+    "settings.minimize_to_tray": "Minimize to System Tray when closing",
+    "settings.minimize_to_tray_tip": (
+        "Closing the window hides it to the system tray instead of quitting "
+        "(keeps global hotkeys active in the background)"
+    ),
+    "tray.open": "Open TaskbarNoob",
+    "tray.settings": "Settings...",
+    "tray.quit": "Quit",
+    "tray.tooltip": "TaskbarNoob — Click to open main window",
     "settings.config_dir": "Config folder",
     "settings.open_config_dir": "Open the config folder in the file manager",
     "settings.install_launcher": "Install launcher",

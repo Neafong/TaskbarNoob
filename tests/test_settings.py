@@ -75,6 +75,20 @@ class SettingsTests(unittest.TestCase):
         self.settings.set_language("pt_BR")
         self.assertEqual(Settings(self._tmp.name).get_language(), "pt_BR")
 
+    def test_minimize_to_tray_off_by_default(self) -> None:
+        self.assertFalse(self.settings.get_minimize_to_tray())
+
+    def test_set_minimize_to_tray_persists(self) -> None:
+        self.settings.set_minimize_to_tray(True)
+        self.assertTrue(self.settings.get_minimize_to_tray())
+        self.assertTrue(Settings(self._tmp.name).get_minimize_to_tray())
+
+    def test_minimize_to_tray_bad_value_falls_back(self) -> None:
+        (Path(self._tmp.name) / "settings.json").write_text(
+            '{"minimize_to_tray": "yes"}', encoding="utf-8"
+        )
+        self.assertFalse(Settings(self._tmp.name).get_minimize_to_tray())
+
 
 @unittest.skipUnless(HAVE_QT, "PySide6 not installed")
 class ThemeTests(unittest.TestCase):
