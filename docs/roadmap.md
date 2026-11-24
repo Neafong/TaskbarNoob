@@ -9,8 +9,8 @@
 เป้าหมาย: แอปจัดกลุ่ม shortcut แล้วกดครั้งเดียวเปิดทั้งกลุ่ม — **Linux Mint (Cinnamon) เป้าหลัก, Windows 11 (portable) เป้ารอง**
 - **v0.1.0:** ขึ้น GitHub แล้ว (2026-10-12) — Linux Mint AppImage + `.deb` · GPL-3.0-or-later
 - **v0.2.0 (ปล่อยแล้ว 2026-11-23):** รองรับ Linux Mint + Windows 11 (portable `TaskbarNoob.exe`, AUMID แยกต่อกลุ่ม/แอป, Hotkey Win32, multi-res `.ico`, MSIX/WindowsApps icon, Flyout เงามุมโค้ง, ตัวเลือกไอคอนระบบ 2 แหล่ง)
-- **v0.3.0 (โค้ด & เทสต์เสร็จครบ 2 OS — รอฝั่ง Mint rebuild + tag Release):** **ปรับปรุงโครงสร้างโค้ดใหม่ทั้งหมด (Full Architecture Refactor) + รีแบรนด์ `taskbarnoob` + 9 ภาษา + ปุ่ม "จากแอป..." + Steam/ASAR/Flatpak icons**
-- **v0.4.0 (วางแผนแล้ว — เริ่มหลังปล่อย `v0.3.0`):** **Quality-of-Life & Resilience** (System Tray Icon · `.url` Resilience · แคชไอคอน `.url→.exe` · ปุ่มดึงไอคอนใหม่ · Multi-select "จากแอป..." · เตือน target หายแบบเงียบเฉพาะตอนเปิดแอป)
+- **v0.3.0 (ปล่อยแล้ว 2026-11-24):** **ปรับปรุงโครงสร้างโค้ดใหม่ทั้งหมด (Full Architecture Refactor) + รีแบรนด์ `taskbarnoob` + 9 ภาษา + ปุ่ม "จากแอป..." + Steam/ASAR/Flatpak icons**
+- **v0.4.0 (โค้ด & เทสต์ฝั่ง Mint เสร็จครบ 2026-11-24 — รอ build + เทสต์ฝั่ง Win 11):** **Quality-of-Life & Resilience** (System Tray Icon · `.url` Resilience · แคชไอคอน `.url→.exe` · ปุ่มดึงไอคอนใหม่ · Multi-select "จากแอป..." · เตือน target หายแบบเงียบเฉพาะตอนเปิดแอป · ล็อกชื่อไฟล์ Release มีเลขเวอร์ชัน + auto-zip Windows)
 - repo: **github.com/Neafong/TaskbarNoob** (Public) · License **GPL-3.0-or-later**
 
 ## เฟสที่ทำแล้ว (Linux — Cinnamon)
@@ -102,7 +102,7 @@
 - **อัปเดตเครดิต (Credits) เป็น "Noob & Jenny (เจนนี่)":** เปลี่ยนจาก `Noob & Pickle` (น้องพริก) เป็น `Noob & Jenny` ในหน้าต่าง Settings, About dialog, `i18n` (TH/EN/JA), `.appdata.xml` และ `README.md`
 - ตรวจชุดเทสต์ให้ครอบคลุมโครงสร้างใหม่ และรันเขียว 100% ทั้งบน Mint และ Windows
 
-### งานถัดไป: แผน `v0.4.0` — Quality-of-Life & Resilience (ล็อกขอบเขตชัด — เริ่มหลังปล่อย `v0.3.0`)
+### แผน `v0.4.0` — Quality-of-Life & Resilience ✅ โค้ด & เทสต์ฝั่ง Linux Mint เสร็จครบ (2026-11-24)
 
 > **หลักการคุมขอบเขต:** เก็บเฉพาะจุดเจ็บจริงจากการใช้งานและคุณภาพชีวิต ไม่เพิ่มฟีเจอร์ฟุ่มเฟือย เพื่อให้รุ่นนี้จบไวและเสถียรครบทั้ง 2 OS
 > **ก่อนปิดรุ่นทุกครั้ง:** ต้องผ่าน **Docs Audit Checklist** ใน [`release-process.md`](release-process.md)

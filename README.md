@@ -37,11 +37,11 @@ Why **"Noob"**? To us, "Noob" doesn't mean bad — it means staying humble, keep
 
 ## Features
 
-- 🗂️ **Shortcut groups** — Organize apps into cards with drag-and-drop icon grids and optional per-group icon labels
-- 📱 **One-click "From apps..." picker** — Add installed apps directly from Linux `.desktop` / Flatpak / Snap or Windows Start Menu / MSIX
-- 🖼️ **Smart icon extraction** — Automatically pulls crisp icons from **AppImage**, Electron/portable `.asar` bundles, **Steam** (`steam://rungameid/`), Flatpak/Snap, and Windows **MSIX**, plus a categorized system icon picker
+- 🗂️ **Shortcut groups** — Organize apps into cards with drag-and-drop icon grids, optional per-group icon labels, and quiet broken-target indicators
+- 📱 **Multi-select "From apps..." picker** — Add one or many installed apps at once from Linux `.desktop` / Flatpak / Snap or Windows Start Menu / MSIX
+- 🖼️ **Smart icon extraction & Re-detect** — Automatically pulls and caches crisp icons from **AppImage**, Electron/portable `.asar`, **Steam** (`steam://rungameid/`), `.url` game shortcuts (including Epic `.url → .exe`), Flatpak/Snap, and Windows **MSIX**, plus one-click icon re-detection
 - 📌 **Taskbar & Panel integration** — Pin groups directly to the **Cinnamon panel** (with flyouts anchored dead-center above the pinned icon) or generate per-group **AUMID** `.lnk` shortcuts on **Windows 11**
-- ⌨️ **Global hotkeys & Focus Mode** — Pop open any group centered on screen with scalable icons
+- ⌨️ **Global hotkeys, Focus Mode & System Tray** — Pop open any group centered on screen with scalable icons, plus an optional minimize-to-tray mode to keep hotkeys active in the background
 - 🎨 **Themes & appearance** — Auto / Light / Dark themes with customizable opacity and icon sizes
 - 💾 **Portable config** — Everything lives in `config/` right next to the app
 - 🌐 **9 built-in languages** — English · ไทย · 日本語 · 简体中文 · 한국어 · Español · Deutsch · Français · Português (Brasil), plus JSON export/import for community translations
@@ -65,8 +65,8 @@ Grab the latest build from **Releases**:
 
 **Linux — AppImage** (no installation required)
 ```bash
-chmod +x TaskbarNoob-x86_64.AppImage
-./TaskbarNoob-x86_64.AppImage
+chmod +x TaskbarNoob-<version>-x86_64.AppImage
+./TaskbarNoob-<version>-x86_64.AppImage
 ```
 
 **Linux — `.deb`** (Debian / Ubuntu / Mint)
@@ -74,7 +74,7 @@ chmod +x TaskbarNoob-x86_64.AppImage
 sudo apt install ./taskbarnoob_<version>_amd64.deb
 ```
 
-**Windows 11 — Portable `.zip`**
+**Windows 11 — Portable `.zip`** (`TaskbarNoob-<version>-win64-portable.zip`)
 - Extract and run `TaskbarNoob.exe` (your portable config is stored in `config/` beside the app).
 - Click the folder button on any group to open `config/shortcuts/`, then drag its `.lnk` file onto your Taskbar.
 
@@ -96,17 +96,18 @@ CLI:
 
 ```bash
 # Linux
-bash packaging/build_appimage.sh   # -> dist/TaskbarNoob-x86_64.AppImage
+bash packaging/build_appimage.sh   # -> dist/TaskbarNoob-<ver>-x86_64.AppImage
 bash packaging/build_deb.sh        # -> dist/taskbarnoob_<ver>_amd64.deb
 
 # Windows (PowerShell)
 powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1
+# -> dist/TaskbarNoob/ + dist/TaskbarNoob-<ver>-win64-portable.zip
 ```
 
 ## Tests
 
 ```bash
-.venv/bin/python tests/run.py      # 394 tests
+.venv/bin/python tests/run.py      # 416 tests
 ```
 
 ## Languages & Translations
@@ -130,7 +131,7 @@ taskbarnoob/
 │   └── ...         models · storage · paths · launcher · settings · archive
 └── gui/            Qt/PySide6 UI (main_window · group_editor · app_picker · flyout …)
 packaging/          Build scripts · assets · lang (7 bundled JSON packs) · appimage/
-tests/              unittest suite (394 tests)
+tests/              unittest suite (416 tests)
 docs/               Design docs, roadmap, and worklog
 ```
 

@@ -4,6 +4,23 @@
 [Semantic Versioning](https://semver.org/lang/th/).
 ข้อมูลการออกรุ่น: ขั้นตอนใน [`docs/release-process.md`](docs/release-process.md)
 
+## [0.4.0] — 2026-11-24
+
+รุ่น **Quality-of-Life & Resilience** — เพิ่มความเสถียรของทางลัด (`.url` / Broken Target), ระบบ System Tray, และการจัดการไอคอน/แอปที่คล่องตัวขึ้นทั้ง Linux Mint และ Windows 11
+
+### Added
+
+- **System Tray Icon (`settings.minimize_to_tray`)** — เปิด/ปิดได้ในหน้าต่าง Settings (ค่าเริ่มต้นปิด) เมื่อเปิดไว้การกดปิดหน้าต่าง (`X`) จะซ่อนแอปลงถาดระบบแทนการออก เพื่อให้ Global Hotkeys ทำงานต่อเนื่องในพื้นหลัง พร้อมเมนูคลิกขวา (เปิด TaskbarNoob · ตั้งค่า... · ออก)
+- **`.url` Resilience & `.url → .exe` Icon Caching** — แตกค่า `URL=` (เช่น `steam://rungameid/...`, `com.epicgames.launcher://...`, `https://...`) มาเก็บเป็น target โดยตรง และแคชไอคอนจาก `IconFile=` (รวม `.ico`/`.exe`/`.dll`) หรือ Steam `librarycache` ลงกลุ่มก่อน เพื่อไม่ให้ทางลัดและไอคอนพังหากลบไฟล์ `.url` ต้นทางทิ้ง + รองรับการเปิด URI `://` บน Linux ผ่าน `gio open` / `xdg-open`
+- **ปุ่มและเมนู "ดึงไอคอนใหม่" (Re-detect Icon)** — คลิกขวาที่รายการในกริด `GroupEditor` (และปุ่มดึงอัตโนมัติใน `ShortcutDialog`) เพื่อดึงไอคอนจาก target ใหม่ทับแคชเดิมได้ในคลิกเดียว
+- **เลือกหลายแอปพร้อมกันใน "จากแอป..." (Multi-select)** — `AppPickerDialog` รองรับ Ctrl/Shift เลือกหลายรายการเพื่อเพิ่มเข้ากลุ่มทีเดียว
+- **เตือน target หายแบบเงียบ (Quiet Broken Target Warning)** — แสดง badge `!` สีส้ม + tooltip เตือนใน `GroupEditor` และข้อความสั้นๆ ใต้ช่อง Target ใน `ShortcutDialog` เฉพาะตอนเปิดแก้ไข (ไม่เด้ง popup หรือ OS notification)
+
+### Changed
+
+- **ปรับคำอธิบาย Theme (`settings.theme_hint`) ให้เป็นกลางข้าม OS** — นำคำว่า `"Cinnamon"` ออกจากทั้ง 9 ภาษาเป็น `"ธีมของระบบ"` / `"system theme"`
+- **ล็อกมาตรฐานชื่อไฟล์ Release ทุกแพลตฟอร์มมีเลขเวอร์ชัน** (`TaskbarNoob-<ver>-x86_64.AppImage`, `taskbarnoob_<ver>_amd64.deb`, `TaskbarNoob-<ver>-win64-portable.zip`) และให้ `packaging/build_windows.ps1` ซิปไฟล์ `.zip` อัตโนมัติ
+
 ## [0.3.0] — 2026-11-23
 
 รื้อโครงสร้างสถาปัตยกรรมใหม่ทั้งหมด (Full Architecture Refactor) ยึดฟีเจอร์เดิมเป็นแกน ล้างหนี้เทคนิค + รีแบรนด์ชื่อภายในเป็น `taskbarnoob` เต็มรูปแบบ
@@ -134,6 +151,7 @@
 
 - ขั้นตอน bump → build → tag → Release ดู [`docs/release-process.md`](docs/release-process.md)
 
+[0.4.0]: https://github.com/Neafong/TaskbarNoob/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Neafong/TaskbarNoob/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Neafong/TaskbarNoob/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Neafong/TaskbarNoob/releases/tag/v0.1.0

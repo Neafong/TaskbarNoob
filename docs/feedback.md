@@ -8,13 +8,13 @@
 - [x] **R3:** รวม Icon Pipeline เป็นจุดเดียว (ลบ circular import) + ตัวเลือกไอคอนระบบแบบแยกหมวดบน Linux Mint + Steam `steam://rungameid/<appid>` icon resolver ข้าม OS
 - [x] **R4:** เก็บกวาด Dead Code / แยก `i18n` (9 ภาษาในตัว) + รีแบรนด์ชื่อภายใน `taskbargroups` → `taskbarnoob` พร้อม Auto-Migration + อัปเดตเครดิตเป็น `Noob & Jenny` + แก้บั๊ก `zh_CN`/`pt_BR` ข้าม OS
 
-## คิวงานรอบ v0.4.0 — Quality-of-Life & Resilience (ดูสเปกเต็มใน [`roadmap.md`](roadmap.md))
-- [ ] **System Tray Icon** — เปิด/ปิดได้ในหน้าต่าง Settings (`minimize_to_tray`, เมนูคลิกขวาเรียบง่ายมี เปิดหน้าต่าง / ตั้งค่า... / ออก, ช่วยให้ Win32 Global Hotkeys ทำงานต่อเนื่องเมื่อพับหน้าต่าง)
-- [ ] **`.url` Resilience + แคชไอคอน `.url→.exe` (3A)** — แตก `URL=` เก็บเป็น target ตรงๆ + แคชไอคอนจาก `IconFile=` (รวม `.exe` เช่นเกม Epic) / Steam `librarycache` ลงกลุ่ม เพื่อให้ลบไฟล์ `.url` บน Desktop ได้โดย Flyout ไม่พัง + รองรับ URI `://` ใน `_launch_linux`
-- [ ] **ปุ่ม "ดึงไอคอนใหม่" (Re-detect Icon — 3B)** — กดรีเฟรชไอคอนจาก target ในหน้าแก้ไข shortcut / คลิกขวาในกริด ไม่ต้องลบแล้วแอดใหม่
-- [ ] **เลือกหลายแอปพร้อมกันใน "จากแอป..." (Multi-select — 3C)** — `AppPickerDialog` รองรับ Ctrl/Shift เลือกหลายรายการทีเดียว
-- [ ] **เตือนเบาๆ เมื่อ shortcut ชี้ไฟล์ที่หายไปแล้ว (Broken Target — 3D)** — แสดงเงียบๆ เฉพาะตอนเปิดโปรแกรมเรา (ใน `GroupEditor` / `ShortcutDialog`) ห้ามเด้ง popup หรือ notification พลการ
-- [ ] **แก้ wording `Cinnamon` ใน `SettingsDialog` (`settings.theme_hint`)** — บน Windows ยังโชว์คำว่า `"Cinnamon theme"` ใต้ตัวเลือก Theme → ปรับเป็นคำกลาง (`system theme` / `ธีมของระบบ`) ครบ 9 ภาษา
+## งานในรอบ v0.4.0 — Quality-of-Life & Resilience ✅ ปิดครบฝั่งโค้ด & เทสต์ Mint (2026-11-24 · รอเทสต์/build ฝั่ง Win 11)
+- [x] **System Tray Icon** — เปิด/ปิดได้ในหน้าต่าง Settings (`minimize_to_tray`, เมนูคลิกขวาเรียบง่ายมี เปิดหน้าต่าง / ตั้งค่า... / ออก, ช่วยให้ Win32 Global Hotkeys ทำงานต่อเนื่องเมื่อพับหน้าต่าง)
+- [x] **`.url` Resilience + แคชไอคอน `.url→.exe` (3A)** — แตก `URL=` เก็บเป็น target ตรงๆ + แคชไอคอนจาก `IconFile=` (รวม `.exe` เช่นเกม Epic) / Steam `librarycache` ลงกลุ่ม เพื่อให้ลบไฟล์ `.url` บน Desktop ได้โดย Flyout ไม่พัง + รองรับ URI `://` ใน `_launch_linux`
+- [x] **ปุ่ม "ดึงไอคอนใหม่" (Re-detect Icon — 3B)** — กดรีเฟรชไอคอนจาก target ในหน้าแก้ไข shortcut / คลิกขวาในกริด ไม่ต้องลบแล้วแอดใหม่
+- [x] **เลือกหลายแอปพร้อมกันใน "จากแอป..." (Multi-select — 3C)** — `AppPickerDialog` รองรับ Ctrl/Shift เลือกหลายรายการทีเดียว
+- [x] **เตือนเบาๆ เมื่อ shortcut ชี้ไฟล์ที่หายไปแล้ว (Broken Target — 3D)** — แสดงเงียบๆ เฉพาะตอนเปิดโปรแกรมเรา (ใน `GroupEditor` / `ShortcutDialog`) ห้ามเด้ง popup หรือ notification พลการ
+- [x] **แก้ wording `Cinnamon` ใน `SettingsDialog` (`settings.theme_hint`)** — ปรับเป็นคำกลาง (`system theme` / `ธีมของระบบ`) ครบ 9 ภาษา + ล็อกกฎตั้งชื่อไฟล์ Release มีเลขเวอร์ชันทุกแพลตฟอร์ม & auto-zip ใน `build_windows.ps1`
 
 ## รายการค้างระยะยาว (หลัง v0.4.0)
 - **ไอคอน default ของกลุ่มที่ไม่ได้ตั้งไอคอน:** ปัจจุบันใช้ไอคอนโฟลเดอร์จากธีมระบบ (พี่ยังไม่ตัดสินใจว่าจะเปลี่ยนเป็นโลโก้แอปไหม — คงเดิมไว้ก่อน)

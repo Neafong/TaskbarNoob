@@ -38,11 +38,11 @@
 
 ## ฟีเจอร์เด่น
 
-- 🗂️ จัดกลุ่ม shortcut เป็นการ์ด แต่ละกลุ่มมี grid ของไอคอน (ลากจัดลำดับได้ + ตั้งแสดงชื่อใต้ไอคอนแยกต่อกลุ่มได้)
-- 📱 เพิ่มแอปง่ายในคลิกเดียวด้วยปุ่ม **"จากแอป..."** (Linux `.desktop`/Flatpak/Snap และ Windows Start Menu/MSIX)
-- 🖼️ ดึงไอคอนอัตโนมัติครบทั้ง **AppImage**, แอป Electron/Portable (`.asar`), **Steam** (`steam://rungameid/`), Flatpak/Snap และ Windows **MSIX** พร้อมตัวเลือกไอคอนระบบแบบแยกหมวด
+- 🗂️ จัดกลุ่ม shortcut เป็นการ์ด แต่ละกลุ่มมี grid ของไอคอน (ลากจัดลำดับได้ + ตั้งแสดงชื่อใต้ไอคอนแยกต่อกลุ่ม + แสดงเตือนเงียบๆ เมื่อไฟล์ปลายทางหาย)
+- 📱 เพิ่มแอปง่ายด้วยปุ่ม **"จากแอป..."** แบบเลือกได้หลายแอปพร้อมกัน (Linux `.desktop`/Flatpak/Snap และ Windows Start Menu/MSIX)
+- 🖼️ ดึงและแคชไอคอนอัตโนมัติครบทั้ง **AppImage**, แอป Electron/Portable (`.asar`), **Steam** (`steam://rungameid/`), ชอร์ตคัต `.url` (รวมเกม Epic `.url → .exe`), Flatpak/Snap และ Windows **MSIX** พร้อมปุ่ม **"ดึงไอคอนใหม่"** ในคลิกเดียว
 - 📌 ปักหมุดกลุ่มลง **Cinnamon panel** (Flyout ตรึงตรงกึ่งกลางไอคอนจริงบน panel) และสร้าง `.lnk` แยก **AUMID** ต่อกลุ่มบน Windows 11
-- ⌨️ ตั้ง **ปุ่มลัด (hotkey)** เปิดกลุ่มแบบ Focus Mode กลางจอ (ปรับขนาดไอคอนได้)
+- ⌨️ ตั้ง **ปุ่มลัด (hotkey)** เปิดกลุ่มแบบ Focus Mode กลางจอ (ปรับขนาดไอคอนได้) + โหมดซ่อนลง **System Tray** (เปิด/ปิดใน Settings) เพื่อให้คีย์ลัดทำงานต่อเนื่องในพื้นหลัง
 - 🎨 ธีม auto / light / dark · ปรับความโปร่งใสและขนาดไอคอน
 - 💾 **Portable** — config อยู่ในโฟลเดอร์แอป (`config/`) ย้ายเครื่องได้ทันที
 - 🌐 **9 ภาษาในตัว** (ไทย · English · 日本語 · 简体中文 · 한국어 · Español · Deutsch · Français · Português) + ส่งออก/นำเข้า JSON เพิ่มภาษาเองได้
@@ -66,8 +66,8 @@
 
 **Linux — AppImage** (ไม่ต้องติดตั้ง)
 ```bash
-chmod +x TaskbarNoob-x86_64.AppImage
-./TaskbarNoob-x86_64.AppImage
+chmod +x TaskbarNoob-<version>-x86_64.AppImage
+./TaskbarNoob-<version>-x86_64.AppImage
 ```
 
 **Linux — `.deb`** (Debian/Ubuntu/Mint)
@@ -75,7 +75,7 @@ chmod +x TaskbarNoob-x86_64.AppImage
 sudo apt install ./taskbarnoob_<version>_amd64.deb
 ```
 
-**Windows 11 — Portable `.zip`**
+**Windows 11 — Portable `.zip`** (`TaskbarNoob-<version>-win64-portable.zip`)
 - แตกไฟล์แล้วรัน `TaskbarNoob.exe` ได้ทันที (เก็บ config แบบ portable ในโฟลเดอร์ `config/` ข้างตัวแอป)
 - กดปุ่มโฟลเดอร์ที่กลุ่มเพื่อเปิด `config/shortcuts/` แล้วลากไฟล์ `.lnk` ไปปักบน Taskbar ได้เลย
 
@@ -97,17 +97,18 @@ CLI:
 
 ```bash
 # Linux
-bash packaging/build_appimage.sh   # -> dist/TaskbarNoob-x86_64.AppImage
+bash packaging/build_appimage.sh   # -> dist/TaskbarNoob-<ver>-x86_64.AppImage
 bash packaging/build_deb.sh        # -> dist/taskbarnoob_<ver>_amd64.deb
 
 # Windows (PowerShell)
 powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1
+# -> dist/TaskbarNoob/ + dist/TaskbarNoob-<ver>-win64-portable.zip
 ```
 
 ## ทดสอบ
 
 ```bash
-.venv/bin/python tests/run.py      # 394 tests
+.venv/bin/python tests/run.py      # 416 tests
 ```
 
 ## ภาษา & การเพิ่มภาษาใหม่
@@ -131,7 +132,7 @@ taskbarnoob/
 │   └── ...         models · storage · paths · launcher · settings · archive
 └── gui/            ส่วน Qt/PySide6 (main_window · group_editor · app_picker · flyout …)
 packaging/          build scripts · assets (โลโก้) · lang (7 ภาษาแพ็กติดแอป) · appimage/
-tests/              unittest ชุดทดสอบ (394 tests)
+tests/              unittest ชุดทดสอบ (416 tests)
 docs/               เอกสารออกแบบ + worklog + roadmap
 ```
 

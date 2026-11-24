@@ -1,3 +1,3 @@
 """TaskbarNoob — รวบรวม shortcut เป็นกลุ่ม เปิดใช้ง่ายจาก panel (Linux Mint / Windows)."""
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"

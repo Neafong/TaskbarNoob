@@ -160,3 +160,29 @@
 6. **เก็บงานจิ๋ว Cross-OS wording (`settings.theme_hint`):**
    - แก้คำอธิบายใต้ตัวเลือก Theme ใน `SettingsDialog` ที่ยังเขียนคำว่า `"Cinnamon"` บน Windows ให้เป็นคำกลาง (`system theme` / `ธีมของระบบ`) ครบ 9 ภาษา
 7. **ปิดรุ่น `v0.4.0`:** ไล่เช็ก **Docs Audit Checklist** ใน `docs/release-process.md` ให้ครบทุกไฟล์ก่อน tag เสมอ!
+
+---
+
+## 2026-11-24 — รอบ `v0.4.0` Quality-of-Life & Resilience (ฝั่ง Linux Mint เสร็จครบ 7 ขั้น)
+
+- **ปล่อย `v0.3.0` ขึ้น GitHub Release แล้ว** — ข้าม Handoff #1 และเริ่มลุย `v0.4.0` ทันทีตามแผน 7 ขั้น:
+  1. **System Tray Icon (`e246937`):** เพิ่ม `Settings.get_minimize_to_tray()` / `set_minimize_to_tray()` (default `False`), ช่องติ๊กใน `SettingsDialog`, และ `QSystemTrayIcon` ใน `MainWindow` (เมนู: เปิด TaskbarNoob · ตั้งค่า... · ออก · ปิด `X` = ซ่อนลง tray เมื่อเปิดโหมดนี้) + i18n ครบ 9 ภาษา + `tests/test_tray.py`
+  2. **`.url` Resilience + `.url → .exe` Icon Caching + Linux URI Launch (`a1b1ed0`):** เพิ่ม `parse_url_file()` ใน `core/icons`, ให้ `shortcut_from_path()` แตก `URL=` เก็บเป็น target โดยตรง, เพิ่ม `is_uri_target()` + เปิด URI `://` ด้วย `gio open`/`xdg-open` ใน `_launch_linux`, ขยาย `_CACHEABLE_PROVIDER_SUFFIXES` รองรับ `.ico`/`.dll`/`.url` + `tests/test_url_resilience.py`
+  3. **Re-detect Icon (`8692922`):** เพิ่มคลิกขวาเมนู **"ดึงไอคอนใหม่"** ใน `ShortcutGrid`/`GroupEditor` (พร้อม `_detect_icon_for_target()` และ `_from_file()` เลี่ยง cache ค้าง) + อัปเกรด `_auto_icon()` ใน `ShortcutDialog` ให้รองรับ `.ico`/`.exe`/`.dll`/`.lnk` และ fallback ธีมไอคอน + i18n ครบ 9 ภาษา
+  4. **Multi-select ใน "จากแอป..." (`c2df881`):** เปลี่ยน `AppPickerDialog` เป็น `ExtendedSelection` + `selected_paths()` (คง `selected_path()` ไว้ compat) และอัปเดต `GroupEditor._add_from_apps()` ให้เพิ่มหลายแอปได้ในรอบเดียว
+  5. **เตือน Broken Target แบบเงียบ (`527036b`):** เพิ่ม `is_target_missing()` ใน `core/launcher.py`, วาด badge `!` สีส้มใน `_DropHighlightDelegate` + tooltip เตือนใน `GroupEditor`, และ label เตือนสีส้มใต้ช่อง Target ใน `ShortcutDialog` (ห้ามเด้ง popup/notification) + i18n ครบ 9 ภาษา
+  6. **Cross-OS wording + กฎชื่อไฟล์ Release + Auto-Zip (`857179e`):** ลบคำว่า `"Cinnamon"` ออกจาก `settings.theme_hint` ครบ 9 ภาษา · ล็อกตารางชื่อไฟล์ Release ที่มี `<ver>` ใน `docs/release-process.md` · แก้ `packaging/build_appimage.sh` ใส่เลขเวอร์ชัน · แก้ `packaging/build_windows.ps1` ซิป `dist\TaskbarNoob-<ver>-win64-portable.zip` อัตโนมัติ (พร้อมลบ `config\` ที่อาจหลงเหลือ)
+  7. **Bump `v0.4.0` + Docs Audit Checklist:** อัปเดต `__version__ = "0.4.0"`, `CHANGELOG.md`, `README.md`, `README.th.md`, `docs/roadmap.md`, `docs/feedback.md`, `docs/WORKLOG.md`, `AGENTS.md` (ตรวจ `CONTRIBUTING.md`, `PULL_REQUEST_TEMPLATE.md`, `taskbarnoob.appdata.xml` ผ่านครบ)
+- **ผลเทสต์ฝั่ง Linux Mint:** `QT_QPA_PLATFORM=offscreen .venv/bin/python tests/run.py` → **416/416 ผ่าน 100% (`skipped=10` Windows-only)** + `compileall` ผ่าน + `bash -n packaging/build_appimage.sh` ผ่าน
+
+### Handoff สำหรับปิดจ๊อบ `v0.4.0` (Linux Mint build + Windows 11 test/build → Release)
+1. **ฝั่ง Linux Mint:**
+   - Build: `bash packaging/build_appimage.sh` → `dist/TaskbarNoob-0.4.0-x86_64.AppImage` และ `bash packaging/build_deb.sh` → `dist/taskbarnoob_0.4.0_amd64.deb`
+   - Deploy เครื่องจริง: `cp dist/TaskbarNoob-0.4.0-x86_64.AppImage ~/AppImage/Tool/TaskbarNoob-x86_64.AppImage` + live-test (System Tray, Multi-select "จากแอป...", คลิกขวา "ดึงไอคอนใหม่", Broken target badge)
+   - `git push origin main`
+2. **ฝั่ง Windows 11:**
+   - `git pull origin main`
+   - เทสต์: `.venv-win\Scripts\python.exe tests/run.py` (ต้องผ่านครบ 416 เทสต์)
+   - Build + auto-zip: `powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1` → ได้ `dist\TaskbarNoob\` + `dist\TaskbarNoob-0.4.0-win64-portable.zip`
+   - Deploy ทับ `D:\Portable\Tool\TaskbarNoob` (ไม่แตะ `config\`) + live-test (System Tray + Win32 Global Hotkey ขณะพับหน้าต่าง · ลากไฟล์ `.url` เกม Steam/Epic แล้วลบไฟล์ `.url` ต้นทางทิ้ง · Multi-select "จากแอป..." · Re-detect icon · Broken target badge · Settings theme hint ไม่มีคำว่า Cinnamon)
+3. **ปล่อย GitHub Release `v0.4.0`:** แท็ก `v0.4.0` + แนบ 3 ไฟล์ชื่อตรงตามกฎ (`TaskbarNoob-0.4.0-x86_64.AppImage`, `taskbarnoob_0.4.0_amd64.deb`, `TaskbarNoob-0.4.0-win64-portable.zip`)
