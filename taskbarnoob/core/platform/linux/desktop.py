@@ -202,6 +202,12 @@ def shortcut_from_path(
     if p.suffix.lower() == ".desktop":
         name = read_desktop_name(p) or p.stem
         target = str(p)
+    elif p.suffix.lower() == ".url":
+        from ...icons import parse_url_file
+
+        url, _icon = parse_url_file(p)
+        name = p.stem or p.name
+        target = url or str(p)
     else:
         name = p.stem or p.name
         target = str(p)

@@ -611,10 +611,15 @@ class MainWindow(QMainWindow):
             except core_icons.IconError:
                 continue
             if not relative:
-                # ไฟล์ที่ core แคชให้ไม่ได้ (เช่น .exe/.lnk บน Windows) → ใช้ไอคอน OS
-                relative = cache_provider_icon(
-                    self.store, dir_name, item.target, item.name or item.target
-                )
+                # ไฟล์ที่ core แคชให้ไม่ได้ (เช่น .exe/.lnk/.ico จาก .url บน Windows) → ใช้ไอคอน OS
+                if source:
+                    relative = cache_provider_icon(
+                        self.store, dir_name, source, item.name or item.target
+                    )
+                if not relative:
+                    relative = cache_provider_icon(
+                        self.store, dir_name, item.target, item.name or item.target
+                    )
             if relative and relative != item.icon:
                 item.icon = relative
                 changed = True

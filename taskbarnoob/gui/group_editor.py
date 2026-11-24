@@ -440,11 +440,13 @@ class GroupEditor(QDialog):
                 continue
             self._group.items.append(shortcut)
             source = core_icons.resolve_icon_source(path)
+            if source is None and shortcut.target != path:
+                source = core_icons.resolve_icon_source(shortcut.target)
             if source is None and os.access(path, os.X_OK):
                 source = core_icons.icon_from_executable(path)
             if (
                 source is not None
-                and Path(source).suffix.lower() == ".ico"
+                and Path(source).suffix.lower() in (".ico", ".exe", ".dll", ".lnk")
                 and sys.platform == "win32"
             ):
                 cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME

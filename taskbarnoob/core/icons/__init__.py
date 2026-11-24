@@ -113,19 +113,37 @@ def icon_from_desktop_file(path: str | os.PathLike[str]) -> Path | None:
     return icon_from_steam_shortcut(candidate)
 
 
-def _read_url_icon_file(path: Path) -> Path | None:
-    """อ่าน `IconFile=` จากไฟล์ .url (Internet shortcut)."""
+def parse_url_file(path: str | os.PathLike[str]) -> tuple[str | None, Path | None]:
+    """อ่าน `URL=` และ `IconFile=` จากไฟล์ `.url` (Internet shortcut).
+
+    คืน `(url, icon_file_path)` โดย `icon_file_path` ขยายตัวแปรสภาพแวดล้อมแล้ว
+    """
+    candidate = Path(path)
+    if not candidate.is_file():
+        return (None, None)
     try:
-        text = path.read_text(encoding="utf-8", errors="ignore")
+        text = candidate.read_text(encoding="utf-8", errors="ignore")
     except OSError:
-        return None
+        return (None, None)
+    url: str | None = None
+    icon_file: Path | None = None
     for line in text.splitlines():
         stripped = line.strip()
-        if stripped.lower().startswith("iconfile="):
+        lower = stripped.lower()
+        if lower.startswith("url=") and url is None:
+            value = stripped[len("url=") :].strip()
+            if value:
+                url = value
+        elif lower.startswith("iconfile=") and icon_file is None:
             value = stripped[len("iconfile=") :].strip()
             if value:
-                return Path(os.path.expandvars(value))
-    return None
+                icon_file = Path(os.path.expandvars(value))
+    return (url, icon_file)
+
+
+def _read_url_icon_file(path: Path) -> Path | None:
+    """อ่าน `IconFile=` จากไฟล์ .url (Internet shortcut)."""
+    return parse_url_file(path)[1]
 
 
 def resolve_icon_source(target: str | os.PathLike[str] | None) -> Path | None:
@@ -207,6 +225,7 @@ __all__ = [
     "icon_from_steam_shortcut",
     "is_appimage",
     "is_image_file",
+    "parse_url_file",
     "platform_note",
     "resolve_icon_source",
     "safe_stem",

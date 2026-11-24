@@ -28,6 +28,7 @@ _PROVIDER_ICON_CACHE_DIRNAME = core_icons.PROVIDER_ICON_CACHE_DIRNAME
 _PROVIDER_SUFFIXES = frozenset(
     {".exe", ".lnk", ".bat", ".cmd", ".app", ".command"}
 )
+_CACHEABLE_PROVIDER_SUFFIXES = _PROVIDER_SUFFIXES | frozenset({".ico", ".dll", ".url"})
 
 
 def _smooth_scaled_pixmap(source: QPixmap, size: int) -> QPixmap:
@@ -416,7 +417,7 @@ def cache_provider_icon(
     ข้ามเครื่องได้เหมือนไอคอนชนิดอื่น.
     """
     path = Path((target or "").strip())
-    if path.suffix.lower() not in _PROVIDER_SUFFIXES or not path.is_file():
+    if path.suffix.lower() not in _CACHEABLE_PROVIDER_SUFFIXES or not path.is_file():
         return None
     icons_dir = store.icons_dir(dir_name)
     try:

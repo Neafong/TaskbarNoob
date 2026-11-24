@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 import os
+import re
 import shlex
 import subprocess
 import sys
 from pathlib import Path
 
 from .models import Group, Shortcut
+
+_URI_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
+
+
+def is_uri_target(target: str) -> bool:
+    """คืน True เมื่อ target เป็น URI scheme เช่น steam://, https://, com.epicgames.launcher://."""
+    return bool(_URI_SCHEME_RE.match((target or "").strip()))
 
 
 class LaunchError(Exception):
@@ -83,6 +91,17 @@ def launch(shortcut: Shortcut) -> None:
 def _launch_linux(target: str, args: list[str], cwd: str | None) -> None:
     env = child_env()
     try:
+        # URI scheme (เช่น steam://rungameid/..., https://...) → เปิดผ่าน handler ของระบบ
+        if is_uri_target(target):
+            try:
+                subprocess.Popen(
+                    ["gio", "open", target], cwd=cwd, env=env, start_new_session=True
+                )
+            except OSError:
+                subprocess.Popen(
+                    ["xdg-open", target], cwd=cwd, env=env, start_new_session=True
+                )
+            return
         # .desktop file
         if target.endswith(".desktop"):
             subprocess.Popen(
