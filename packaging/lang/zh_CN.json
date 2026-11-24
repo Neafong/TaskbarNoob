@@ -181,5 +181,6 @@
   "tray.open": "打开 TaskbarNoob",
   "tray.settings": "设置...",
   "tray.quit": "退出",
-  "tray.tooltip": "TaskbarNoob — 点击打开主窗口"
+  "tray.tooltip": "TaskbarNoob — 点击打开主窗口",
+  "editor.redetect_icon": "重新获取图标"
 }

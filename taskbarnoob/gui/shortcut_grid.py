@@ -45,6 +45,7 @@ class ShortcutGrid(QListWidget):
 
     urlsDropped = Signal(list)
     orderChanged = Signal()
+    contextMenuRequested = Signal(object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -122,6 +123,13 @@ class ShortcutGrid(QListWidget):
             self._hover_row = -1
             self.viewport().update()
         super().leaveEvent(event)
+
+    def contextMenuEvent(self, event) -> None:
+        item = self.itemAt(event.pos())
+        if item is None:
+            return
+        self.setCurrentItem(item)
+        self.contextMenuRequested.emit(event.globalPos())
 
     def _hover_cell(self, row: int) -> QRect:
         """กรอบไฮไลท์ hover: ขนาดคงที่จาก gridSize (เท่ากันทุกช่อง)."""

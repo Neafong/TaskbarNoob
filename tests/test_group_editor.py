@@ -392,6 +392,35 @@ class WindowsProviderIconTests(unittest.TestCase):
         self.assertEqual(dialog.icon_source(), str(png))
         dialog.close()
 
+    def test_redetect_item_icon_sets_pending_and_reloads(self) -> None:
+        from unittest import mock
+
+        from PySide6.QtGui import QImage
+
+        from taskbarnoob.core.models import Group, Shortcut
+        from taskbarnoob.core.storage import ConfigStore
+        from taskbarnoob.gui import group_editor
+
+        fresh = Path(self._tmp.name) / "fresh.png"
+        img = QImage(32, 32, QImage.Format_ARGB32)
+        img.fill(0xFF00CC66)
+        img.save(str(fresh), "PNG")
+
+        store = ConfigStore(self._tmp.name)
+        sc = Shortcut(name="Game", target="steam://rungameid/544630", icon="icons/old.png")
+        group = Group(name="Games", items=[sc])
+        editor = group_editor.GroupEditor(store, group=group, dir_name="Games")
+        editor.items_list.setCurrentRow(0)
+
+        with mock.patch.object(
+            group_editor.core_icons, "resolve_icon_source", return_value=fresh
+        ), mock.patch.object(group_editor, "show_information") as info:
+            editor._redetect_item_icon()
+
+        info.assert_not_called()
+        self.assertEqual(editor.pending_icons().get(id(sc)), str(fresh))
+        editor.close()
+
     @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
     def test_extract_os_icon_png_real_exe_is_high_res(self) -> None:
         """shell API ต้องได้ความละเอียดสูง (>=128px) — QFileIconProvider เดิมได้แค่ 128 แล้ว."""

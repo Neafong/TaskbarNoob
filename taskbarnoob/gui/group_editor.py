@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidgetItem,
+    QMenu,
     QPushButton,
     QSlider,
     QSpinBox,
@@ -45,7 +46,8 @@ from taskbarnoob.core.storage import ConfigStore
 
 from .app_picker import AppPickerDialog
 from .button_icons import themed_icon
-from .dialogs import show_warning
+from .dialogs import show_information, show_warning
+from .group_list import _style_menu
 from .icon_picker import (
     _ICON_DISPLAY_LIMIT,
     _ICON_SCAN_LIMIT,
@@ -224,6 +226,7 @@ class GroupEditor(QDialog):
         self.items_list.itemDoubleClicked.connect(self._on_item_double_clicked)
         self.items_list.urlsDropped.connect(self._on_urls_dropped)
         self.items_list.orderChanged.connect(self._sync_order)
+        self.items_list.contextMenuRequested.connect(self._on_item_context_menu)
         layout.addWidget(self.items_list)
 
         item_buttons = QHBoxLayout()
@@ -392,14 +395,17 @@ class GroupEditor(QDialog):
     def _icon_for(self, item: Shortcut) -> QIcon:
         source = self._pending_icons.get(id(item))
         if source:
+            icon = _from_file(Path(source))
+            if icon is not None and not icon.isNull():
+                return icon
             icon = QIcon(source)
             if not icon.isNull():
                 return icon
         if item.icon and self.dir_name:
             cached = self.store.resolve_relative(self.dir_name, item.icon)
             if cached is not None:
-                icon = QIcon(str(cached))
-                if not icon.isNull():
+                icon = _from_file(cached)
+                if icon is not None and not icon.isNull():
                     return icon
         if item.target and core_icons.is_appimage(item.target):
             embedded = core_icons.icon_from_appimage(item.target)
@@ -429,6 +435,32 @@ class GroupEditor(QDialog):
                 return icon
         return QIcon.fromTheme(_FALLBACK_GRID_ICON)
 
+    @staticmethod
+    def _detect_icon_for_target(
+        path: str, fallback_target: str | None = None
+    ) -> Path | None:
+        source = core_icons.resolve_icon_source(path)
+        if source is None and fallback_target and fallback_target != path:
+            source = core_icons.resolve_icon_source(fallback_target)
+        if source is None and path and os.access(path, os.X_OK):
+            source = core_icons.icon_from_executable(path)
+        if (
+            source is not None
+            and Path(source).suffix.lower() in (".ico", ".exe", ".dll", ".lnk")
+            and sys.platform == "win32"
+        ):
+            cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
+            source = _cached_provider_png(Path(source), cache) or source
+        if (
+            source is None
+            and sys.platform == "win32"
+            and path
+            and Path(path).suffix.lower() in _PROVIDER_ICON_SUFFIXES
+        ):
+            cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
+            source = _cached_provider_png(Path(path), cache)
+        return source
+
     def _on_urls_dropped(self, urls) -> None:
         added = False
         for url in urls:
@@ -439,25 +471,7 @@ class GroupEditor(QDialog):
             if shortcut is None:
                 continue
             self._group.items.append(shortcut)
-            source = core_icons.resolve_icon_source(path)
-            if source is None and shortcut.target != path:
-                source = core_icons.resolve_icon_source(shortcut.target)
-            if source is None and os.access(path, os.X_OK):
-                source = core_icons.icon_from_executable(path)
-            if (
-                source is not None
-                and Path(source).suffix.lower() in (".ico", ".exe", ".dll", ".lnk")
-                and sys.platform == "win32"
-            ):
-                cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
-                source = _cached_provider_png(Path(source), cache) or source
-            if (
-                source is None
-                and sys.platform == "win32"
-                and Path(path).suffix.lower() in _PROVIDER_ICON_SUFFIXES
-            ):
-                cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
-                source = _cached_provider_png(Path(path), cache)
+            source = self._detect_icon_for_target(path, shortcut.target)
             if source is not None:
                 self._pending_icons[id(shortcut)] = str(source)
             added = True
@@ -475,6 +489,39 @@ class GroupEditor(QDialog):
     def _on_item_double_clicked(self, entry: QListWidgetItem) -> None:
         self.items_list.setCurrentItem(entry)
         self._edit_item()
+
+    def _on_item_context_menu(self, pos) -> None:
+        if self._selected_item() is None:
+            return
+        menu = _style_menu(QMenu(self))
+        menu.addAction(tr("main.edit"), self._edit_item)
+        menu.addAction(tr("editor.redetect_icon"), self._redetect_item_icon)
+        menu.addSeparator()
+        menu.addAction(tr("main.delete"), self._remove_item)
+        menu.exec(pos)
+        menu.deleteLater()
+
+    def _redetect_item_icon(self) -> None:
+        selected = self._selected_item()
+        if selected is None:
+            return
+        row = self.items_list.row(selected)
+        item = self._group.items[row]
+        target = item.target.strip()
+        source = self._detect_icon_for_target(target)
+        if source is None and target:
+            source = core_icons.find_theme_icon(Path(target).stem)
+        if source is None:
+            show_information(
+                self,
+                tr("shortcut.no_icon_title"),
+                tr("shortcut.no_icon_body"),
+            )
+            return
+        self._pending_icons[id(item)] = str(source)
+        self._reload_items()
+        if 0 <= row < self.items_list.count():
+            self.items_list.setCurrentRow(row)
 
     def _selected_item(self) -> QListWidgetItem | None:
         return self.items_list.currentItem()

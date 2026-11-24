@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import tempfile
 from pathlib import Path
 
@@ -172,6 +173,13 @@ class ShortcutDialog(QDialog):
         target = self.target_edit.text().strip()
         source = core_icons.resolve_icon_source(target)
         if (
+            source is not None
+            and Path(source).suffix.lower() in (".ico", ".exe", ".dll", ".lnk")
+            and sys.platform == "win32"
+        ):
+            cache = Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
+            source = _cached_provider_png(Path(source), cache) or source
+        if (
             source is None
             and target
             and Path(target).suffix.lower() in _PROVIDER_ICON_SUFFIXES
@@ -180,6 +188,8 @@ class ShortcutDialog(QDialog):
             source = _cached_provider_png(Path(target), cache)
         if source is None and target and os.access(target, os.X_OK):
             source = core_icons.icon_from_executable(target)
+        if source is None and target:
+            source = core_icons.find_theme_icon(Path(target).stem)
         if source is None:
             show_information(
                 self,

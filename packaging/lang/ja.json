@@ -181,5 +181,6 @@
   "tray.open": "TaskbarNoob を開く",
   "tray.settings": "設定...",
   "tray.quit": "終了",
-  "tray.tooltip": "TaskbarNoob — クリックしてメインウィンドウを開く"
+  "tray.tooltip": "TaskbarNoob — クリックしてメインウィンドウを開く",
+  "editor.redetect_icon": "アイコンを再検出"
 }

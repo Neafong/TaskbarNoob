@@ -181,5 +181,6 @@
   "tray.open": "TaskbarNoob öffnen",
   "tray.settings": "Einstellungen...",
   "tray.quit": "Beenden",
-  "tray.tooltip": "TaskbarNoob — Klicken, um das Hauptfenster zu öffnen"
+  "tray.tooltip": "TaskbarNoob — Klicken, um das Hauptfenster zu öffnen",
+  "editor.redetect_icon": "Symbol neu erkennen"
 }

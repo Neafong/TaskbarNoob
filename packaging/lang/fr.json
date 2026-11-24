@@ -181,5 +181,6 @@
   "tray.open": "Ouvrir TaskbarNoob",
   "tray.settings": "Paramètres...",
   "tray.quit": "Quitter",
-  "tray.tooltip": "TaskbarNoob — Cliquer pour ouvrir la fenêtre principale"
+  "tray.tooltip": "TaskbarNoob — Cliquer pour ouvrir la fenêtre principale",
+  "editor.redetect_icon": "Redétecter l'icône"
 }

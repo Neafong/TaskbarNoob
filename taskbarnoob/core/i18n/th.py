@@ -123,6 +123,7 @@ TH = {
     "editor.add": "เพิ่ม",
     "editor.add_from_apps": "จากแอป...",
     "editor.add_from_apps_tip": "เลือกจากแอปที่ติดตั้งในเครื่อง",
+    "editor.redetect_icon": "ดึงไอคอนใหม่",
     "app_picker.title": "เลือกแอปที่ติดตั้ง",
     "app_picker.search_placeholder": "พิมพ์ชื่อแอปเพื่อค้นหา (เช่น firefox, zen)...",
     "app_picker.count": "{n} แอป",

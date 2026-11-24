@@ -116,6 +116,7 @@ EN = {
     "editor.add": "Add",
     "editor.add_from_apps": "From apps...",
     "editor.add_from_apps_tip": "Pick from installed apps",
+    "editor.redetect_icon": "Re-detect icon",
     "app_picker.title": "Pick an installed app",
     "app_picker.search_placeholder": "Type an app name to search (e.g. firefox, zen)...",
     "app_picker.count": "{n} apps",

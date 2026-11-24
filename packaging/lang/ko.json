@@ -181,5 +181,6 @@
   "tray.open": "TaskbarNoob 열기",
   "tray.settings": "설정...",
   "tray.quit": "종료",
-  "tray.tooltip": "TaskbarNoob — 클릭하여 메인 창 열기"
+  "tray.tooltip": "TaskbarNoob — 클릭하여 메인 창 열기",
+  "editor.redetect_icon": "아이콘 다시 감지"
 }
