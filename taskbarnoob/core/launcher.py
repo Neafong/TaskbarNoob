@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -17,6 +18,18 @@ _URI_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
 def is_uri_target(target: str) -> bool:
     """คืน True เมื่อ target เป็น URI scheme เช่น steam://, https://, com.epicgames.launcher://."""
     return bool(_URI_SCHEME_RE.match((target or "").strip()))
+
+
+def is_target_missing(target: str) -> bool:
+    """คืน True เมื่อ target เป็นไฟล์/โฟลเดอร์หรือคำสั่งที่ไม่มีอยู่จริง (ไม่นับ URI scheme)."""
+    raw = (target or "").strip()
+    if not raw or is_uri_target(raw):
+        return False
+    if Path(raw).expanduser().exists():
+        return False
+    if "/" not in raw and "\\" not in raw:
+        return shutil.which(raw) is None
+    return True
 
 
 class LaunchError(Exception):

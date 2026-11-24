@@ -154,6 +154,22 @@ class LaunchLinuxDispatchTests(unittest.TestCase):
             with self.assertRaises(LaunchError):
                 launch(Shortcut(name="b", target=target))
 
+    def test_is_target_missing(self) -> None:
+        from taskbarnoob.core.launcher import is_target_missing
+
+        existing = self._make_file("ok.sh", executable=True)
+        self.assertFalse(is_target_missing(""))
+        self.assertFalse(is_target_missing("   "))
+        self.assertFalse(is_target_missing(existing))
+        self.assertFalse(is_target_missing(self._tmp.name))
+        self.assertFalse(is_target_missing("steam://rungameid/544630"))
+        self.assertFalse(is_target_missing("https://example.com"))
+        self.assertTrue(is_target_missing(str(Path(self._tmp.name) / "gone.exe")))
+        with mock.patch("taskbarnoob.core.launcher.shutil.which", return_value="/usr/bin/code"):
+            self.assertFalse(is_target_missing("code"))
+        with mock.patch("taskbarnoob.core.launcher.shutil.which", return_value=None):
+            self.assertTrue(is_target_missing("no_such_command_xyz"))
+
 
 if __name__ == "__main__":
     unittest.main()

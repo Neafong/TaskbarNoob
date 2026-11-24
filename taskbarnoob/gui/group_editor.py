@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
 
 from taskbarnoob.core import icons as core_icons
 from taskbarnoob.core.i18n import tr
+from taskbarnoob.core.launcher import is_target_missing
 from taskbarnoob.core.models import (
     MAX_ICON_SIZE,
     MIN_ICON_SIZE,
@@ -71,7 +72,7 @@ from .shortcut_dialog import (
     ShortcutDialog,
     _style_dialog_buttons,
 )
-from .shortcut_grid import ShortcutGrid, _DropHighlightDelegate
+from .shortcut_grid import BROKEN_ROLE, ShortcutGrid, _DropHighlightDelegate
 from .theme import app_color, app_text_color
 
 DEFAULT_CUSTOM_COLOR = "#3a3a3a"
@@ -388,7 +389,12 @@ class GroupEditor(QDialog):
             entry.setIcon(self._icon_for(item))
             entry.setText(item.name or item.target)
             entry.setTextAlignment(Qt.AlignHCenter | Qt.AlignTop)
-            entry.setToolTip(item.target)
+            missing = is_target_missing(item.target)
+            entry.setData(BROKEN_ROLE, missing)
+            tooltip = item.target
+            if missing:
+                tooltip = f"{tooltip}\n⚠ {tr('editor.broken_target_tip')}"
+            entry.setToolTip(tooltip)
             entry.setData(Qt.UserRole, item)
             self.items_list.addItem(entry)
 

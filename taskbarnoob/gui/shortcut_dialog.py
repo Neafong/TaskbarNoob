@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 
 from taskbarnoob.core import icons as core_icons
 from taskbarnoob.core.i18n import tr
+from taskbarnoob.core.launcher import is_target_missing
 from taskbarnoob.core.models import Shortcut
 
 from .button_icons import themed_icon
@@ -78,6 +79,13 @@ class ShortcutDialog(QDialog):
         target_widget.setLayout(target_row)
         form.addRow(tr("shortcut.target"), target_widget)
 
+        self.target_warning = QLabel(tr("shortcut.target_missing_hint"))
+        self.target_warning.setStyleSheet("color: #e67e22; font-size: 11px;")
+        self.target_warning.setWordWrap(True)
+        self.target_warning.setVisible(False)
+        form.addRow("", self.target_warning)
+        self._update_target_warning()
+
         cwd_row = QHBoxLayout()
         self.cwd_edit = QLineEdit(self._shortcut.working_dir or "")
         cwd_browse = QPushButton(tr("shortcut.browse"))
@@ -129,8 +137,12 @@ class ShortcutDialog(QDialog):
             self.cwd_edit.setText(path)
 
     def _on_target_changed(self) -> None:
+        self._update_target_warning()
         if self._icon_source is None:
             self._update_icon_preview()
+
+    def _update_target_warning(self) -> None:
+        self.target_warning.setVisible(is_target_missing(self.target_edit.text()))
 
     def _update_icon_preview(self) -> None:
         """โชว์รูปไอคอนปัจจุบัน (48px) แทนข้อความ."""

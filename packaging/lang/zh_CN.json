@@ -182,5 +182,7 @@
   "tray.settings": "设置...",
   "tray.quit": "退出",
   "tray.tooltip": "TaskbarNoob — 点击打开主窗口",
-  "editor.redetect_icon": "重新获取图标"
+  "editor.redetect_icon": "重新获取图标",
+  "editor.broken_target_tip": "未找到目标文件（可能已被移动或删除）",
+  "shortcut.target_missing_hint": "⚠ 未找到此文件或命令"
 }

@@ -182,5 +182,7 @@
   "tray.settings": "Einstellungen...",
   "tray.quit": "Beenden",
   "tray.tooltip": "TaskbarNoob — Klicken, um das Hauptfenster zu öffnen",
-  "editor.redetect_icon": "Symbol neu erkennen"
+  "editor.redetect_icon": "Symbol neu erkennen",
+  "editor.broken_target_tip": "Zieldatei nicht gefunden (möglicherweise verschoben oder gelöscht)",
+  "shortcut.target_missing_hint": "⚠ Datei oder Befehl nicht gefunden"
 }

@@ -488,6 +488,53 @@ class WindowsProviderIconTests(unittest.TestCase):
         self.assertEqual([item.name for item in editor._group.items], ["One", "Two"])
         editor.close()
 
+    def test_broken_target_sets_role_and_tooltip_without_popup(self) -> None:
+        from taskbarnoob.core.models import Group, Shortcut
+        from taskbarnoob.core.storage import ConfigStore
+        from taskbarnoob.gui import group_editor
+        from taskbarnoob.gui.shortcut_grid import BROKEN_ROLE
+
+        existing = Path(self._tmp.name) / "real.sh"
+        existing.write_text("#!/bin/sh\n", encoding="utf-8")
+        missing = Path(self._tmp.name) / "deleted.AppImage"
+
+        group = Group(
+            name="Mixed",
+            items=[
+                Shortcut(name="OK", target=str(existing)),
+                Shortcut(name="Gone", target=str(missing)),
+                Shortcut(name="Steam", target="steam://rungameid/544630"),
+            ],
+        )
+        store = ConfigStore(self._tmp.name)
+        editor = group_editor.GroupEditor(store, group=group, dir_name="Mixed")
+
+        self.assertFalse(editor.items_list.item(0).data(BROKEN_ROLE))
+        self.assertTrue(editor.items_list.item(1).data(BROKEN_ROLE))
+        self.assertIn("⚠", editor.items_list.item(1).toolTip())
+        self.assertFalse(editor.items_list.item(2).data(BROKEN_ROLE))
+        editor.close()
+
+    def test_shortcut_dialog_shows_quiet_warning_for_missing_target(self) -> None:
+        from taskbarnoob.core.models import Shortcut
+        from taskbarnoob.gui import shortcut_dialog
+
+        existing = Path(self._tmp.name) / "app.bin"
+        existing.write_bytes(b"x")
+        missing = Path(self._tmp.name) / "missing.bin"
+
+        dialog = shortcut_dialog.ShortcutDialog(
+            shortcut=Shortcut(name="App", target=str(missing))
+        )
+        self.assertFalse(dialog.target_warning.isHidden())
+
+        dialog.target_edit.setText(str(existing))
+        self.assertTrue(dialog.target_warning.isHidden())
+
+        dialog.target_edit.setText("steam://rungameid/100")
+        self.assertTrue(dialog.target_warning.isHidden())
+        dialog.close()
+
     @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
     def test_extract_os_icon_png_real_exe_is_high_res(self) -> None:
         """shell API ต้องได้ความละเอียดสูง (>=128px) — QFileIconProvider เดิมได้แค่ 128 แล้ว."""

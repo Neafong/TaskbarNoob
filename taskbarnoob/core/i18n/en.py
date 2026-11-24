@@ -117,6 +117,8 @@ EN = {
     "editor.add_from_apps": "From apps...",
     "editor.add_from_apps_tip": "Pick from installed apps",
     "editor.redetect_icon": "Re-detect icon",
+    "editor.broken_target_tip": "Target file not found (may have been moved or deleted)",
+    "shortcut.target_missing_hint": "⚠ Target file or command not found",
     "app_picker.title": "Pick an installed app",
     "app_picker.search_placeholder": "Type an app name to search (e.g. firefox, zen)...",
     "app_picker.count": "{n} apps",

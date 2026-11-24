@@ -182,5 +182,7 @@
   "tray.settings": "설정...",
   "tray.quit": "종료",
   "tray.tooltip": "TaskbarNoob — 클릭하여 메인 창 열기",
-  "editor.redetect_icon": "아이콘 다시 감지"
+  "editor.redetect_icon": "아이콘 다시 감지",
+  "editor.broken_target_tip": "대상 파일을 찾을 수 없습니다 (이동되었거나 삭제되었을 수 있음)",
+  "shortcut.target_missing_hint": "⚠ 이 파일 또는 명령을 찾을 수 없습니다"
 }

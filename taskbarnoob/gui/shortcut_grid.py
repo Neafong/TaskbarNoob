@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QPoint, QRect, QSize, Qt, Signal
-from PySide6.QtGui import QColor, QPainter, QPalette, QPen
+from PySide6.QtGui import QColor, QFont, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -13,9 +13,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+BROKEN_ROLE = Qt.UserRole + 10
+
 
 class _DropHighlightDelegate(QStyledItemDelegate):
-    """วาดไฮไลท์ทับช่องกริดเป้าหมายตอนลาก (ให้ตรงกับตำแหน่งที่จะวางจริง)."""
+    """วาดไฮไลท์ทับช่องกริดเป้าหมายตอนลาก และ badge เตือนเมื่อไฟล์ปลายทางหาย."""
 
     def __init__(self, grid: "ShortcutGrid") -> None:
         super().__init__(grid)
@@ -38,6 +40,26 @@ class _DropHighlightDelegate(QStyledItemDelegate):
             painter.drawRoundedRect(cell.adjusted(2, 2, -2, -2), 10, 10)
             painter.restore()
         super().paint(painter, option, index)
+        if index.data(BROKEN_ROLE):
+            painter.save()
+            painter.setRenderHint(QPainter.Antialiasing, True)
+            size = 18
+            badge = QRect(
+                option.rect.right() - size - 12,
+                option.rect.top() + 4,
+                size,
+                size,
+            )
+            painter.setBrush(QColor("#e67e22"))
+            painter.setPen(QPen(QColor("#ffffff"), 1.5))
+            painter.drawEllipse(badge)
+            font = QFont(painter.font())
+            font.setBold(True)
+            font.setPixelSize(12)
+            painter.setFont(font)
+            painter.setPen(QColor("#ffffff"))
+            painter.drawText(badge, Qt.AlignCenter, "!")
+            painter.restore()
 
 
 class ShortcutGrid(QListWidget):

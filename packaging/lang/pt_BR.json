@@ -182,5 +182,7 @@
   "tray.settings": "Configurações...",
   "tray.quit": "Sair",
   "tray.tooltip": "TaskbarNoob — Clique para abrir a janela principal",
-  "editor.redetect_icon": "Detectar ícone novamente"
+  "editor.redetect_icon": "Detectar ícone novamente",
+  "editor.broken_target_tip": "Arquivo de destino não encontrado (pode ter sido movido ou excluído)",
+  "shortcut.target_missing_hint": "⚠ Arquivo ou comando não encontrado"
 }

@@ -182,5 +182,7 @@
   "tray.settings": "Paramètres...",
   "tray.quit": "Quitter",
   "tray.tooltip": "TaskbarNoob — Cliquer pour ouvrir la fenêtre principale",
-  "editor.redetect_icon": "Redétecter l'icône"
+  "editor.redetect_icon": "Redétecter l'icône",
+  "editor.broken_target_tip": "Fichier cible introuvable (peut-être déplacé ou supprimé)",
+  "shortcut.target_missing_hint": "⚠ Fichier ou commande introuvable"
 }

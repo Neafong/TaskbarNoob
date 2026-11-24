@@ -182,5 +182,7 @@
   "tray.settings": "設定...",
   "tray.quit": "終了",
   "tray.tooltip": "TaskbarNoob — クリックしてメインウィンドウを開く",
-  "editor.redetect_icon": "アイコンを再検出"
+  "editor.redetect_icon": "アイコンを再検出",
+  "editor.broken_target_tip": "ターゲットファイルが見つかりません（移動または削除された可能性があります）",
+  "shortcut.target_missing_hint": "⚠ このファイルまたはコマンドが見つかりません"
 }
