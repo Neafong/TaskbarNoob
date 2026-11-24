@@ -114,7 +114,7 @@ class AppPickerDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(tr("app_picker.title"))
         self.resize(480, 460)
-        self._path: str | None = None
+        self._paths: list[str] = []
         self._cache_dir = cache_dir
         self._desktop_dirs = desktop_dirs
         self._entries: list[tuple[str, str, QIcon]] = []
@@ -127,7 +127,7 @@ class AppPickerDialog(QDialog):
 
         self.list_widget = QListWidget()
         self.list_widget.setIconSize(QSize(28, 28))
-        self.list_widget.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.list_widget.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.list_widget.itemDoubleClicked.connect(lambda _item: self.accept())
         self.list_widget.itemActivated.connect(lambda _item: self.accept())
         layout.addWidget(self.list_widget, 1)
@@ -146,7 +146,10 @@ class AppPickerDialog(QDialog):
         self._apply_filter("")
 
     def selected_path(self) -> str | None:
-        return self._path
+        return self._paths[0] if self._paths else None
+
+    def selected_paths(self) -> list[str]:
+        return list(self._paths)
 
     def _effective_cache_dir(self) -> Path:
         if self._cache_dir is not None:
@@ -154,8 +157,13 @@ class AppPickerDialog(QDialog):
         return Path(tempfile.gettempdir()) / _PROVIDER_ICON_CACHE_DIRNAME
 
     def done(self, result: int) -> None:
-        if result == QDialog.Accepted and self.list_widget.currentItem() is not None:
-            self._path = self.list_widget.currentItem().data(Qt.UserRole)
+        if result == QDialog.Accepted:
+            items = self.list_widget.selectedItems()
+            if not items and self.list_widget.currentItem() is not None:
+                items = [self.list_widget.currentItem()]
+            self._paths = [
+                path for item in items if (path := item.data(Qt.UserRole))
+            ]
         super().done(result)
 
     def _scan(self) -> None:

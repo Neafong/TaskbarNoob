@@ -421,6 +421,73 @@ class WindowsProviderIconTests(unittest.TestCase):
         self.assertEqual(editor.pending_icons().get(id(sc)), str(fresh))
         editor.close()
 
+    def test_app_picker_multi_select_returns_all_selected_paths(self) -> None:
+        from PySide6.QtWidgets import QAbstractItemView
+
+        from taskbarnoob.gui.app_picker import AppPickerDialog
+
+        apps_dir = Path(self._tmp.name) / "apps"
+        apps_dir.mkdir()
+        for name in ("Alpha", "Beta", "Gamma"):
+            (apps_dir / f"{name.lower()}.desktop").write_text(
+                f"[Desktop Entry]\nType=Application\nName={name}\nExec=/bin/true\n",
+                encoding="utf-8",
+            )
+
+        dialog = AppPickerDialog(desktop_dirs=[apps_dir])
+        self.assertEqual(
+            dialog.list_widget.selectionMode(), QAbstractItemView.ExtendedSelection
+        )
+        self.assertEqual(dialog.list_widget.count(), 3)
+        dialog.list_widget.item(0).setSelected(True)
+        dialog.list_widget.item(2).setSelected(True)
+        dialog.accept()
+
+        paths = dialog.selected_paths()
+        self.assertEqual(len(paths), 2)
+        self.assertEqual(
+            [Path(p).name for p in paths], ["alpha.desktop", "gamma.desktop"]
+        )
+        self.assertEqual(dialog.selected_path(), paths[0])
+        dialog.close()
+
+    def test_add_from_apps_adds_multiple_shortcuts(self) -> None:
+        from unittest import mock
+
+        from PySide6.QtWidgets import QDialog
+
+        from taskbarnoob.core.models import Group
+        from taskbarnoob.core.storage import ConfigStore
+        from taskbarnoob.gui import group_editor
+
+        apps_dir = Path(self._tmp.name) / "apps"
+        apps_dir.mkdir()
+        d1 = apps_dir / "one.desktop"
+        d2 = apps_dir / "two.desktop"
+        d1.write_text(
+            "[Desktop Entry]\nType=Application\nName=One\nExec=/bin/true\n",
+            encoding="utf-8",
+        )
+        d2.write_text(
+            "[Desktop Entry]\nType=Application\nName=Two\nExec=/bin/true\n",
+            encoding="utf-8",
+        )
+
+        store = ConfigStore(self._tmp.name)
+        editor = group_editor.GroupEditor(store, group=Group(name="Apps"))
+
+        fake_dialog = mock.MagicMock()
+        fake_dialog.exec.return_value = QDialog.Accepted
+        fake_dialog.selected_paths.return_value = [str(d1), str(d2)]
+
+        with mock.patch.object(
+            group_editor, "AppPickerDialog", return_value=fake_dialog
+        ):
+            editor._add_from_apps()
+
+        self.assertEqual([item.name for item in editor._group.items], ["One", "Two"])
+        editor.close()
+
     @unittest.skipUnless(sys.platform == "win32", "ต้องรันบน Windows")
     def test_extract_os_icon_png_real_exe_is_high_res(self) -> None:
         """shell API ต้องได้ความละเอียดสูง (>=128px) — QFileIconProvider เดิมได้แค่ 128 แล้ว."""

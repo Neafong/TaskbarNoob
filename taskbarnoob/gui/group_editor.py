@@ -530,8 +530,10 @@ class GroupEditor(QDialog):
         try:
             cache_dir = self.store.cache_dir() / _PROVIDER_ICON_CACHE_DIRNAME
             dialog = AppPickerDialog(self, cache_dir=cache_dir)
-            if dialog.exec() == QDialog.Accepted and dialog.selected_path():
-                self._on_urls_dropped([QUrl.fromLocalFile(dialog.selected_path())])
+            if dialog.exec() == QDialog.Accepted and dialog.selected_paths():
+                self._on_urls_dropped(
+                    [QUrl.fromLocalFile(p) for p in dialog.selected_paths()]
+                )
         except Exception as exc:
             print(f"_add_from_apps error: {exc}", file=sys.stderr)
 
