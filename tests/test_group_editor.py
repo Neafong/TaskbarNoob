@@ -422,9 +422,11 @@ class WindowsProviderIconTests(unittest.TestCase):
         editor.close()
 
     def test_app_picker_multi_select_returns_all_selected_paths(self) -> None:
+        from unittest import mock
+
         from PySide6.QtWidgets import QAbstractItemView
 
-        from taskbarnoob.gui.app_picker import AppPickerDialog
+        from taskbarnoob.gui import app_picker
 
         apps_dir = Path(self._tmp.name) / "apps"
         apps_dir.mkdir()
@@ -434,7 +436,8 @@ class WindowsProviderIconTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-        dialog = AppPickerDialog(desktop_dirs=[apps_dir])
+        with mock.patch.object(app_picker.sys, "platform", "linux"):
+            dialog = app_picker.AppPickerDialog(desktop_dirs=[apps_dir])
         self.assertEqual(
             dialog.list_widget.selectionMode(), QAbstractItemView.ExtendedSelection
         )

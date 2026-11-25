@@ -5,6 +5,7 @@
 #   - dist\TaskbarNoob-<ver>-win64-portable.zip      (ไฟล์ซิปสำหรับอัปขึ้น GitHub Release)
 
 $ErrorActionPreference = "Stop"
+$ProgressPreference = "SilentlyContinue"
 $ROOT = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $PY = Join-Path $ROOT ".venv-win\Scripts\python.exe"
 $APP_ID = "taskbarnoob"
